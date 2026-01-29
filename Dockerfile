@@ -2,15 +2,20 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm install
 
-# Copy app
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source
 COPY . .
 
-# Runtime
-ENV NODE_ENV=production
-EXPOSE 3000
+# Build TypeScript
+RUN npm run build
 
+# Environment
+ENV NODE_ENV=production
+
+# Start
 CMD ["npm", "start"]
