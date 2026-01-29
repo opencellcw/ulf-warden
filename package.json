@@ -1,0 +1,12 @@
+{
+  "name": "ulfberht-warden",
+  "version": "1.0.0",
+  "description": "Ulfberht-Warden - AI assistant on Slack",
+  "scripts": {
+    "start": "clawdbot gateway start --foreground",
+    "dev": "clawdbot gateway start"
+  },
+  "dependencies": {
+    "clawdbot": "latest"
+  }
+}
