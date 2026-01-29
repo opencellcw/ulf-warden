@@ -26,7 +26,7 @@
 
 As espadas **ULFBERHT** eram forjadas com aço crucible de qualidade excepcional, séculos à frente de seu tempo. Apenas os melhores ferreiros vikings sabiam temperar o metal com perfeição.
 
-Da mesma forma, **Ulfberht-Warden** é um assistente AI temperado para:
+Da mesma forma, **Ulf** (Ulfberht-Warden) é um assistente AI temperado para:
 - Cortar direto ao ponto, sem enrolação
 - Manter a precisão técnica em respostas
 - Adicionar sarcasmo quando apropriado
@@ -70,6 +70,8 @@ Typing indicators
 </table>
 
 Configure apenas as plataformas que você quer. Uma, duas ou todas.
+
+**Menção:** Use `@Ulf` em todas as plataformas.
 
 👉 **[Guia completo de configuração](PLATFORMS.md)**
 
@@ -119,7 +121,7 @@ npm start
 
 Deve aparecer:
 ```
-⚔️  ULFBERHT-WARDEN
+⚔️  ULF (ULFBERHT-WARDEN)
 ============================================================
 ✓ Slack handler started
 Status: ONLINE (1 platform)
