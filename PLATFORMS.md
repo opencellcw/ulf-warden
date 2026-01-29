@@ -11,7 +11,7 @@ Configure apenas as plataformas que você quer usar. Você pode habilitar 1, 2 o
 ### 1. Criar Slack App
 
 1. https://api.slack.com/apps → **Create New App**
-2. **From scratch** → Nome: `Ulfberht-Warden`
+2. **From scratch** → Nome: `Ulf` ou `Ulfberht-Warden`
 
 ### 2. Configurar Permissões
 
@@ -94,8 +94,8 @@ users:read
 1. Abrir Telegram e conversar com [@BotFather](https://t.me/botfather)
 2. Enviar `/newbot`
 3. Seguir instruções:
-   - Nome do bot: `Ulfberht Warden`
-   - Username: `ulfberht_warden_bot` (precisa terminar com `_bot`)
+   - Nome do bot: `Ulf`
+   - Username: `ulf_warden_bot` (precisa terminar com `_bot`)
 
 ### 2. Pegar Token
 
@@ -105,7 +105,7 @@ BotFather vai te dar um token → `TELEGRAM_BOT_TOKEN`
 
 ```
 /setdescription - Assistente AI forjado com precisão
-/setabouttext - Ulfberht-Warden, powered by Claude
+/setabouttext - Ulf (Ulfberht-Warden), powered by Claude
 /setuserpic - Enviar foto do bot
 ```
 
