@@ -133,9 +133,9 @@ Model: claude-sonnet-4-20250514
 
 ## 🚀 Deploy
 
-### Render.com (Recomendado)
+### Render.com
 
-**Mais simples e confiável:**
+**Simples, confiável e com free tier:**
 
 1. Fork este repo
 2. https://render.com → New Web Service
@@ -143,19 +143,11 @@ Model: claude-sonnet-4-20250514
 4. Adicionar env vars
 5. Deploy
 
-**Custo:** $7/mês (Starter) ou Free tier com limitações
+**Custo:**
+- **Free tier:** $0/mês (com limitações)
+- **Starter:** $7/mês (recomendado)
 
-👉 **[Guia detalhado de deploy no Render](RENDER_SETUP.md)**
-
-### Railway (Alternativa)
-
-```bash
-railway login
-railway init
-railway up
-```
-
-👉 **[Guia de deploy no Railway](RAILWAY_SETUP.md)**
+👉 **[Guia completo de deploy](RENDER_SETUP.md)**
 
 ### Docker
 
@@ -287,10 +279,9 @@ Cada plataforma mantém conversas separadas.
 
 ## 📊 Custos Estimados
 
-**Hospedagem:**
-- Render Starter: $7/mês
-- Railway: ~$5-10/mês
-- Fly.io: ~$3-8/mês
+**Hospedagem (Render):**
+- Free tier: $0/mês (com limitações)
+- Starter: $7/mês (recomendado)
 
 **Anthropic API:**
 - Input: $3 / 1M tokens
@@ -307,11 +298,8 @@ Cada plataforma mantém conversas separadas.
 
 **Verificar logs:**
 ```bash
-# Render
-Ver Logs tab no dashboard
-
-# Local
-npm start
+# Render: Logs tab no dashboard
+# Local: npm start
 ```
 
 **Variáveis de ambiente:**

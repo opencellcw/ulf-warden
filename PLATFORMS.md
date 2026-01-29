@@ -122,7 +122,7 @@ BotFather vai te dar um token → `TELEGRAM_BOT_TOKEN`
 
 ### Variáveis de Ambiente
 
-Adicione no `.env` ou Railway:
+Adicione no `.env` (local) ou Render (deploy):
 
 ```env
 # Obrigatório
@@ -198,13 +198,13 @@ Mesmo usuário em plataformas diferentes = conversas separadas.
 
 ## 🚀 Deploy
 
-### Railway
+### Render
 
-Adicionar todas as env vars no Railway dashboard e o bot vai iniciar todas as plataformas configuradas automaticamente.
+Adicionar todas as env vars no Render dashboard e o bot vai iniciar todas as plataformas configuradas automaticamente.
 
 ### Logs
 
-Railway mostrará:
+Render mostrará:
 ```
 ⚔️  ULFBERHT-WARDEN
 ✓ Slack handler started
@@ -238,23 +238,20 @@ Status: ONLINE (3 platforms)
 ### Ver logs detalhados
 
 ```bash
-# No Railway
-railway logs
-
-# Local
-npm run dev
+# No Render: Logs tab no dashboard
+# Local: npm run dev
 ```
 
 ---
 
 ## 📊 Custos
 
-**Railway:**
-- 1 plataforma: ~$1-2/mês
-- 3 plataformas: ~$2-3/mês
+**Render:**
+- Free tier: $0/mês (com limitações)
+- Starter: $7/mês (recomendado)
 
 **Anthropic API:**
 - ~$0.01 por conversa longa
 - ~$3-5/mês uso pessoal moderado
 
-**Total estimado: $5-8/mês** para todas as plataformas.
+**Total estimado: $10-15/mês** (Render Starter + API).
