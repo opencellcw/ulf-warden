@@ -48,6 +48,59 @@ export class WorkspaceLoader {
     console.log('[Workspace] Reloading workspace files...');
     this.load();
   }
+
+  async updateMemory(newContent: string): Promise<void> {
+    try {
+      const memoryPath = path.join(this.workspacePath, 'MEMORY.md');
+
+      // Read current memory
+      const current = this.memory;
+
+      // Append new content
+      const updated = current ? `${current}\n\n${newContent}` : newContent;
+
+      // Write back to disk
+      fs.writeFileSync(memoryPath, updated, 'utf-8');
+
+      // Reload in-memory
+      this.memory = updated;
+
+      console.log('[Workspace] ✓ Updated MEMORY.md');
+    } catch (error) {
+      console.error('[Workspace] Failed to update memory:', error);
+      throw error;
+    }
+  }
+
+  async commitToGit(message: string): Promise<void> {
+    try {
+      // This is optional - only commit if git is available and repo exists
+      const { execSync } = require('child_process');
+
+      // Check if we're in a git repo
+      try {
+        execSync('git rev-parse --is-inside-work-tree', { cwd: this.workspacePath, stdio: 'ignore' });
+      } catch {
+        // Not a git repo, skip
+        return;
+      }
+
+      // Add and commit
+      execSync(`git add ${path.join(this.workspacePath, 'MEMORY.md')}`, { cwd: this.workspacePath });
+      execSync(`git commit -m "chore: update memory - ${message}"`, { cwd: this.workspacePath });
+
+      console.log('[Workspace] ✓ Committed changes to git');
+    } catch (error) {
+      // Silent fail - git operations are optional
+      console.warn('[Workspace] Git commit skipped:', error);
+    }
+  }
+
+  async saveState(): Promise<void> {
+    console.log('[Workspace] Saving workspace state...');
+    // Currently no state to save beyond what's already in files
+    // This method exists for future expansion
+  }
 }
 
 export const workspace = new WorkspaceLoader();

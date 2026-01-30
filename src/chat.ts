@@ -1,12 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { workspace } from './workspace';
+import { getRouter, toLLMMessages } from './llm';
+import { log } from './logger';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-const MODEL = 'claude-sonnet-4-20250514';
+// Router will intelligently choose between Claude and local model
+const router = getRouter();
 
 export interface ChatOptions {
   userId: string;
@@ -20,6 +18,7 @@ export async function chat(options: ChatOptions): Promise<string> {
   try {
     const systemPrompt = workspace.getSystemPrompt();
 
+    // Build message history
     const messages: MessageParam[] = [
       ...history,
       {
@@ -28,25 +27,31 @@ export async function chat(options: ChatOptions): Promise<string> {
       },
     ];
 
-    console.log(`[Chat] User ${userId}: ${userMessage.substring(0, 50)}...`);
-
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages,
+    log.info('[Chat] Processing message', {
+      userId,
+      preview: userMessage.substring(0, 50)
     });
 
-    const assistantMessage = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as any).text)
-      .join('');
+    // Convert to LLM format
+    const llmMessages = toLLMMessages(messages);
 
-    console.log(`[Chat] Warden: ${assistantMessage.substring(0, 50)}...`);
+    // Use router for intelligent model selection
+    const response = await router.generate(llmMessages, {
+      maxTokens: 4096,
+      systemPrompt,
+      temperature: 0.7
+    });
 
-    return assistantMessage;
+    log.info('[Chat] Response generated', {
+      userId,
+      model: response.model,
+      preview: response.content.substring(0, 50),
+      processingTime: response.processingTime
+    });
+
+    return response.content;
   } catch (error) {
-    console.error('[Chat] Error:', error);
+    log.error('[Chat] Error generating response', { error });
     throw error;
   }
 }

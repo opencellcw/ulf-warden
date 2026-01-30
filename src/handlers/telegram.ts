@@ -24,7 +24,7 @@ export async function startTelegramHandler() {
       // Show typing indicator
       await ctx.sendChatAction('typing');
 
-      const history = sessionManager.getHistory(userId);
+      const history = await sessionManager.getHistory(userId);
 
       const response = await chat({
         userId,
@@ -32,8 +32,8 @@ export async function startTelegramHandler() {
         history,
       });
 
-      sessionManager.addMessage(userId, { role: 'user', content: text });
-      sessionManager.addMessage(userId, { role: 'assistant', content: response });
+      await sessionManager.addMessage(userId, { role: 'user', content: text });
+      await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
       // Telegram limit: 4096 chars
       if (response.length <= 4096) {
@@ -58,7 +58,7 @@ export async function startTelegramHandler() {
   // Handle /clear command to reset conversation
   bot.command('clear', async (ctx) => {
     const userId = `telegram_${ctx.from.id}`;
-    sessionManager.clear(userId);
+    await sessionManager.clear(userId);
     await ctx.reply('Histórico limpo. Começando conversa nova.');
   });
 

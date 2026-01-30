@@ -1,6 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { GITHUB_TOOLS } from './github';
+import { WEB_TOOLS } from './web';
+import { FILE_TOOLS } from './files';
+import { PROCESS_TOOLS } from './process';
 
-export const TOOLS: Anthropic.Tool[] = [
+const BASE_TOOLS: Anthropic.Tool[] = [
   {
     name: 'execute_shell',
     description: `Execute a shell command in the system. Use this to run commands like installing packages, starting servers, checking system status, etc.
@@ -103,4 +107,13 @@ Shows top 20 processes sorted by memory usage.`,
       required: []
     }
   }
+];
+
+// Combine all tools
+export const TOOLS: Anthropic.Tool[] = [
+  ...BASE_TOOLS,
+  ...GITHUB_TOOLS,
+  ...WEB_TOOLS,
+  ...FILE_TOOLS,
+  ...PROCESS_TOOLS
 ];

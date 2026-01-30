@@ -2,12 +2,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { workspace } from './workspace';
 import { TOOLS, executeTool } from './tools';
+import { getRouter } from './llm';
+import { log } from './logger';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Agent always uses Claude API because tools require advanced capabilities
+// Local models don't support function calling yet
+const router = getRouter();
+const claudeProvider = router.getClaudeProvider() as any;
+const client = claudeProvider.getClient();
 
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 const MAX_ITERATIONS = 10; // Prevent infinite loops
 
 export interface AgentOptions {
@@ -19,7 +23,7 @@ export interface AgentOptions {
 export async function runAgent(options: AgentOptions): Promise<string> {
   const { userId, userMessage, history } = options;
 
-  console.log(`[Agent] Starting for user ${userId}`);
+  log.info('[Agent] Starting agent with tool support', { userId });
 
   const systemPrompt = workspace.getSystemPrompt() + `
 
@@ -97,7 +101,7 @@ When user asks to create/deploy something:
       if (block.type === 'tool_use') {
         console.log(`[Agent] Executing tool: ${block.name}`);
 
-        const result = await executeTool(block.name, block.input);
+        const result = await executeTool(block.name, block.input, userId);
 
         (toolResults.content as any[]).push({
           type: 'tool_result',
@@ -130,8 +134,8 @@ When user asks to create/deploy something:
 
   // Extract final text response
   const finalMessage = response.content
-    .filter((block) => block.type === 'text')
-    .map((block) => (block as any).text)
+    .filter((block: any) => block.type === 'text')
+    .map((block: any) => (block as any).text)
     .join('\n\n');
 
   console.log(`[Agent] Completed after ${iteration} iterations`);

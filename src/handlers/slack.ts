@@ -42,7 +42,7 @@ export async function startSlackHandler() {
 
       console.log(`[Slack] Message from ${userId}: ${text.substring(0, 50)}...`);
 
-      const history = sessionManager.getHistory(userId);
+      const history = await sessionManager.getHistory(userId);
 
       // Choose between agent (with tools) or regular chat
       const useAgent = needsAgent(text);
@@ -63,8 +63,8 @@ export async function startSlackHandler() {
         });
       }
 
-      sessionManager.addMessage(userId, { role: 'user', content: text });
-      sessionManager.addMessage(userId, { role: 'assistant', content: response });
+      await sessionManager.addMessage(userId, { role: 'user', content: text });
+      await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
       await say(response);
     } catch (error) {
@@ -86,7 +86,7 @@ export async function startSlackHandler() {
 
       console.log(`[Slack] Mention from ${userId}: ${text.substring(0, 50)}...`);
 
-      const history = sessionManager.getHistory(userId);
+      const history = await sessionManager.getHistory(userId);
 
       // Choose between agent (with tools) or regular chat
       const useAgent = needsAgent(text);
@@ -107,8 +107,8 @@ export async function startSlackHandler() {
         });
       }
 
-      sessionManager.addMessage(userId, { role: 'user', content: text });
-      sessionManager.addMessage(userId, { role: 'assistant', content: response });
+      await sessionManager.addMessage(userId, { role: 'user', content: text });
+      await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
       await say(response);
     } catch (error) {

@@ -1,7 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TOOLS = void 0;
-exports.TOOLS = [
+const github_1 = require("./github");
+const web_1 = require("./web");
+const files_1 = require("./files");
+const process_1 = require("./process");
+const BASE_TOOLS = [
     {
         name: 'execute_shell',
         description: `Execute a shell command in the system. Use this to run commands like installing packages, starting servers, checking system status, etc.
@@ -104,4 +108,12 @@ Shows top 20 processes sorted by memory usage.`,
             required: []
         }
     }
+];
+// Combine all tools
+exports.TOOLS = [
+    ...BASE_TOOLS,
+    ...github_1.GITHUB_TOOLS,
+    ...web_1.WEB_TOOLS,
+    ...files_1.FILE_TOOLS,
+    ...process_1.PROCESS_TOOLS
 ];

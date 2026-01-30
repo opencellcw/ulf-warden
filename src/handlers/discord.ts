@@ -52,7 +52,7 @@ export async function startDiscordHandler() {
         await message.channel.sendTyping();
       }
 
-      const history = sessionManager.getHistory(userId);
+      const history = await sessionManager.getHistory(userId);
 
       const response = await chat({
         userId,
@@ -60,8 +60,8 @@ export async function startDiscordHandler() {
         history,
       });
 
-      sessionManager.addMessage(userId, { role: 'user', content: text });
-      sessionManager.addMessage(userId, { role: 'assistant', content: response });
+      await sessionManager.addMessage(userId, { role: 'user', content: text });
+      await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
       // Split long messages (Discord limit: 2000 chars)
       if (response.length <= 2000) {

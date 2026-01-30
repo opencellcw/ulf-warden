@@ -38,7 +38,7 @@ async function startSlackHandler() {
             if (!text)
                 return;
             console.log(`[Slack] Message from ${userId}: ${text.substring(0, 50)}...`);
-            const history = sessions_1.sessionManager.getHistory(userId);
+            const history = await sessions_1.sessionManager.getHistory(userId);
             // Choose between agent (with tools) or regular chat
             const useAgent = needsAgent(text);
             let response;
@@ -57,8 +57,8 @@ async function startSlackHandler() {
                     history,
                 });
             }
-            sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
-            sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
+            await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
+            await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
             await say(response);
         }
         catch (error) {
@@ -76,7 +76,7 @@ async function startSlackHandler() {
                 return;
             }
             console.log(`[Slack] Mention from ${userId}: ${text.substring(0, 50)}...`);
-            const history = sessions_1.sessionManager.getHistory(userId);
+            const history = await sessions_1.sessionManager.getHistory(userId);
             // Choose between agent (with tools) or regular chat
             const useAgent = needsAgent(text);
             let response;
@@ -95,8 +95,8 @@ async function startSlackHandler() {
                     history,
                 });
             }
-            sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
-            sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
+            await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
+            await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
             await say(response);
         }
         catch (error) {

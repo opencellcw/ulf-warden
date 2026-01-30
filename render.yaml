@@ -2,8 +2,19 @@ services:
   - type: web
     name: ulfberht-warden
     env: docker
+    plan: starter  # $7/month - includes persistent disk
     dockerfilePath: ./Dockerfile
+    disk:
+      name: ulf-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: LOGS_DIR
+        value: /data/logs
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: SLACK_BOT_TOKEN

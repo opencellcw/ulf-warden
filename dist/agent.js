@@ -1,20 +1,20 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runAgent = runAgent;
-const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const workspace_1 = require("./workspace");
 const tools_1 = require("./tools");
-const client = new sdk_1.default({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
-const MODEL = 'claude-sonnet-4-20250514';
+const llm_1 = require("./llm");
+const logger_1 = require("./logger");
+// Agent always uses Claude API because tools require advanced capabilities
+// Local models don't support function calling yet
+const router = (0, llm_1.getRouter)();
+const claudeProvider = router.getClaudeProvider();
+const client = claudeProvider.getClient();
+const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 const MAX_ITERATIONS = 10; // Prevent infinite loops
 async function runAgent(options) {
     const { userId, userMessage, history } = options;
-    console.log(`[Agent] Starting for user ${userId}`);
+    logger_1.log.info('[Agent] Starting agent with tool support', { userId });
     const systemPrompt = workspace_1.workspace.getSystemPrompt() + `
 
 # EXECUTION CAPABILITIES
@@ -85,7 +85,7 @@ When user asks to create/deploy something:
         for (const block of response.content) {
             if (block.type === 'tool_use') {
                 console.log(`[Agent] Executing tool: ${block.name}`);
-                const result = await (0, tools_1.executeTool)(block.name, block.input);
+                const result = await (0, tools_1.executeTool)(block.name, block.input, userId);
                 toolResults.content.push({
                     type: 'tool_result',
                     tool_use_id: block.id,

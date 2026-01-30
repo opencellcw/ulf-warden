@@ -8,9 +8,13 @@ const express_1 = __importDefault(require("express"));
 const slack_1 = require("./handlers/slack");
 const discord_1 = require("./handlers/discord");
 const telegram_1 = require("./handlers/telegram");
+const workspace_1 = require("./workspace");
+const persistence_1 = require("./persistence");
+const sessions_1 = require("./sessions");
+const logger_1 = require("./logger");
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌ Missing required environment variable: ANTHROPIC_API_KEY');
+    logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
     process.exit(1);
 }
 console.log('');
@@ -36,9 +40,25 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
-// Start all enabled handlers
-(async () => {
+// Initialize and start all handlers
+async function initialize() {
     try {
+        logger_1.log.info('Starting Ulfberht-Warden...');
+        // 1. Initialize persistence layer
+        logger_1.log.info('Initializing persistence layer...');
+        await persistence_1.persistence.init();
+        // 2. Initialize session manager (loads sessions from database)
+        logger_1.log.info('Initializing session manager...');
+        await sessions_1.sessionManager.init();
+        // 3. Check for incomplete tool executions (crash recovery)
+        const incompleteTools = await persistence_1.persistence.getIncompleteToolExecutions();
+        if (incompleteTools.length > 0) {
+            logger_1.log.warn(`Found ${incompleteTools.length} incomplete tool executions from previous session`, {
+                count: incompleteTools.length
+            });
+        }
+        // 4. Start platform handlers
+        logger_1.log.info('Starting platform handlers...');
         // Start Slack
         handlers.slack = await (0, slack_1.startSlackHandler)();
         // Start Discord
@@ -48,7 +68,7 @@ app.get('/health', (req, res) => {
         // Check if at least one handler is running
         const activeHandlers = Object.values(handlers).filter(Boolean).length;
         if (activeHandlers === 0) {
-            console.error('❌ No platform tokens configured!');
+            logger_1.log.error('No platform tokens configured!');
             console.error('');
             console.error('Configure at least one platform:');
             console.error('  - SLACK_BOT_TOKEN + SLACK_APP_TOKEN');
@@ -62,27 +82,68 @@ app.get('/health', (req, res) => {
         console.log('Model: claude-sonnet-4-20250514');
         console.log('='.repeat(60));
         console.log('');
+        logger_1.log.info(`System online with ${activeHandlers} platform(s)`, {
+            platforms: {
+                slack: !!handlers.slack,
+                discord: !!handlers.discord,
+                telegram: !!handlers.telegram
+            }
+        });
         // Start HTTP server after handlers are ready
         app.listen(PORT, () => {
-            console.log(`HTTP server listening on port ${PORT}`);
+            logger_1.log.info(`HTTP server listening on port ${PORT}`);
         });
     }
     catch (error) {
-        console.error('❌ Failed to start:', error);
+        logger_1.log.error('Failed to start', { error });
         process.exit(1);
     }
-})();
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-    console.log('[Server] SIGTERM received, shutting down...');
-    if (handlers.slack) {
-        await handlers.slack.stop();
+}
+// Start initialization
+initialize();
+// Graceful shutdown handler
+async function gracefulShutdown(signal) {
+    logger_1.log.info(`${signal} received, shutting down gracefully...`);
+    try {
+        // 1. Stop accepting new requests
+        logger_1.log.info('Stopping platform handlers...');
+        if (handlers.slack) {
+            await handlers.slack.stop();
+            logger_1.log.info('Slack handler stopped');
+        }
+        if (handlers.discord) {
+            handlers.discord.destroy();
+            logger_1.log.info('Discord handler stopped');
+        }
+        if (handlers.telegram) {
+            handlers.telegram.stop();
+            logger_1.log.info('Telegram handler stopped');
+        }
+        // 2. Flush all sessions to database
+        logger_1.log.info('Flushing sessions to database...');
+        await sessions_1.sessionManager.flushAll();
+        // 3. Save workspace state
+        logger_1.log.info('Saving workspace state...');
+        await workspace_1.workspace.saveState();
+        // 4. Close database connections
+        logger_1.log.info('Closing database connections...');
+        await persistence_1.persistence.close();
+        logger_1.log.info('Shutdown complete');
+        process.exit(0);
     }
-    if (handlers.discord) {
-        handlers.discord.destroy();
+    catch (error) {
+        logger_1.log.error('Error during shutdown', { error });
+        process.exit(1);
     }
-    if (handlers.telegram) {
-        handlers.telegram.stop();
-    }
-    process.exit(0);
+}
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+    logger_1.log.error('Uncaught exception', { error });
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+process.on('unhandledRejection', (reason, promise) => {
+    logger_1.log.error('Unhandled rejection', { reason, promise });
 });
