@@ -63,11 +63,35 @@ async function initialize() {
         // 4. Start platform handlers
         logger_1.log.info('Starting platform handlers...');
         // Start Slack
-        handlers.slack = await (0, slack_1.startSlackHandler)();
+        try {
+            handlers.slack = await (0, slack_1.startSlackHandler)();
+        }
+        catch (error) {
+            logger_1.log.error('Failed to start Slack handler', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
         // Start Discord
-        handlers.discord = await (0, discord_1.startDiscordHandler)();
+        try {
+            handlers.discord = await (0, discord_1.startDiscordHandler)();
+        }
+        catch (error) {
+            logger_1.log.error('Failed to start Discord handler', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
         // Start Telegram
-        handlers.telegram = await (0, telegram_1.startTelegramHandler)();
+        try {
+            handlers.telegram = await (0, telegram_1.startTelegramHandler)();
+        }
+        catch (error) {
+            logger_1.log.error('Failed to start Telegram handler', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
         // Check if at least one handler is running
         const activeHandlers = Object.values(handlers).filter(Boolean).length;
         if (activeHandlers === 0) {
@@ -117,7 +141,11 @@ async function initialize() {
         });
     }
     catch (error) {
-        logger_1.log.error('Failed to start', { error });
+        logger_1.log.error('Failed to start', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        console.error('Startup error:', error);
         process.exit(1);
     }
 }
