@@ -1,34 +1,46 @@
 import { LLMProvider, LLMMessage, LLMResponse, LLMOptions, TaskType, ModelStrategy } from './interface';
 import { getClaudeProvider } from './claude';
 import { getLocalProvider } from './local';
+import { getOllamaProvider } from './ollama';
 import { log } from '../logger';
 import { config } from '../config';
 
 /**
- * Intelligent router between Claude API and local model
+ * Intelligent router between Claude API, local model, and Ollama
  *
  * Routing strategies:
  * 1. CLAUDE_ONLY - Always use Claude (default)
- * 2. LOCAL_ONLY - Always use local model
+ * 2. LOCAL_ONLY - Always use local model (or Ollama if enabled)
  * 3. HYBRID - Route based on task complexity
- * 4. LOCAL_FALLBACK - Try local first, fallback to Claude
+ * 4. LOCAL_FALLBACK - Try local/Ollama first, fallback to Claude
  */
 export class LLMRouter {
   private claudeProvider: LLMProvider;
   private localProvider: LLMProvider;
+  private ollamaProvider: LLMProvider;
   private strategy: ModelStrategy;
   private localAvailable: boolean = false;
+  private ollamaAvailable: boolean = false;
 
   constructor() {
     this.claudeProvider = getClaudeProvider();
     this.localProvider = getLocalProvider();
+    this.ollamaProvider = getOllamaProvider();
 
     // Get strategy from config
     const strategyStr = process.env.LLM_STRATEGY || config.get('LLM_STRATEGY', 'claude_only');
     this.strategy = this.parseStrategy(strategyStr);
 
-    // Check local availability
+    // Check availability
     this.checkLocalAvailability();
+    this.checkOllamaAvailability();
+  }
+
+  private async checkOllamaAvailability(): Promise<void> {
+    this.ollamaAvailable = await this.ollamaProvider.isAvailable();
+    log.info('[Router] Ollama availability checked', {
+      available: this.ollamaAvailable
+    });
   }
 
   private parseStrategy(str: string): ModelStrategy {
@@ -140,22 +152,32 @@ export class LLMRouter {
         return this.claudeProvider;
 
       case ModelStrategy.LOCAL_ONLY:
-        if (!this.localAvailable) {
-          log.warn('[Router] Local model not available, falling back to Claude');
-          return this.claudeProvider;
+        // Prefer Ollama if available, then transformers.js
+        if (this.ollamaAvailable) {
+          log.info('[Router] Using Ollama (strategy: local_only)');
+          return this.ollamaProvider;
         }
-        log.info('[Router] Using local model (strategy: local_only)');
-        return this.localProvider;
+        if (this.localAvailable) {
+          log.info('[Router] Using local model (strategy: local_only)');
+          return this.localProvider;
+        }
+        log.warn('[Router] No local model available, falling back to Claude');
+        return this.claudeProvider;
 
       case ModelStrategy.HYBRID:
         return this.selectProviderHybrid(taskType);
 
       case ModelStrategy.LOCAL_FALLBACK:
+        // Prefer Ollama, then transformers.js, then Claude
+        if (this.ollamaAvailable) {
+          log.info('[Router] Using Ollama (strategy: local_fallback)');
+          return this.ollamaProvider;
+        }
         if (this.localAvailable) {
           log.info('[Router] Using local model (strategy: local_fallback)');
           return this.localProvider;
         }
-        log.info('[Router] Using Claude (local not available)');
+        log.info('[Router] Using Claude (no local model available)');
         return this.claudeProvider;
 
       default:
@@ -165,6 +187,7 @@ export class LLMRouter {
 
   /**
    * Hybrid strategy: route based on task complexity
+   * Priority: Ollama > Local (transformers.js) > Claude
    */
   private selectProviderHybrid(taskType: TaskType): LLMProvider {
     // Simple tasks can use local model if available
@@ -174,9 +197,17 @@ export class LLMRouter {
       TaskType.SUMMARIZATION
     ];
 
-    if (simpleTasksForLocal.includes(taskType) && this.localAvailable) {
-      log.info('[Router] Using local model (hybrid: simple task)', { taskType });
-      return this.localProvider;
+    if (simpleTasksForLocal.includes(taskType)) {
+      // Prefer Ollama for simple tasks (better quality + uncensored)
+      if (this.ollamaAvailable) {
+        log.info('[Router] Using Ollama (hybrid: simple task)', { taskType });
+        return this.ollamaProvider;
+      }
+      // Fallback to transformers.js
+      if (this.localAvailable) {
+        log.info('[Router] Using local model (hybrid: simple task)', { taskType });
+        return this.localProvider;
+      }
     }
 
     // Complex tasks use Claude
@@ -249,17 +280,19 @@ export class LLMRouter {
   }
 
   /**
-   * Get status of both providers
+   * Get status of all providers
    */
   async getStatus(): Promise<{
     claude: { available: boolean; model: string };
     local: { available: boolean; model?: string };
+    ollama: { available: boolean; model?: string };
     strategy: ModelStrategy;
   }> {
     const claudeAvailable = await this.claudeProvider.isAvailable();
 
-    // Refresh local availability
+    // Refresh availability
     await this.checkLocalAvailability();
+    await this.checkOllamaAvailability();
 
     return {
       claude: {
@@ -269,6 +302,10 @@ export class LLMRouter {
       local: {
         available: this.localAvailable,
         model: this.localAvailable ? (this.localProvider as any).getModelInfo().name : undefined
+      },
+      ollama: {
+        available: this.ollamaAvailable,
+        model: this.ollamaAvailable ? (this.ollamaProvider as any).getModelInfo().name : undefined
       },
       strategy: this.strategy
     };
@@ -286,6 +323,13 @@ export class LLMRouter {
    */
   getLocalProvider(): LLMProvider {
     return this.localProvider;
+  }
+
+  /**
+   * Get the Ollama provider for direct access
+   */
+  getOllamaProvider(): LLMProvider {
+    return this.ollamaProvider;
   }
 }
 
