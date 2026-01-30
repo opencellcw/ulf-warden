@@ -18,45 +18,52 @@ export interface MediaMetadata {
  * Extract media metadata from tool response
  */
 export function extractMediaMetadata(response: string): MediaMetadata | null {
-  // Check for image URLs
-  const imageMatch = response.match(/(?:Image URL|URL|image):\s*(https?:\/\/[^\s\n]+\.(?:jpg|jpeg|png|gif|webp))/i);
-  if (imageMatch) {
-    return {
-      type: 'image',
-      url: imageMatch[1]
-    };
-  }
+  log.info('[MediaHandler] Extracting metadata from response', {
+    responseLength: response.length,
+    preview: response.substring(0, 200)
+  });
 
-  // Check for video URLs
-  const videoMatch = response.match(/(?:Video URL|URL|video):\s*(https?:\/\/[^\s\n]+\.(?:mp4|webm|mov))/i);
-  if (videoMatch) {
-    return {
-      type: 'video',
-      url: videoMatch[1]
-    };
-  }
-
-  // Check for audio files
+  // Check for audio files (ElevenLabs format: "File: /path/to/file.mp3")
   const audioMatch = response.match(/File:\s*([^\s\n]+\.mp3)/i);
   if (audioMatch) {
+    log.info('[MediaHandler] Detected audio file', { path: audioMatch[1] });
     return {
       type: 'audio',
       filePath: audioMatch[1]
     };
   }
 
-  // Check for Replicate output format
-  const replicateMatch = response.match(/URL:\s*(https?:\/\/[^\s\n]+)/i);
-  if (replicateMatch) {
-    const url = replicateMatch[1];
-    if (url.includes('.mp4') || url.includes('.webm')) {
+  // Check for URL format (used by Replicate and OpenAI)
+  // Format: "URL: https://..."
+  const urlMatch = response.match(/URL:\s*(https?:\/\/[^\s\n]+)/i);
+  if (urlMatch) {
+    const url = urlMatch[1];
+    log.info('[MediaHandler] Detected URL', { url: url.substring(0, 100) });
+
+    // Determine type by extension or domain
+    if (url.match(/\.(mp4|webm|mov|avi)(\?|$)/i) || url.includes('video')) {
+      log.info('[MediaHandler] Identified as video');
       return { type: 'video', url };
     }
-    if (url.includes('.jpg') || url.includes('.png') || url.includes('.webp')) {
+
+    if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i) || url.includes('image') || url.includes('replicate.delivery')) {
+      log.info('[MediaHandler] Identified as image');
+      return { type: 'image', url };
+    }
+
+    if (url.match(/\.(mp3|wav|m4a|ogg)(\?|$)/i) || url.includes('audio')) {
+      log.info('[MediaHandler] Identified as audio');
+      return { type: 'audio', url };
+    }
+
+    // Default to image if from known image services
+    if (url.includes('replicate.delivery') || url.includes('oaidalleapiprodscus')) {
+      log.info('[MediaHandler] Defaulting to image (known service)');
       return { type: 'image', url };
     }
   }
 
+  log.info('[MediaHandler] No media detected in response');
   return null;
 }
 
@@ -96,51 +103,82 @@ export async function uploadMediaToSlack(
     log.info('[MediaHandler] Uploading media to Slack', {
       type: media.type,
       hasUrl: !!media.url,
-      hasFilePath: !!media.filePath
+      hasFilePath: !!media.filePath,
+      channel
     });
 
     let fileBuffer: Buffer;
     let filename: string;
+    let filetype: string;
 
     // Get file buffer
     if (media.filePath) {
       // Local file (ElevenLabs audio)
+      log.info('[MediaHandler] Reading local file', { path: media.filePath });
       fileBuffer = fs.readFileSync(media.filePath);
       filename = path.basename(media.filePath);
+      filetype = getFileType(media.filePath);
     } else if (media.url) {
       // Remote URL (Replicate, OpenAI)
-      log.info('[MediaHandler] Downloading from URL', { url: media.url });
+      log.info('[MediaHandler] Downloading from URL', { url: media.url.substring(0, 100) });
+
       const response = await axios.get(media.url, {
         responseType: 'arraybuffer',
-        timeout: 30000
+        timeout: 60000, // Increased timeout for videos
+        maxContentLength: 100 * 1024 * 1024, // 100MB max
+        headers: {
+          'User-Agent': 'Ulfberht-Warden/1.0'
+        }
       });
+
       fileBuffer = Buffer.from(response.data);
 
-      // Generate filename from URL or use default
+      // Generate filename with proper extension
       const urlParts = media.url.split('/');
-      filename = urlParts[urlParts.length - 1].split('?')[0] || `${media.type}.${getExtension(media.type)}`;
+      const urlFilename = urlParts[urlParts.length - 1].split('?')[0];
+
+      if (urlFilename && urlFilename.includes('.')) {
+        filename = urlFilename;
+      } else {
+        filename = `${media.type}_${Date.now()}.${getExtension(media.type)}`;
+      }
+
+      filetype = getFileTypeFromExtension(filename);
+
+      log.info('[MediaHandler] Downloaded file', {
+        size: `${(fileBuffer.length / 1024).toFixed(2)}KB`,
+        filename,
+        filetype
+      });
     } else {
       throw new Error('No file path or URL provided');
     }
 
     // Upload to Slack using filesUploadV2
+    log.info('[MediaHandler] Uploading to Slack', { filename, filetype, channel });
+
     const result = await app.client.files.uploadV2({
       channel_id: channel,
       file: fileBuffer,
       filename: filename,
+      filetype: filetype,
       title: media.title || `Generated ${media.type}`,
-      initial_comment: text || undefined
+      initial_comment: text || '✨ Generated content'
     });
 
     log.info('[MediaHandler] Media uploaded successfully', {
       type: media.type,
       filename,
-      size: `${(fileBuffer.length / 1024).toFixed(2)}KB`
+      filetype,
+      size: `${(fileBuffer.length / 1024).toFixed(2)}KB`,
+      ok: result.ok
     });
   } catch (error: any) {
     log.error('[MediaHandler] Failed to upload media', {
       error: error.message,
-      type: media.type
+      stack: error.stack,
+      type: media.type,
+      channel
     });
     throw error;
   }
@@ -156,4 +194,36 @@ function getExtension(type: string): string {
     case 'audio': return 'mp3';
     default: return 'bin';
   }
+}
+
+/**
+ * Get Slack filetype from file path
+ */
+function getFileType(filepath: string): string {
+  const ext = path.extname(filepath).toLowerCase();
+  return getFileTypeFromExtension(filepath);
+}
+
+/**
+ * Get Slack filetype from extension
+ */
+function getFileTypeFromExtension(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+
+  // Image types
+  if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+    return ext.substring(1); // Remove dot
+  }
+
+  // Video types
+  if (['.mp4', '.mov', '.avi', '.webm', '.mkv'].includes(ext)) {
+    return 'mp4';
+  }
+
+  // Audio types
+  if (['.mp3', '.wav', '.m4a', '.ogg', '.flac'].includes(ext)) {
+    return 'mp3';
+  }
+
+  return 'auto';
 }
