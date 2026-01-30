@@ -9,6 +9,11 @@ import { executeElevenLabsTool } from './elevenlabs';
 import { executeOpenAITool } from './openai-tools';
 import { sendSlackMessage } from './slack-messaging';
 import { scheduleTask, listScheduledTasks, cancelScheduledTask } from './scheduler';
+import {
+  proposeSelfImprovement,
+  listPendingImprovements,
+  getImprovementStats
+} from './self-improvement';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 
@@ -70,6 +75,19 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
 
       case 'cancel_scheduled_task':
         result = await cancelScheduledTask(toolInput);
+        break;
+
+      // Self-improvement tools
+      case 'propose_self_improvement':
+        result = await proposeSelfImprovement(toolInput);
+        break;
+
+      case 'list_pending_improvements':
+        result = await listPendingImprovements(toolInput);
+        break;
+
+      case 'get_improvement_stats':
+        result = await getImprovementStats(toolInput);
         break;
 
       // GitHub tools

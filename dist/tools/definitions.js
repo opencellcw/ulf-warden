@@ -10,6 +10,7 @@ const elevenlabs_1 = require("./elevenlabs");
 const openai_tools_1 = require("./openai-tools");
 const slack_messaging_1 = require("./slack-messaging");
 const scheduler_1 = require("./scheduler");
+const self_improvement_1 = require("./self-improvement");
 const BASE_TOOLS = [
     {
         name: 'execute_shell',
@@ -119,6 +120,7 @@ exports.TOOLS = [
     ...BASE_TOOLS,
     slack_messaging_1.SLACK_MESSAGING_TOOL,
     ...scheduler_1.SCHEDULER_TOOLS,
+    ...self_improvement_1.SELF_IMPROVEMENT_TOOLS,
     ...github_1.GITHUB_TOOLS,
     ...web_1.WEB_TOOLS,
     ...files_1.FILE_TOOLS,

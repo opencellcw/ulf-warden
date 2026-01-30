@@ -14,6 +14,7 @@ const elevenlabs_1 = require("./elevenlabs");
 const openai_tools_1 = require("./openai-tools");
 const slack_messaging_1 = require("./slack-messaging");
 const scheduler_1 = require("./scheduler");
+const self_improvement_1 = require("./self-improvement");
 const logger_1 = require("../logger");
 const persistence_1 = require("../persistence");
 async function executeTool(toolName, toolInput, userId) {
@@ -61,6 +62,16 @@ async function executeTool(toolName, toolInput, userId) {
                 break;
             case 'cancel_scheduled_task':
                 result = await (0, scheduler_1.cancelScheduledTask)(toolInput);
+                break;
+            // Self-improvement tools
+            case 'propose_self_improvement':
+                result = await (0, self_improvement_1.proposeSelfImprovement)(toolInput);
+                break;
+            case 'list_pending_improvements':
+                result = await (0, self_improvement_1.listPendingImprovements)(toolInput);
+                break;
+            case 'get_improvement_stats':
+                result = await (0, self_improvement_1.getImprovementStats)(toolInput);
                 break;
             // GitHub tools
             case 'github_clone':
