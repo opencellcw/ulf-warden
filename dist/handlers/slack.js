@@ -5,6 +5,8 @@ const bolt_1 = require("@slack/bolt");
 const chat_1 = require("../chat");
 const agent_1 = require("../agent");
 const sessions_1 = require("../sessions");
+const media_handler_1 = require("../media-handler");
+const logger_1 = require("../logger");
 async function startSlackHandler() {
     if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
         console.log('[Slack] Tokens not found, skipping Slack handler');
@@ -15,12 +17,46 @@ async function startSlackHandler() {
         appToken: process.env.SLACK_APP_TOKEN,
         socketMode: true,
     });
+    /**
+     * Send response with automatic media handling
+     */
+    async function sendResponse(channel, response, say) {
+        // Check if response contains media
+        const media = (0, media_handler_1.extractMediaMetadata)(response);
+        if (media) {
+            logger_1.log.info('[Slack] Media detected in response', { type: media.type });
+            // Clean text (remove URLs/paths)
+            const cleanText = (0, media_handler_1.cleanResponseText)(response, media);
+            try {
+                // Upload media to Slack
+                await (0, media_handler_1.uploadMediaToSlack)(app, channel, media, cleanText || undefined);
+            }
+            catch (error) {
+                logger_1.log.error('[Slack] Failed to upload media, sending text only', { error });
+                // Fallback: send original response as text
+                await say(response);
+            }
+        }
+        else {
+            // No media, send normal text response
+            await say(response);
+        }
+    }
     // Detect if message needs agent mode (execution)
     function needsAgent(text) {
         const agentKeywords = [
+            // Development
             'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
             'create', 'install', 'run', 'execute', 'start', 'setup',
-            'api', 'servidor', 'server', 'app', 'service'
+            'api', 'servidor', 'server', 'app', 'service',
+            // Multimodal
+            'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
+            'imagem', 'image', 'foto', 'photo', 'picture',
+            'video', 'vídeo', 'animate', 'anima',
+            'audio', 'áudio', 'som', 'sound', 'voz', 'voice',
+            'converte', 'convert', 'transcreve', 'transcribe',
+            'analisa', 'analyze', 'descreve', 'describe',
+            'remove fundo', 'remove background', 'upscale'
         ];
         const lowerText = text.toLowerCase();
         return agentKeywords.some(keyword => lowerText.includes(keyword));
@@ -35,6 +71,8 @@ async function startSlackHandler() {
             const userId = `slack_${event.user}`;
             // @ts-ignore
             const text = event.text;
+            // @ts-ignore
+            const channel = event.channel;
             if (!text)
                 return;
             console.log(`[Slack] Message from ${userId}: ${text.substring(0, 50)}...`);
@@ -59,7 +97,7 @@ async function startSlackHandler() {
             }
             await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
-            await say(response);
+            await sendResponse(channel, response, say);
         }
         catch (error) {
             console.error('[Slack] Error handling message:', error);
@@ -71,6 +109,7 @@ async function startSlackHandler() {
         try {
             const userId = `slack_${event.user}`;
             const text = event.text.replace(/<@[^>]+>/g, '').trim();
+            const channel = event.channel;
             if (!text) {
                 await say('Oi! Como posso ajudar?');
                 return;
@@ -97,7 +136,7 @@ async function startSlackHandler() {
             }
             await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
-            await say(response);
+            await sendResponse(channel, response, say);
         }
         catch (error) {
             console.error('[Slack] Error handling mention:', error);

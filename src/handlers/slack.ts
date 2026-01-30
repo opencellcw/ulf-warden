@@ -2,6 +2,8 @@ import { App } from '@slack/bolt';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
+import { extractMediaMetadata, cleanResponseText, uploadMediaToSlack } from '../media-handler';
+import { log } from '../logger';
 
 export async function startSlackHandler() {
   if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
@@ -15,12 +17,48 @@ export async function startSlackHandler() {
     socketMode: true,
   });
 
+  /**
+   * Send response with automatic media handling
+   */
+  async function sendResponse(channel: string, response: string, say: any): Promise<void> {
+    // Check if response contains media
+    const media = extractMediaMetadata(response);
+
+    if (media) {
+      log.info('[Slack] Media detected in response', { type: media.type });
+
+      // Clean text (remove URLs/paths)
+      const cleanText = cleanResponseText(response, media);
+
+      try {
+        // Upload media to Slack
+        await uploadMediaToSlack(app, channel, media, cleanText || undefined);
+      } catch (error) {
+        log.error('[Slack] Failed to upload media, sending text only', { error });
+        // Fallback: send original response as text
+        await say(response);
+      }
+    } else {
+      // No media, send normal text response
+      await say(response);
+    }
+  }
+
   // Detect if message needs agent mode (execution)
   function needsAgent(text: string): boolean {
     const agentKeywords = [
+      // Development
       'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
       'create', 'install', 'run', 'execute', 'start', 'setup',
-      'api', 'servidor', 'server', 'app', 'service'
+      'api', 'servidor', 'server', 'app', 'service',
+      // Multimodal
+      'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
+      'imagem', 'image', 'foto', 'photo', 'picture',
+      'video', 'vídeo', 'animate', 'anima',
+      'audio', 'áudio', 'som', 'sound', 'voz', 'voice',
+      'converte', 'convert', 'transcreve', 'transcribe',
+      'analisa', 'analyze', 'descreve', 'describe',
+      'remove fundo', 'remove background', 'upscale'
     ];
 
     const lowerText = text.toLowerCase();
@@ -37,6 +75,8 @@ export async function startSlackHandler() {
       const userId = `slack_${event.user}`;
       // @ts-ignore
       const text = event.text;
+      // @ts-ignore
+      const channel = event.channel;
 
       if (!text) return;
 
@@ -66,7 +106,7 @@ export async function startSlackHandler() {
       await sessionManager.addMessage(userId, { role: 'user', content: text });
       await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
-      await say(response);
+      await sendResponse(channel, response, say);
     } catch (error) {
       console.error('[Slack] Error handling message:', error);
       await say('Desculpa, tive um problema. Tenta de novo?');
@@ -78,6 +118,7 @@ export async function startSlackHandler() {
     try {
       const userId = `slack_${event.user}`;
       const text = event.text.replace(/<@[^>]+>/g, '').trim();
+      const channel = event.channel;
 
       if (!text) {
         await say('Oi! Como posso ajudar?');
@@ -110,7 +151,7 @@ export async function startSlackHandler() {
       await sessionManager.addMessage(userId, { role: 'user', content: text });
       await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
-      await say(response);
+      await sendResponse(channel, response, say);
     } catch (error) {
       console.error('[Slack] Error handling mention:', error);
       await say('Desculpa, tive um problema. Tenta de novo?');
