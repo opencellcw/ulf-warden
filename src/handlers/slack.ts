@@ -1,5 +1,6 @@
 import { App } from '@slack/bolt';
 import { chat } from '../chat';
+import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
 
 export async function startSlackHandler() {
@@ -13,6 +14,18 @@ export async function startSlackHandler() {
     appToken: process.env.SLACK_APP_TOKEN,
     socketMode: true,
   });
+
+  // Detect if message needs agent mode (execution)
+  function needsAgent(text: string): boolean {
+    const agentKeywords = [
+      'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
+      'create', 'install', 'run', 'execute', 'start', 'setup',
+      'api', 'servidor', 'server', 'app', 'service'
+    ];
+
+    const lowerText = text.toLowerCase();
+    return agentKeywords.some(keyword => lowerText.includes(keyword));
+  }
 
   // Handle direct messages
   app.event('message', async ({ event, say }) => {
@@ -31,11 +44,24 @@ export async function startSlackHandler() {
 
       const history = sessionManager.getHistory(userId);
 
-      const response = await chat({
-        userId,
-        userMessage: text,
-        history,
-      });
+      // Choose between agent (with tools) or regular chat
+      const useAgent = needsAgent(text);
+
+      let response: string;
+      if (useAgent) {
+        console.log(`[Slack] Using AGENT mode for: ${text.substring(0, 30)}...`);
+        response = await runAgent({
+          userId,
+          userMessage: text,
+          history,
+        });
+      } else {
+        response = await chat({
+          userId,
+          userMessage: text,
+          history,
+        });
+      }
 
       sessionManager.addMessage(userId, { role: 'user', content: text });
       sessionManager.addMessage(userId, { role: 'assistant', content: response });
@@ -62,11 +88,24 @@ export async function startSlackHandler() {
 
       const history = sessionManager.getHistory(userId);
 
-      const response = await chat({
-        userId,
-        userMessage: text,
-        history,
-      });
+      // Choose between agent (with tools) or regular chat
+      const useAgent = needsAgent(text);
+
+      let response: string;
+      if (useAgent) {
+        console.log(`[Slack] Using AGENT mode for: ${text.substring(0, 30)}...`);
+        response = await runAgent({
+          userId,
+          userMessage: text,
+          history,
+        });
+      } else {
+        response = await chat({
+          userId,
+          userMessage: text,
+          history,
+        });
+      }
 
       sessionManager.addMessage(userId, { role: 'user', content: text });
       sessionManager.addMessage(userId, { role: 'assistant', content: response });

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startSlackHandler = startSlackHandler;
 const bolt_1 = require("@slack/bolt");
 const chat_1 = require("../chat");
+const agent_1 = require("../agent");
 const sessions_1 = require("../sessions");
 async function startSlackHandler() {
     if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
@@ -14,6 +15,16 @@ async function startSlackHandler() {
         appToken: process.env.SLACK_APP_TOKEN,
         socketMode: true,
     });
+    // Detect if message needs agent mode (execution)
+    function needsAgent(text) {
+        const agentKeywords = [
+            'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
+            'create', 'install', 'run', 'execute', 'start', 'setup',
+            'api', 'servidor', 'server', 'app', 'service'
+        ];
+        const lowerText = text.toLowerCase();
+        return agentKeywords.some(keyword => lowerText.includes(keyword));
+    }
     // Handle direct messages
     app.event('message', async ({ event, say }) => {
         try {
@@ -28,11 +39,24 @@ async function startSlackHandler() {
                 return;
             console.log(`[Slack] Message from ${userId}: ${text.substring(0, 50)}...`);
             const history = sessions_1.sessionManager.getHistory(userId);
-            const response = await (0, chat_1.chat)({
-                userId,
-                userMessage: text,
-                history,
-            });
+            // Choose between agent (with tools) or regular chat
+            const useAgent = needsAgent(text);
+            let response;
+            if (useAgent) {
+                console.log(`[Slack] Using AGENT mode for: ${text.substring(0, 30)}...`);
+                response = await (0, agent_1.runAgent)({
+                    userId,
+                    userMessage: text,
+                    history,
+                });
+            }
+            else {
+                response = await (0, chat_1.chat)({
+                    userId,
+                    userMessage: text,
+                    history,
+                });
+            }
             sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
             await say(response);
@@ -53,11 +77,24 @@ async function startSlackHandler() {
             }
             console.log(`[Slack] Mention from ${userId}: ${text.substring(0, 50)}...`);
             const history = sessions_1.sessionManager.getHistory(userId);
-            const response = await (0, chat_1.chat)({
-                userId,
-                userMessage: text,
-                history,
-            });
+            // Choose between agent (with tools) or regular chat
+            const useAgent = needsAgent(text);
+            let response;
+            if (useAgent) {
+                console.log(`[Slack] Using AGENT mode for: ${text.substring(0, 30)}...`);
+                response = await (0, agent_1.runAgent)({
+                    userId,
+                    userMessage: text,
+                    history,
+                });
+            }
+            else {
+                response = await (0, chat_1.chat)({
+                    userId,
+                    userMessage: text,
+                    history,
+                });
+            }
             sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
             await say(response);
