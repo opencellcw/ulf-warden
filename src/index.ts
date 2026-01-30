@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import Anthropic from '@anthropic-ai/sdk';
 import { startSlackHandler } from './handlers/slack';
 import { startDiscordHandler } from './handlers/discord';
 import { startTelegramHandler } from './handlers/telegram';
@@ -7,6 +8,7 @@ import { workspace } from './workspace';
 import { persistence } from './persistence';
 import { sessionManager } from './sessions';
 import { log } from './logger';
+import { getHeartbeatManager } from './heartbeat/heartbeat-manager';
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -93,6 +95,29 @@ async function initialize() {
       process.exit(1);
     }
 
+    // 5. Initialize heartbeat system (if enabled)
+    if (process.env.HEARTBEAT_ENABLED === 'true' && handlers.slack) {
+      log.info('Initializing heartbeat system...');
+
+      const claude = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY
+      });
+
+      const heartbeat = getHeartbeatManager(
+        handlers.slack,
+        claude,
+        workspace,
+        {
+          enabled: true,
+          intervalMinutes: parseInt(process.env.HEARTBEAT_INTERVAL_MINUTES || '30'),
+          slackChannel: process.env.HEARTBEAT_CHANNEL || 'ulf-heartbeat'
+        }
+      );
+
+      heartbeat.start();
+      log.info('Heartbeat system started');
+    }
+
     console.log('='.repeat(60));
     console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
     console.log('Model: claude-sonnet-4-20250514');
@@ -125,7 +150,16 @@ async function gracefulShutdown(signal: string) {
   log.info(`${signal} received, shutting down gracefully...`);
 
   try {
-    // 1. Stop accepting new requests
+    // 1. Stop heartbeat system
+    try {
+      const heartbeat = getHeartbeatManager();
+      heartbeat.stop();
+      log.info('Heartbeat system stopped');
+    } catch {
+      // Heartbeat not initialized, skip
+    }
+
+    // 2. Stop accepting new requests
     log.info('Stopping platform handlers...');
 
     if (handlers.slack) {
@@ -143,15 +177,15 @@ async function gracefulShutdown(signal: string) {
       log.info('Telegram handler stopped');
     }
 
-    // 2. Flush all sessions to database
+    // 3. Flush all sessions to database
     log.info('Flushing sessions to database...');
     await sessionManager.flushAll();
 
-    // 3. Save workspace state
+    // 4. Save workspace state
     log.info('Saving workspace state...');
     await workspace.saveState();
 
-    // 4. Close database connections
+    // 5. Close database connections
     log.info('Closing database connections...');
     await persistence.close();
 

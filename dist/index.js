@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const express_1 = __importDefault(require("express"));
+const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const slack_1 = require("./handlers/slack");
 const discord_1 = require("./handlers/discord");
 const telegram_1 = require("./handlers/telegram");
@@ -12,6 +13,7 @@ const workspace_1 = require("./workspace");
 const persistence_1 = require("./persistence");
 const sessions_1 = require("./sessions");
 const logger_1 = require("./logger");
+const heartbeat_manager_1 = require("./heartbeat/heartbeat-manager");
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
@@ -77,6 +79,20 @@ async function initialize() {
             console.error('');
             process.exit(1);
         }
+        // 5. Initialize heartbeat system (if enabled)
+        if (process.env.HEARTBEAT_ENABLED === 'true' && handlers.slack) {
+            logger_1.log.info('Initializing heartbeat system...');
+            const claude = new sdk_1.default({
+                apiKey: process.env.ANTHROPIC_API_KEY
+            });
+            const heartbeat = (0, heartbeat_manager_1.getHeartbeatManager)(handlers.slack, claude, workspace_1.workspace, {
+                enabled: true,
+                intervalMinutes: parseInt(process.env.HEARTBEAT_INTERVAL_MINUTES || '30'),
+                slackChannel: process.env.HEARTBEAT_CHANNEL || 'ulf-heartbeat'
+            });
+            heartbeat.start();
+            logger_1.log.info('Heartbeat system started');
+        }
         console.log('='.repeat(60));
         console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
         console.log('Model: claude-sonnet-4-20250514');
@@ -105,7 +121,16 @@ initialize();
 async function gracefulShutdown(signal) {
     logger_1.log.info(`${signal} received, shutting down gracefully...`);
     try {
-        // 1. Stop accepting new requests
+        // 1. Stop heartbeat system
+        try {
+            const heartbeat = (0, heartbeat_manager_1.getHeartbeatManager)();
+            heartbeat.stop();
+            logger_1.log.info('Heartbeat system stopped');
+        }
+        catch {
+            // Heartbeat not initialized, skip
+        }
+        // 2. Stop accepting new requests
         logger_1.log.info('Stopping platform handlers...');
         if (handlers.slack) {
             await handlers.slack.stop();
@@ -119,13 +144,13 @@ async function gracefulShutdown(signal) {
             handlers.telegram.stop();
             logger_1.log.info('Telegram handler stopped');
         }
-        // 2. Flush all sessions to database
+        // 3. Flush all sessions to database
         logger_1.log.info('Flushing sessions to database...');
         await sessions_1.sessionManager.flushAll();
-        // 3. Save workspace state
+        // 4. Save workspace state
         logger_1.log.info('Saving workspace state...');
         await workspace_1.workspace.saveState();
-        // 4. Close database connections
+        // 5. Close database connections
         logger_1.log.info('Closing database connections...');
         await persistence_1.persistence.close();
         logger_1.log.info('Shutdown complete');
