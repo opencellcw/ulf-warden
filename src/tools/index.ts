@@ -8,6 +8,7 @@ import { executeReplicateTool } from './replicate';
 import { executeElevenLabsTool } from './elevenlabs';
 import { executeOpenAITool } from './openai-tools';
 import { sendSlackMessage } from './slack-messaging';
+import { scheduleTask, listScheduledTasks, cancelScheduledTask } from './scheduler';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 
@@ -56,6 +57,19 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
       // Slack messaging tool
       case 'send_slack_message':
         result = await sendSlackMessage(toolInput);
+        break;
+
+      // Scheduler tools
+      case 'schedule_task':
+        result = await scheduleTask(toolInput, userId);
+        break;
+
+      case 'list_scheduled_tasks':
+        result = await listScheduledTasks(toolInput, userId);
+        break;
+
+      case 'cancel_scheduled_task':
+        result = await cancelScheduledTask(toolInput);
         break;
 
       // GitHub tools

@@ -7,6 +7,7 @@ import { REPLICATE_TOOLS } from './replicate';
 import { ELEVENLABS_TOOLS } from './elevenlabs';
 import { OPENAI_TOOLS } from './openai-tools';
 import { SLACK_MESSAGING_TOOL } from './slack-messaging';
+import { SCHEDULER_TOOLS } from './scheduler';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -117,6 +118,7 @@ Shows top 20 processes sorted by memory usage.`,
 export const TOOLS: Anthropic.Tool[] = [
   ...BASE_TOOLS,
   SLACK_MESSAGING_TOOL as Anthropic.Tool,
+  ...SCHEDULER_TOOLS,
   ...GITHUB_TOOLS,
   ...WEB_TOOLS,
   ...FILE_TOOLS,

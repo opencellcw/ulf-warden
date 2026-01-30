@@ -9,6 +9,7 @@ import { persistence } from './persistence';
 import { sessionManager } from './sessions';
 import { log } from './logger';
 import { getHeartbeatManager } from './heartbeat/heartbeat-manager';
+import { getCronManager } from './scheduler/cron-manager';
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -118,6 +119,12 @@ async function initialize() {
       log.info('Heartbeat system started');
     }
 
+    // 6. Initialize cron scheduler and load jobs
+    log.info('Initializing cron scheduler...');
+    const cronManager = getCronManager();
+    await cronManager.loadJobs();
+    log.info('Cron scheduler initialized');
+
     console.log('='.repeat(60));
     console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
     console.log('Model: claude-sonnet-4-20250514');
@@ -159,7 +166,16 @@ async function gracefulShutdown(signal: string) {
       // Heartbeat not initialized, skip
     }
 
-    // 2. Stop accepting new requests
+    // 2. Stop cron scheduler
+    try {
+      const cronManager = getCronManager();
+      cronManager.shutdown();
+      log.info('Cron scheduler stopped');
+    } catch {
+      // Cron manager not initialized, skip
+    }
+
+    // 3. Stop accepting new requests
     log.info('Stopping platform handlers...');
 
     if (handlers.slack) {
@@ -177,15 +193,15 @@ async function gracefulShutdown(signal: string) {
       log.info('Telegram handler stopped');
     }
 
-    // 3. Flush all sessions to database
+    // 4. Flush all sessions to database
     log.info('Flushing sessions to database...');
     await sessionManager.flushAll();
 
-    // 4. Save workspace state
+    // 5. Save workspace state
     log.info('Saving workspace state...');
     await workspace.saveState();
 
-    // 5. Close database connections
+    // 6. Close database connections
     log.info('Closing database connections...');
     await persistence.close();
 

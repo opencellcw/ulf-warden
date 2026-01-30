@@ -14,6 +14,7 @@ const persistence_1 = require("./persistence");
 const sessions_1 = require("./sessions");
 const logger_1 = require("./logger");
 const heartbeat_manager_1 = require("./heartbeat/heartbeat-manager");
+const cron_manager_1 = require("./scheduler/cron-manager");
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
@@ -93,6 +94,11 @@ async function initialize() {
             heartbeat.start();
             logger_1.log.info('Heartbeat system started');
         }
+        // 6. Initialize cron scheduler and load jobs
+        logger_1.log.info('Initializing cron scheduler...');
+        const cronManager = (0, cron_manager_1.getCronManager)();
+        await cronManager.loadJobs();
+        logger_1.log.info('Cron scheduler initialized');
         console.log('='.repeat(60));
         console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
         console.log('Model: claude-sonnet-4-20250514');
@@ -130,7 +136,16 @@ async function gracefulShutdown(signal) {
         catch {
             // Heartbeat not initialized, skip
         }
-        // 2. Stop accepting new requests
+        // 2. Stop cron scheduler
+        try {
+            const cronManager = (0, cron_manager_1.getCronManager)();
+            cronManager.shutdown();
+            logger_1.log.info('Cron scheduler stopped');
+        }
+        catch {
+            // Cron manager not initialized, skip
+        }
+        // 3. Stop accepting new requests
         logger_1.log.info('Stopping platform handlers...');
         if (handlers.slack) {
             await handlers.slack.stop();
@@ -144,13 +159,13 @@ async function gracefulShutdown(signal) {
             handlers.telegram.stop();
             logger_1.log.info('Telegram handler stopped');
         }
-        // 3. Flush all sessions to database
+        // 4. Flush all sessions to database
         logger_1.log.info('Flushing sessions to database...');
         await sessions_1.sessionManager.flushAll();
-        // 4. Save workspace state
+        // 5. Save workspace state
         logger_1.log.info('Saving workspace state...');
         await workspace_1.workspace.saveState();
-        // 5. Close database connections
+        // 6. Close database connections
         logger_1.log.info('Closing database connections...');
         await persistence_1.persistence.close();
         logger_1.log.info('Shutdown complete');
