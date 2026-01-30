@@ -3,8 +3,8 @@ import { chat } from '../chat';
 import { sessionManager } from '../sessions';
 
 export async function startTelegramHandler() {
-  if (!process.env.TELEGRAM_BOT_TOKEN) {
-    console.log('[Telegram] Token not found, skipping Telegram handler');
+  if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN === 'xxx') {
+    console.log('[Telegram] Token not configured, skipping Telegram handler');
     return null;
   }
 

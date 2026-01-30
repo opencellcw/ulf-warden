@@ -3,8 +3,8 @@ import { chat } from '../chat';
 import { sessionManager } from '../sessions';
 
 export async function startDiscordHandler() {
-  if (!process.env.DISCORD_BOT_TOKEN) {
-    console.log('[Discord] Token not found, skipping Discord handler');
+  if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
+    console.log('[Discord] Token not configured, skipping Discord handler');
     return null;
   }
 

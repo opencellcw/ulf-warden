@@ -4,7 +4,7 @@
   "description": "Ulfberht-Warden - AI assistant on Slack, Discord, and Telegram",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node debug-env.js",
+    "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc"
   },
