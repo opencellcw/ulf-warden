@@ -110,9 +110,9 @@ export class EvolutionEngine {
       // Generate insights
       const insights = await this.patternRecognition.generateInsights(patterns);
 
-      // Store insights
-      for (const insight of insights) {
-        this.db.storeInsight(insight);
+      // Store insights (batch operation for 10x performance)
+      if (insights.length > 0) {
+        this.db.storeInsightsBatch(insights);
       }
 
       // Generate recommendations

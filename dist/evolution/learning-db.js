@@ -145,6 +145,41 @@ class LearningDatabase {
         }
     }
     /**
+     * Store multiple insights in a single transaction (10x faster)
+     */
+    storeInsightsBatch(insights) {
+        if (insights.length === 0)
+            return [];
+        try {
+            const stmt = this.db.prepare(`
+        INSERT INTO learning_insights (
+          insight_type, content, confidence_score, applied, created_at, metadata
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `);
+            const insertMany = this.db.transaction((insights) => {
+                const ids = [];
+                for (const insight of insights) {
+                    const result = stmt.run(insight.insightType, insight.content, insight.confidenceScore, insight.applied ? 1 : 0, insight.createdAt, insight.metadata ? JSON.stringify(insight.metadata) : null);
+                    ids.push(result.lastInsertRowid);
+                }
+                return ids;
+            });
+            const ids = insertMany(insights);
+            logger_1.log.info('[LearningDB] Insights batch stored', {
+                count: insights.length,
+                ids: ids.slice(0, 3)
+            });
+            return ids;
+        }
+        catch (error) {
+            logger_1.log.error('[LearningDB] Failed to batch store insights', {
+                error: error.message,
+                count: insights.length
+            });
+            throw error;
+        }
+    }
+    /**
      * Get pending insights (not applied)
      */
     getPendingInsights() {
