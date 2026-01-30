@@ -82,7 +82,13 @@ export async function startSlackHandler() {
       'audio', 'áudio', 'som', 'sound', 'voz', 'voice',
       'converte', 'convert', 'transcreve', 'transcribe',
       'analisa', 'analyze', 'descreve', 'describe',
-      'remove fundo', 'remove background', 'upscale'
+      'remove fundo', 'remove background', 'upscale',
+      // Scheduling
+      'lembra', 'lembrar', 'reminder', 'remind',
+      'agendar', 'agenda', 'schedule',
+      'me avisa', 'avisa', 'notify', 'alert',
+      'lista tasks', 'list tasks', 'scheduled',
+      'cancela task', 'cancel task'
     ];
 
     const lowerText = text.toLowerCase();

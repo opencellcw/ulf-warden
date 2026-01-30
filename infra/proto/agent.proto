@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package agent;
+
+option go_package = "github.com/ulfberht/agent/proto";
+
+// Agent Service - Internal API for agent-to-agent communication
+service AgentService {
+  // Submit a task to this agent
+  rpc SubmitTask(Task) returns (TaskResponse);
+
+  // Get current agent status
+  rpc GetStatus(Empty) returns (Status);
+
+  // Stream task results (for long-running tasks)
+  rpc StreamResults(TaskId) returns (stream Result);
+
+  // Broadcast message to all agents in swarm
+  rpc Broadcast(Message) returns (Empty);
+
+  // Request delegation to another agent
+  rpc Delegate(DelegationRequest) returns (DelegationResponse);
+}
+
+// Task to be executed by an agent
+message Task {
+  string id = 1;                        // Unique task ID
+  string from = 2;                      // Agent ID that created this task
+  string to = 3;                        // Target agent ID (optional for broadcast)
+  TaskType type = 4;                    // Type of task
+  string payload = 5;                   // Task payload (JSON)
+  map<string, string> context = 6;      // Additional context
+  Priority priority = 7;                // Task priority
+  int64 created_at = 8;                 // Unix timestamp
+  int64 deadline = 9;                   // Optional deadline (unix timestamp)
+  repeated string dependencies = 10;    // IDs of tasks that must complete first
+}
+
+enum TaskType {
+  TASK_TYPE_UNSPECIFIED = 0;
+  PLAN = 1;           // Strategic planning
+  IMPLEMENT = 2;      // Code implementation
+  REVIEW = 3;         // Code review
+  TEST = 4;           // Testing
+  DEPLOY = 5;         // Deployment
+  ANALYZE = 6;        // Analysis
+  COORDINATE = 7;     // Coordination
+  CUSTOM = 8;         // Custom task type
+}
+
+enum Priority {
+  PRIORITY_UNSPECIFIED = 0;
+  LOW = 1;
+  MEDIUM = 2;
+  HIGH = 3;
+  CRITICAL = 4;
+}
+
+// Response to task submission
+message TaskResponse {
+  string task_id = 1;
+  TaskStatus status = 2;
+  string message = 3;
+  int64 estimated_completion = 4;  // Unix timestamp
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  ACCEPTED = 1;
+  REJECTED = 2;
+  QUEUED = 3;
+  IN_PROGRESS = 4;
+  COMPLETED = 5;
+  FAILED = 6;
+  CANCELLED = 7;
+}
+
+// Agent status
+message Status {
+  string agent_id = 1;
+  string role = 2;           // coordinator | specialist | reviewer
+  string model = 3;          // opus | sonnet | haiku
+  AgentState state = 4;
+  int32 active_tasks = 5;
+  int32 completed_tasks = 6;
+  int32 failed_tasks = 7;
+  map<string, string> capabilities = 8;
+  int64 uptime = 9;          // Seconds
+  ResourceUsage resources = 10;
+}
+
+enum AgentState {
+  AGENT_STATE_UNSPECIFIED = 0;
+  IDLE = 1;
+  BUSY = 2;
+  OVERLOADED = 3;
+  ERROR = 4;
+  OFFLINE = 5;
+}
+
+message ResourceUsage {
+  double cpu_percent = 1;
+  int64 memory_bytes = 2;
+  int32 queue_size = 3;
+}
+
+// Task result (streamed or final)
+message Result {
+  string task_id = 1;
+  string agent_id = 2;
+  TaskStatus status = 3;
+  string output = 4;          // Result payload (JSON)
+  string error = 5;           // Error message if failed
+  int64 completed_at = 6;     // Unix timestamp
+  map<string, string> metadata = 7;
+}
+
+// Generic message for broadcast
+message Message {
+  string from = 1;
+  string type = 2;
+  string payload = 3;
+  int64 timestamp = 4;
+}
+
+// Delegation request
+message DelegationRequest {
+  Task task = 1;
+  string preferred_agent = 2;  // Preferred agent ID (optional)
+  repeated string exclude = 3;  // Agent IDs to exclude
+}
+
+message DelegationResponse {
+  string delegated_to = 1;
+  TaskResponse response = 2;
+}
+
+// Task ID reference
+message TaskId {
+  string id = 1;
+}
+
+// Empty message
+message Empty {}

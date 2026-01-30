@@ -1,0 +1,293 @@
+# Complete Agent Swarm Example
+# Deploy 3 agents: coordinator, coder, reviewer
+# Communication via Redis (no external channels)
+
+# Install with:
+# helm install coordinator ./helm/coordinator
+# helm install agent-lead ./helm/agent -f examples/agent-lead.values.yaml
+# helm install agent-coder ./helm/agent -f examples/agent-coder.values.yaml
+# helm install agent-reviewer ./helm/agent -f examples/agent-reviewer.values.yaml
+
+---
+# Coordinator configuration
+# File: swarm-coordinator.values.yaml
+coordinator:
+  backend: "redis"
+  redis:
+    enabled: true
+    deploy: true
+    channels:
+      tasks: "agent:tasks"
+      status: "agent:status"
+      results: "agent:results"
+
+  gateway:
+    enabled: true
+    port: 8080
+    service:
+      type: LoadBalancer
+
+  registry:
+    discovery: "kubernetes"
+    kubernetes:
+      enabled: true
+      namespace: "default"
+      labelSelector: "agent.ulfberht.dev/swarm=main"
+
+redis:
+  enabled: true
+  auth:
+    password: "change-me-in-production"
+
+---
+# Agent Lead (Coordinator role)
+# File: agent-lead.values.yaml
+agent:
+  name: "agent-lead"
+  role: "coordinator"
+  model: "opus"
+  replicaCount: 1
+
+  api:
+    enabled: true
+    port: 8080
+    protocol: "http"
+
+  # No external channel - pure agent-to-agent
+  channel:
+    enabled: false
+
+  taskSource:
+    type: "pubsub"
+    redis:
+      enabled: true
+      host: "coordinator-redis-master.default.svc.cluster.local"
+      password: "change-me-in-production"
+      channels:
+        tasks: "agent:tasks"
+        status: "agent:status"
+        results: "agent:results"
+
+  config:
+    soul: |
+      # Agent Lead - Coordinator
+
+      ## Identity
+      You are the lead coordinator in an agent swarm. Your role is to:
+      - Receive high-level tasks from humans or external systems
+      - Break down complex tasks into subtasks
+      - Delegate subtasks to specialist agents (coder, reviewer)
+      - Consolidate results and report back
+
+      ## Available Specialists
+      - agent-coder: Code implementation specialist (Sonnet)
+      - agent-reviewer: Code review specialist (Sonnet)
+
+      ## Communication Protocol
+      Use these functions to coordinate:
+      - delegate_task(agent_name, task_type, payload)
+      - wait_for_result(task_id)
+      - broadcast_status(message)
+
+      ## Example Workflow
+      1. Receive: "Implement user authentication"
+      2. Plan: Break into subtasks (implement, review, test)
+      3. Delegate: Send to agent-coder
+      4. Monitor: Wait for completion
+      5. Delegate: Send code to agent-reviewer
+      6. Consolidate: Gather results and respond
+
+    tools: |
+      # Coordinator Tools
+
+      ## Agent Communication
+      - delegate_task: Delegate task to specialist agent
+      - broadcast_message: Send message to all agents
+      - query_agent_status: Check status of specific agent
+      - wait_for_result: Wait for task completion (blocking)
+
+      ## Planning
+      - create_plan: Create execution plan for complex task
+      - track_dependencies: Track task dependencies
+      - estimate_effort: Estimate time/resources needed
+
+    agents: |
+      # Swarm Directory
+
+      ## agent-coder
+      - URL: http://agent-coder.default.svc:8080
+      - Role: specialist
+      - Model: sonnet
+      - Capabilities: code implementation, git operations, file operations
+
+      ## agent-reviewer
+      - URL: http://agent-reviewer.default.svc:8080
+      - Role: specialist
+      - Model: sonnet
+      - Capabilities: code review, quality assurance, testing
+
+podAnnotations:
+  agent.ulfberht.dev/swarm: "main"
+
+---
+# Agent Coder (Specialist role)
+# File: agent-coder.values.yaml
+agent:
+  name: "agent-coder"
+  role: "specialist"
+  model: "sonnet"
+  replicaCount: 1
+
+  api:
+    enabled: true
+    port: 8080
+    protocol: "http"
+
+  channel:
+    enabled: false
+
+  taskSource:
+    type: "pubsub"
+    redis:
+      enabled: true
+      host: "coordinator-redis-master.default.svc.cluster.local"
+      password: "change-me-in-production"
+      channels:
+        tasks: "agent:tasks"
+        status: "agent:status"
+        results: "agent:results"
+
+  config:
+    soul: |
+      # Agent Coder - Implementation Specialist
+
+      ## Identity
+      You are a code implementation specialist. Your role is:
+      - Receive implementation tasks from agent-lead
+      - Write high-quality, tested code
+      - Use git operations to commit changes
+      - Report results back to coordinator
+
+      ## Skills
+      - Languages: Python, TypeScript, Go, Rust
+      - Frameworks: FastAPI, Express, React, Next.js
+      - Tools: Git, Docker, testing libraries
+
+      ## Protocol
+      - Listen for tasks on Redis channel "agent:tasks"
+      - Filter tasks where to="agent-coder"
+      - Execute task and report result
+      - Publish result to "agent:results"
+
+    tools: |
+      # Coder Tools
+
+      ## Code Operations
+      - execute_shell: Run shell commands
+      - read_file: Read files
+      - write_file: Write files
+      - list_directory: List directory contents
+
+      ## Git Operations
+      - git_clone: Clone repository
+      - git_commit: Commit changes
+      - git_push: Push changes
+      - git_diff: Show changes
+
+      ## Testing
+      - run_tests: Execute test suite
+      - check_lint: Run linter
+      - check_types: Run type checker
+
+podAnnotations:
+  agent.ulfberht.dev/swarm: "main"
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+---
+# Agent Reviewer (Specialist role)
+# File: agent-reviewer.values.yaml
+agent:
+  name: "agent-reviewer"
+  role: "specialist"
+  model: "sonnet"
+  replicaCount: 1
+
+  api:
+    enabled: true
+    port: 8080
+    protocol: "http"
+
+  channel:
+    enabled: false
+
+  taskSource:
+    type: "pubsub"
+    redis:
+      enabled: true
+      host: "coordinator-redis-master.default.svc.cluster.local"
+      password: "change-me-in-production"
+      channels:
+        tasks: "agent:tasks"
+        status: "agent:status"
+        results: "agent:results"
+
+  config:
+    soul: |
+      # Agent Reviewer - Quality Assurance Specialist
+
+      ## Identity
+      You are a code review specialist. Your role is:
+      - Receive code review tasks from agent-lead
+      - Analyze code quality, security, performance
+      - Suggest improvements
+      - Report review results
+
+      ## Review Checklist
+      - Code quality and readability
+      - Security vulnerabilities
+      - Performance issues
+      - Test coverage
+      - Documentation
+      - Best practices
+
+      ## Protocol
+      - Listen for tasks on Redis channel "agent:tasks"
+      - Filter tasks where to="agent-reviewer"
+      - Execute review and provide feedback
+      - Publish result to "agent:results"
+
+    tools: |
+      # Reviewer Tools
+
+      ## Analysis
+      - read_file: Read code files
+      - file_diff: Compare file versions
+      - run_tests: Execute tests
+      - check_coverage: Check test coverage
+
+      ## Security
+      - scan_vulnerabilities: Security scan
+      - check_dependencies: Dependency audit
+
+      ## Quality
+      - check_lint: Linting
+      - check_complexity: Complexity analysis
+      - check_duplication: Find code duplication
+
+podAnnotations:
+  agent.ulfberht.dev/swarm: "main"
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: agent
+description: Generic Helm chart for Ulfberht Agent deployment
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - agent
+  - ai
+  - kubernetes
+  - claude
+maintainers:
+  - name: Ulfberht Team
+    email: team@ulfberht.dev

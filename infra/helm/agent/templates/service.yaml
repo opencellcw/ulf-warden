@@ -1,0 +1,21 @@
+{{- if .Values.agent.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "agent.fullname" . }}
+  labels:
+    {{- include "agent.labels" . | nindent 4 }}
+  {{- with .Values.agent.api.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.agent.api.service.type }}
+  ports:
+  - port: {{ .Values.agent.api.port }}
+    targetPort: api
+    protocol: TCP
+    name: api
+  selector:
+    {{- include "agent.selectorLabels" . | nindent 4 }}
+{{- end }}

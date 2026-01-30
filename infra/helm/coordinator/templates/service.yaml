@@ -1,0 +1,21 @@
+{{- if .Values.coordinator.gateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinator
+  labels:
+    app: coordinator
+  {{- with .Values.coordinator.gateway.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.coordinator.gateway.service.type }}
+  ports:
+  - port: {{ .Values.coordinator.gateway.port }}
+    targetPort: api
+    protocol: TCP
+    name: api
+  selector:
+    app: coordinator
+{{- end }}

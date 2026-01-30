@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agent.fullname" . }}
+  labels:
+    {{- include "agent.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.agent.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "agent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "agent.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: agent
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+        ports:
+        - name: api
+          containerPort: {{ .Values.agent.api.port }}
+          protocol: TCP
+        env:
+        {{- range .Values.agent.env }}
+        - name: {{ .name }}
+          {{- if .value }}
+          value: {{ .value | quote }}
+          {{- else if .valueFrom }}
+          valueFrom:
+            {{- toYaml .valueFrom | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.agent.taskSource.redis.enabled }}
+        - name: REDIS_HOST
+          value: {{ .Values.agent.taskSource.redis.host | quote }}
+        - name: REDIS_PORT
+          value: {{ .Values.agent.taskSource.redis.port | quote }}
+        {{- if .Values.agent.taskSource.redis.password }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-redis
+              key: password
+        {{- end }}
+        - name: REDIS_CHANNEL_TASKS
+          value: {{ .Values.agent.taskSource.redis.channels.tasks | quote }}
+        - name: REDIS_CHANNEL_STATUS
+          value: {{ .Values.agent.taskSource.redis.channels.status | quote }}
+        - name: REDIS_CHANNEL_RESULTS
+          value: {{ .Values.agent.taskSource.redis.channels.results | quote }}
+        {{- end }}
+        {{- if .Values.agent.taskSource.nats.enabled }}
+        - name: NATS_URL
+          value: {{ .Values.agent.taskSource.nats.url | quote }}
+        - name: NATS_SUBJECT_TASKS
+          value: {{ .Values.agent.taskSource.nats.subjects.tasks | quote }}
+        - name: NATS_SUBJECT_STATUS
+          value: {{ .Values.agent.taskSource.nats.subjects.status | quote }}
+        - name: NATS_SUBJECT_RESULTS
+          value: {{ .Values.agent.taskSource.nats.subjects.results | quote }}
+        {{- end }}
+        {{- if .Values.agent.channel.slack.enabled }}
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-slack
+              key: bot-token
+        - name: SLACK_APP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-slack
+              key: app-token
+        {{- end }}
+        {{- if .Values.agent.channel.discord.enabled }}
+        - name: DISCORD_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-discord
+              key: bot-token
+        {{- end }}
+        {{- if .Values.agent.channel.telegram.enabled }}
+        - name: TELEGRAM_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-telegram
+              key: bot-token
+        {{- end }}
+        {{- with .Values.agent.envFrom }}
+        envFrom:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/SOUL.md
+          subPath: SOUL.md
+          readOnly: true
+        - name: config
+          mountPath: /app/config/TOOLS.md
+          subPath: TOOLS.md
+          readOnly: true
+        - name: config
+          mountPath: /app/config/AGENTS.md
+          subPath: AGENTS.md
+          readOnly: true
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          mountPath: {{ .Values.persistence.mountPath }}
+        {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "agent.fullname" . }}-config
+      {{- if .Values.persistence.enabled }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ include "agent.fullname" . }}-data
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

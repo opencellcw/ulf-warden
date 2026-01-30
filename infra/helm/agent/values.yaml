@@ -1,0 +1,261 @@
+# Default values for agent
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+agent:
+  # Agent identity
+  name: "agent-default"
+  role: "specialist"  # coordinator | specialist | reviewer | custom
+  model: "sonnet"     # opus | sonnet | haiku
+
+  # Replicas (for load balancing same agent)
+  replicaCount: 1
+
+  # Image configuration
+  image:
+    repository: ulfberht/agent
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  # Internal API for agent-to-agent communication (required)
+  api:
+    enabled: true
+    port: 8080
+    protocol: "http"  # http | grpc
+
+    # Service configuration
+    service:
+      type: ClusterIP
+      annotations: {}
+
+  # External channel for human interaction (optional)
+  channel:
+    enabled: false
+    type: ""          # slack | discord | telegram | webhook
+
+    # Slack configuration (if type: slack)
+    slack:
+      enabled: false
+      botToken: ""
+      appToken: ""
+      signingSecret: ""
+
+    # Discord configuration (if type: discord)
+    discord:
+      enabled: false
+      botToken: ""
+
+    # Telegram configuration (if type: telegram)
+    telegram:
+      enabled: false
+      botToken: ""
+
+    # Webhook configuration (if type: webhook)
+    webhook:
+      enabled: false
+      url: ""
+      secret: ""
+
+  # Task source configuration
+  taskSource:
+    type: "api"       # api | queue | pubsub
+
+    # Redis configuration (if type: queue | pubsub)
+    redis:
+      enabled: false
+      host: "redis.default.svc.cluster.local"
+      port: 6379
+      password: ""
+      channels:
+        tasks: "agent:tasks"
+        status: "agent:status"
+        results: "agent:results"
+
+    # NATS configuration (if type: queue | pubsub)
+    nats:
+      enabled: false
+      url: "nats://nats.default.svc.cluster.local:4222"
+      subjects:
+        tasks: "agent.tasks"
+        status: "agent.status"
+        results: "agent.results"
+
+  # Agent configuration files
+  config:
+    # SOUL.md - Agent's personality and behavior
+    soul: |
+      # Agent Soul
+
+      You are a specialized AI agent in a distributed system.
+
+      ## Core Identity
+      - Name: {{ .Values.agent.name }}
+      - Role: {{ .Values.agent.role }}
+      - Model: {{ .Values.agent.model }}
+
+      ## Behavior
+      - Collaborate with other agents via internal API
+      - Focus on your specialization
+      - Delegate tasks outside your expertise
+      - Always respond with structured data for machine consumption
+
+      ## Communication Protocol
+      - Accept tasks via POST /task
+      - Report status via GET /status
+      - Stream results for long operations
+      - Use JSON for all payloads
+
+    # TOOLS.md - Available tools for this agent
+    tools: |
+      # Available Tools
+
+      ## Core Tools
+      - execute_shell: Run shell commands
+      - read_file: Read files from filesystem
+      - write_file: Write files to filesystem
+      - list_directory: List directory contents
+
+      ## Collaboration Tools
+      - delegate_task: Delegate task to another agent
+      - broadcast_message: Broadcast message to all agents
+      - query_status: Query status of another agent
+
+    # AGENTS.md - Other agents in the swarm (populated by coordinator)
+    agents: |
+      # Agent Directory
+
+      This file is populated by the coordinator service.
+      Contains information about other agents in the swarm.
+
+  # Environment variables
+  env:
+    - name: ANTHROPIC_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: agent-secrets
+          key: anthropic-api-key
+    - name: NODE_ENV
+      value: "production"
+    - name: LOG_LEVEL
+      value: "info"
+    - name: AGENT_NAME
+      value: "{{ .Values.agent.name }}"
+    - name: AGENT_ROLE
+      value: "{{ .Values.agent.role }}"
+    - name: AGENT_MODEL
+      value: "{{ .Values.agent.model }}"
+    - name: API_PORT
+      value: "{{ .Values.agent.api.port }}"
+    - name: API_PROTOCOL
+      value: "{{ .Values.agent.api.protocol }}"
+
+  # Additional environment variables from secret
+  envFrom: []
+  # - secretRef:
+  #     name: agent-secrets
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /health
+    port: api
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: api
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Persistent volume for data
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  mountPath: /app/data
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC
+rbac:
+  create: true
+
+# Network policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - namespaceSelector: {}
+  egress:
+    - to:
+      - namespaceSelector: {}
+
+# Ingress (for external access to API)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: agent.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

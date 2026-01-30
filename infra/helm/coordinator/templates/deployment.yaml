@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coordinator
+  labels:
+    app: coordinator
+    component: messaging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coordinator
+  template:
+    metadata:
+      labels:
+        app: coordinator
+    spec:
+      serviceAccountName: {{ include "coordinator.serviceAccountName" . }}
+      containers:
+      - name: coordinator
+        image: ulfberht/coordinator:latest
+        ports:
+        - name: api
+          containerPort: {{ .Values.coordinator.gateway.port }}
+        env:
+        - name: BACKEND
+          value: {{ .Values.coordinator.backend | quote }}
+        {{- if eq .Values.coordinator.backend "redis" }}
+        - name: REDIS_HOST
+          value: {{ .Values.coordinator.redis.external.host | default (printf "%s-redis-master" .Release.Name) | quote }}
+        - name: REDIS_PORT
+          value: {{ .Values.coordinator.redis.external.port | default 6379 | quote }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-redis
+              key: redis-password
+        {{- end }}
+        - name: DISCOVERY_METHOD
+          value: {{ .Values.coordinator.registry.discovery | quote }}
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}

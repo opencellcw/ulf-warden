@@ -1,0 +1,124 @@
+# Default values for coordinator service
+# Manages communication and orchestration between agents
+
+coordinator:
+  # Messaging backend
+  backend: "redis"  # redis | nats | http
+
+  # Redis configuration (if backend: redis)
+  redis:
+    enabled: true
+    # Use bundled Redis chart
+    deploy: true
+    # Or use external Redis
+    external:
+      enabled: false
+      host: ""
+      port: 6379
+      password: ""
+
+    # Redis channels for pub/sub
+    channels:
+      tasks: "agent:tasks"
+      status: "agent:status"
+      results: "agent:results"
+      broadcast: "agent:broadcast"
+
+  # NATS configuration (if backend: nats)
+  nats:
+    enabled: false
+    deploy: false
+    external:
+      enabled: false
+      url: "nats://nats.default.svc.cluster.local:4222"
+
+    # NATS subjects
+    subjects:
+      tasks: "agent.tasks"
+      status: "agent.status"
+      results: "agent.results"
+      broadcast: "agent.broadcast"
+
+  # HTTP configuration (if backend: http)
+  # Uses direct service-to-service communication
+  http:
+    enabled: false
+
+  # API Gateway for external access
+  gateway:
+    enabled: true
+    port: 8080
+    service:
+      type: LoadBalancer
+      annotations: {}
+
+  # Agent registry
+  registry:
+    # How to discover agents
+    discovery: "kubernetes"  # kubernetes | static | dns
+
+    # Kubernetes discovery (watches agent pods)
+    kubernetes:
+      enabled: true
+      namespace: "default"
+      labelSelector: "app.kubernetes.io/name=agent"
+
+    # Static registry (manual configuration)
+    static:
+      enabled: false
+      agents: []
+      # - name: agent-coder
+      #   url: http://agent-coder.default.svc:8080
+      #   role: specialist
+      # - name: agent-reviewer
+      #   url: http://agent-reviewer.default.svc:8080
+      #   role: specialist
+
+# Redis chart values (bundled)
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "agent-redis-password"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+  replica:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      size: 8Gi
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC (needed for Kubernetes discovery)
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["deployments"]
+      verbs: ["get", "list", "watch"]
+
+# Resources
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+
+# Persistence for coordinator state
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi

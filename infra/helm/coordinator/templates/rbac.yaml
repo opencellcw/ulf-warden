@@ -1,0 +1,22 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: coordinator
+spec:
+  rules:
+  {{- toYaml .Values.rbac.rules | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: coordinator
+subjects:
+- kind: ServiceAccount
+  name: {{ include "coordinator.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: coordinator
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
