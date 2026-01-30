@@ -3,6 +3,9 @@ import { GITHUB_TOOLS } from './github';
 import { WEB_TOOLS } from './web';
 import { FILE_TOOLS } from './files';
 import { PROCESS_TOOLS } from './process';
+import { REPLICATE_TOOLS } from './replicate';
+import { ELEVENLABS_TOOLS } from './elevenlabs';
+import { OPENAI_TOOLS } from './openai-tools';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -115,5 +118,8 @@ export const TOOLS: Anthropic.Tool[] = [
   ...GITHUB_TOOLS,
   ...WEB_TOOLS,
   ...FILE_TOOLS,
-  ...PROCESS_TOOLS
+  ...PROCESS_TOOLS,
+  ...REPLICATE_TOOLS,
+  ...ELEVENLABS_TOOLS,
+  ...OPENAI_TOOLS
 ];

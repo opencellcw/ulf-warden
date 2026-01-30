@@ -4,6 +4,9 @@ import { executeGitHubTool } from './github';
 import { executeWebTool } from './web';
 import { executeFileTool } from './files';
 import { executeProcessTool } from './process';
+import { executeReplicateTool } from './replicate';
+import { executeElevenLabsTool } from './elevenlabs';
+import { executeOpenAITool } from './openai-tools';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 
@@ -77,6 +80,30 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
       case 'process_restart':
       case 'process_logs':
         result = await executeProcessTool(toolName, toolInput);
+        break;
+
+      // Replicate tools
+      case 'replicate_generate_image':
+      case 'replicate_generate_video':
+      case 'replicate_run_model':
+      case 'replicate_upscale_image':
+      case 'replicate_remove_background':
+        result = await executeReplicateTool(toolName, toolInput);
+        break;
+
+      // ElevenLabs tools
+      case 'elevenlabs_text_to_speech':
+      case 'elevenlabs_list_voices':
+      case 'elevenlabs_get_voice_info':
+        result = await executeElevenLabsTool(toolName, toolInput);
+        break;
+
+      // OpenAI tools
+      case 'openai_generate_image':
+      case 'openai_gpt_chat':
+      case 'openai_transcribe_audio':
+      case 'openai_analyze_image':
+        result = await executeOpenAITool(toolName, toolInput);
         break;
 
       default:

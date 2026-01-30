@@ -5,6 +5,9 @@ const github_1 = require("./github");
 const web_1 = require("./web");
 const files_1 = require("./files");
 const process_1 = require("./process");
+const replicate_1 = require("./replicate");
+const elevenlabs_1 = require("./elevenlabs");
+const openai_tools_1 = require("./openai-tools");
 const BASE_TOOLS = [
     {
         name: 'execute_shell',
@@ -115,5 +118,8 @@ exports.TOOLS = [
     ...github_1.GITHUB_TOOLS,
     ...web_1.WEB_TOOLS,
     ...files_1.FILE_TOOLS,
-    ...process_1.PROCESS_TOOLS
+    ...process_1.PROCESS_TOOLS,
+    ...replicate_1.REPLICATE_TOOLS,
+    ...elevenlabs_1.ELEVENLABS_TOOLS,
+    ...openai_tools_1.OPENAI_TOOLS
 ];

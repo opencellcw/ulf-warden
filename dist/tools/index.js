@@ -9,6 +9,9 @@ const github_1 = require("./github");
 const web_1 = require("./web");
 const files_1 = require("./files");
 const process_1 = require("./process");
+const replicate_1 = require("./replicate");
+const elevenlabs_1 = require("./elevenlabs");
+const openai_tools_1 = require("./openai-tools");
 const logger_1 = require("../logger");
 const persistence_1 = require("../persistence");
 async function executeTool(toolName, toolInput, userId) {
@@ -68,6 +71,27 @@ async function executeTool(toolName, toolInput, userId) {
             case 'process_restart':
             case 'process_logs':
                 result = await (0, process_1.executeProcessTool)(toolName, toolInput);
+                break;
+            // Replicate tools
+            case 'replicate_generate_image':
+            case 'replicate_generate_video':
+            case 'replicate_run_model':
+            case 'replicate_upscale_image':
+            case 'replicate_remove_background':
+                result = await (0, replicate_1.executeReplicateTool)(toolName, toolInput);
+                break;
+            // ElevenLabs tools
+            case 'elevenlabs_text_to_speech':
+            case 'elevenlabs_list_voices':
+            case 'elevenlabs_get_voice_info':
+                result = await (0, elevenlabs_1.executeElevenLabsTool)(toolName, toolInput);
+                break;
+            // OpenAI tools
+            case 'openai_generate_image':
+            case 'openai_gpt_chat':
+            case 'openai_transcribe_audio':
+            case 'openai_analyze_image':
+                result = await (0, openai_tools_1.executeOpenAITool)(toolName, toolInput);
                 break;
             default:
                 throw new Error(`Unknown tool: ${toolName}`);
