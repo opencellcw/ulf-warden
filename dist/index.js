@@ -8,6 +8,17 @@ const express_1 = __importDefault(require("express"));
 const slack_1 = require("./handlers/slack");
 const discord_1 = require("./handlers/discord");
 const telegram_1 = require("./handlers/telegram");
+// Validate Anthropic API key
+if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('❌ Missing required environment variable: ANTHROPIC_API_KEY');
+    process.exit(1);
+}
+console.log('');
+console.log('='.repeat(60));
+console.log('⚔️  ULFBERHT-WARDEN');
+console.log('='.repeat(60));
+// Track active handlers
+const handlers = {};
 // HTTP server for Render health check
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3000;
@@ -25,20 +36,6 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
-app.listen(PORT, () => {
-    console.log(`HTTP server listening on port ${PORT}`);
-});
-// Validate Anthropic API key
-if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌ Missing required environment variable: ANTHROPIC_API_KEY');
-    process.exit(1);
-}
-console.log('');
-console.log('='.repeat(60));
-console.log('⚔️  ULFBERHT-WARDEN');
-console.log('='.repeat(60));
-// Track active handlers
-const handlers = {};
 // Start all enabled handlers
 (async () => {
     try {
@@ -65,6 +62,10 @@ const handlers = {};
         console.log('Model: claude-sonnet-4-20250514');
         console.log('='.repeat(60));
         console.log('');
+        // Start HTTP server after handlers are ready
+        app.listen(PORT, () => {
+            console.log(`HTTP server listening on port ${PORT}`);
+        });
     }
     catch (error) {
         console.error('❌ Failed to start:', error);
