@@ -8,6 +8,7 @@ const process_1 = require("./process");
 const replicate_1 = require("./replicate");
 const elevenlabs_1 = require("./elevenlabs");
 const openai_tools_1 = require("./openai-tools");
+const slack_messaging_1 = require("./slack-messaging");
 const BASE_TOOLS = [
     {
         name: 'execute_shell',
@@ -115,6 +116,7 @@ Shows top 20 processes sorted by memory usage.`,
 // Combine all tools
 exports.TOOLS = [
     ...BASE_TOOLS,
+    slack_messaging_1.SLACK_MESSAGING_TOOL,
     ...github_1.GITHUB_TOOLS,
     ...web_1.WEB_TOOLS,
     ...files_1.FILE_TOOLS,

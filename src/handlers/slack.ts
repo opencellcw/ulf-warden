@@ -3,6 +3,7 @@ import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
 import { extractMediaMetadata, cleanResponseText, uploadMediaToSlack } from '../media-handler';
+import { initSlackMessaging } from '../tools/slack-messaging';
 import { log } from '../logger';
 
 export async function startSlackHandler() {
@@ -16,6 +17,9 @@ export async function startSlackHandler() {
     appToken: process.env.SLACK_APP_TOKEN,
     socketMode: true,
   });
+
+  // Initialize Slack messaging for proactive messages
+  initSlackMessaging(app);
 
   /**
    * Send response with automatic media handling

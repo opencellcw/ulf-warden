@@ -6,6 +6,7 @@ const chat_1 = require("../chat");
 const agent_1 = require("../agent");
 const sessions_1 = require("../sessions");
 const media_handler_1 = require("../media-handler");
+const slack_messaging_1 = require("../tools/slack-messaging");
 const logger_1 = require("../logger");
 async function startSlackHandler() {
     if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
@@ -17,6 +18,8 @@ async function startSlackHandler() {
         appToken: process.env.SLACK_APP_TOKEN,
         socketMode: true,
     });
+    // Initialize Slack messaging for proactive messages
+    (0, slack_messaging_1.initSlackMessaging)(app);
     /**
      * Send response with automatic media handling
      */

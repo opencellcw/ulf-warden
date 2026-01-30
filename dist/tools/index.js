@@ -12,6 +12,7 @@ const process_1 = require("./process");
 const replicate_1 = require("./replicate");
 const elevenlabs_1 = require("./elevenlabs");
 const openai_tools_1 = require("./openai-tools");
+const slack_messaging_1 = require("./slack-messaging");
 const logger_1 = require("../logger");
 const persistence_1 = require("../persistence");
 async function executeTool(toolName, toolInput, userId) {
@@ -45,6 +46,10 @@ async function executeTool(toolName, toolInput, userId) {
                 break;
             case 'get_processes':
                 result = await (0, executor_1.getProcessInfo)();
+                break;
+            // Slack messaging tool
+            case 'send_slack_message':
+                result = await (0, slack_messaging_1.sendSlackMessage)(toolInput);
                 break;
             // GitHub tools
             case 'github_clone':

@@ -7,6 +7,7 @@ import { executeProcessTool } from './process';
 import { executeReplicateTool } from './replicate';
 import { executeElevenLabsTool } from './elevenlabs';
 import { executeOpenAITool } from './openai-tools';
+import { sendSlackMessage } from './slack-messaging';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 
@@ -50,6 +51,11 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
 
       case 'get_processes':
         result = await getProcessInfo();
+        break;
+
+      // Slack messaging tool
+      case 'send_slack_message':
+        result = await sendSlackMessage(toolInput);
         break;
 
       // GitHub tools
