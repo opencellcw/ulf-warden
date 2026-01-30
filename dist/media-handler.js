@@ -27,29 +27,39 @@ function extractMediaMetadata(response) {
             filePath: audioMatch[1]
         };
     }
-    // Check for URL format (used by Replicate and OpenAI)
-    // Format: "URL: https://..."
-    const urlMatch = response.match(/URL:\s*(https?:\/\/[^\s\n]+)/i);
-    if (urlMatch) {
-        const url = urlMatch[1];
-        logger_1.log.info('[MediaHandler] Detected URL', { url: url.substring(0, 100) });
-        // Determine type by extension or domain
-        if (url.match(/\.(mp4|webm|mov|avi)(\?|$)/i) || url.includes('video')) {
-            logger_1.log.info('[MediaHandler] Identified as video');
-            return { type: 'video', url };
-        }
-        if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i) || url.includes('image') || url.includes('replicate.delivery')) {
-            logger_1.log.info('[MediaHandler] Identified as image');
-            return { type: 'image', url };
-        }
-        if (url.match(/\.(mp3|wav|m4a|ogg)(\?|$)/i) || url.includes('audio')) {
-            logger_1.log.info('[MediaHandler] Identified as audio');
-            return { type: 'audio', url };
-        }
-        // Default to image if from known image services
-        if (url.includes('replicate.delivery') || url.includes('oaidalleapiprodscus')) {
-            logger_1.log.info('[MediaHandler] Defaulting to image (known service)');
-            return { type: 'image', url };
+    // Check for URL format (flexible patterns)
+    // Patterns: "URL: https://...", "tá em: https://", or any replicate/openai URL
+    const urlPatterns = [
+        /URL:\s*(https?:\/\/[^\s\n]+)/i, // "URL: https://..."
+        /(?:tá em|está em|imagem):\s*(https?:\/\/[^\s\n]+)/i, // Portuguese: "tá em: https://..."
+        /(https?:\/\/replicate\.delivery\/[^\s\n]+)/i, // Direct replicate.delivery URL
+        /(https?:\/\/oaidalleapiprodscus[^\s\n]+)/i, // Direct OpenAI DALL-E URL
+        /(?:video|áudio|audio):\s*(https?:\/\/[^\s\n]+)/i // "video: https://..." or "áudio: https://..."
+    ];
+    for (const pattern of urlPatterns) {
+        const urlMatch = response.match(pattern);
+        if (urlMatch) {
+            const url = urlMatch[1] || urlMatch[0];
+            logger_1.log.info('[MediaHandler] Detected URL', { url: url.substring(0, 100), pattern: pattern.source });
+            // Determine type by extension or domain
+            if (url.match(/\.(mp4|webm|mov|avi)(\?|$)/i) || url.includes('video')) {
+                logger_1.log.info('[MediaHandler] Identified as video');
+                return { type: 'video', url };
+            }
+            if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i) || url.includes('image') || url.includes('replicate.delivery')) {
+                logger_1.log.info('[MediaHandler] Identified as image');
+                return { type: 'image', url };
+            }
+            if (url.match(/\.(mp3|wav|m4a|ogg)(\?|$)/i) || url.includes('audio')) {
+                logger_1.log.info('[MediaHandler] Identified as audio');
+                return { type: 'audio', url };
+            }
+            // Default to image if from known image services
+            if (url.includes('replicate.delivery') || url.includes('oaidalleapiprodscus')) {
+                logger_1.log.info('[MediaHandler] Defaulting to image (known service)');
+                return { type: 'image', url };
+            }
+            break; // Found a URL, stop searching
         }
     }
     logger_1.log.info('[MediaHandler] No media detected in response');
@@ -60,9 +70,12 @@ function extractMediaMetadata(response) {
  */
 function cleanResponseText(response, media) {
     let cleaned = response;
-    // Remove URL lines
+    // Remove URL lines (multiple patterns)
     if (media.url) {
-        cleaned = cleaned.replace(/URL:\s*https?:\/\/[^\s\n]+/gi, '');
+        // Match various URL introduction patterns
+        cleaned = cleaned.replace(/(?:URL|tá em|está em|imagem|video|áudio|audio):\s*https?:\/\/[^\s\n]+/gi, '');
+        // Remove standalone URLs (replicate.delivery, openai, etc)
+        cleaned = cleaned.replace(/https?:\/\/(?:replicate\.delivery|oaidalleapiprodscus)[^\s\n]+/gi, '');
     }
     // Remove file path lines
     if (media.filePath) {
