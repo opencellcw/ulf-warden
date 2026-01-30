@@ -20,21 +20,39 @@ async function startSlackHandler() {
     /**
      * Send response with automatic media handling
      */
-    async function sendResponse(channel, response, say) {
+    async function sendResponse(channel, response, say, event) {
         // Check if response contains media
         const media = (0, media_handler_1.extractMediaMetadata)(response);
         if (media) {
-            logger_1.log.info('[Slack] Media detected in response', { type: media.type });
+            logger_1.log.info('[Slack] Media detected in response', {
+                type: media.type,
+                hasUrl: !!media.url,
+                hasFilePath: !!media.filePath,
+                channel,
+                channelType: event?.channel_type || 'unknown'
+            });
+            // Validate channel ID
+            if (!channel || channel === 'undefined') {
+                logger_1.log.error('[Slack] Invalid channel ID', { channel, event });
+                await say(`⚠️ Erro: Canal inválido. Tente mencionar o bot diretamente.`);
+                return;
+            }
             // Clean text (remove URLs/paths)
             const cleanText = (0, media_handler_1.cleanResponseText)(response, media);
             try {
                 // Upload media to Slack
-                await (0, media_handler_1.uploadMediaToSlack)(app, channel, media, cleanText || undefined);
+                await (0, media_handler_1.uploadMediaToSlack)(app, channel, media, cleanText || '✨ Generated content');
+                logger_1.log.info('[Slack] Media sent successfully');
             }
             catch (error) {
-                logger_1.log.error('[Slack] Failed to upload media, sending text only', { error });
-                // Fallback: send original response as text
-                await say(response);
+                logger_1.log.error('[Slack] Upload failed', {
+                    error: error.message,
+                    stack: error.stack,
+                    channel,
+                    mediaType: media.type
+                });
+                // Send error message instead of link
+                await say(`⚠️ Conteúdo gerado mas não consegui fazer upload.\n\n**Erro:** ${error.message}\n\nVerifique:\n- Bot tem permissão \`files:write\`?\n- Bot está no canal? (convide com \`/invite @ulfberht-warden\`)`);
             }
         }
         else {
@@ -97,7 +115,7 @@ async function startSlackHandler() {
             }
             await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
-            await sendResponse(channel, response, say);
+            await sendResponse(channel, response, say, event);
         }
         catch (error) {
             console.error('[Slack] Error handling message:', error);
@@ -136,7 +154,7 @@ async function startSlackHandler() {
             }
             await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
-            await sendResponse(channel, response, say);
+            await sendResponse(channel, response, say, event);
         }
         catch (error) {
             console.error('[Slack] Error handling mention:', error);

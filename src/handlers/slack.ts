@@ -20,23 +20,43 @@ export async function startSlackHandler() {
   /**
    * Send response with automatic media handling
    */
-  async function sendResponse(channel: string, response: string, say: any): Promise<void> {
+  async function sendResponse(channel: string, response: string, say: any, event?: any): Promise<void> {
     // Check if response contains media
     const media = extractMediaMetadata(response);
 
     if (media) {
-      log.info('[Slack] Media detected in response', { type: media.type });
+      log.info('[Slack] Media detected in response', {
+        type: media.type,
+        hasUrl: !!media.url,
+        hasFilePath: !!media.filePath,
+        channel,
+        channelType: event?.channel_type || 'unknown'
+      });
+
+      // Validate channel ID
+      if (!channel || channel === 'undefined') {
+        log.error('[Slack] Invalid channel ID', { channel, event });
+        await say(`⚠️ Erro: Canal inválido. Tente mencionar o bot diretamente.`);
+        return;
+      }
 
       // Clean text (remove URLs/paths)
       const cleanText = cleanResponseText(response, media);
 
       try {
         // Upload media to Slack
-        await uploadMediaToSlack(app, channel, media, cleanText || undefined);
-      } catch (error) {
-        log.error('[Slack] Failed to upload media, sending text only', { error });
-        // Fallback: send original response as text
-        await say(response);
+        await uploadMediaToSlack(app, channel, media, cleanText || '✨ Generated content');
+        log.info('[Slack] Media sent successfully');
+      } catch (error: any) {
+        log.error('[Slack] Upload failed', {
+          error: error.message,
+          stack: error.stack,
+          channel,
+          mediaType: media.type
+        });
+
+        // Send error message instead of link
+        await say(`⚠️ Conteúdo gerado mas não consegui fazer upload.\n\n**Erro:** ${error.message}\n\nVerifique:\n- Bot tem permissão \`files:write\`?\n- Bot está no canal? (convide com \`/invite @ulfberht-warden\`)`);
       }
     } else {
       // No media, send normal text response
@@ -106,7 +126,7 @@ export async function startSlackHandler() {
       await sessionManager.addMessage(userId, { role: 'user', content: text });
       await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
-      await sendResponse(channel, response, say);
+      await sendResponse(channel, response, say, event);
     } catch (error) {
       console.error('[Slack] Error handling message:', error);
       await say('Desculpa, tive um problema. Tenta de novo?');
@@ -151,7 +171,7 @@ export async function startSlackHandler() {
       await sessionManager.addMessage(userId, { role: 'user', content: text });
       await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
-      await sendResponse(channel, response, say);
+      await sendResponse(channel, response, say, event);
     } catch (error) {
       console.error('[Slack] Error handling mention:', error);
       await say('Desculpa, tive um problema. Tenta de novo?');
