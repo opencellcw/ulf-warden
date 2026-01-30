@@ -5,8 +5,8 @@ const telegraf_1 = require("telegraf");
 const chat_1 = require("../chat");
 const sessions_1 = require("../sessions");
 async function startTelegramHandler() {
-    if (!process.env.TELEGRAM_BOT_TOKEN) {
-        console.log('[Telegram] Token not found, skipping Telegram handler');
+    if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN === 'xxx') {
+        console.log('[Telegram] Token not configured, skipping Telegram handler');
         return null;
     }
     const bot = new telegraf_1.Telegraf(process.env.TELEGRAM_BOT_TOKEN);

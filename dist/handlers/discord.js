@@ -5,8 +5,8 @@ const discord_js_1 = require("discord.js");
 const chat_1 = require("../chat");
 const sessions_1 = require("../sessions");
 async function startDiscordHandler() {
-    if (!process.env.DISCORD_BOT_TOKEN) {
-        console.log('[Discord] Token not found, skipping Discord handler');
+    if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
+        console.log('[Discord] Token not configured, skipping Discord handler');
         return null;
     }
     const client = new discord_js_1.Client({

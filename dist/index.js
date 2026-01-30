@@ -1,9 +1,33 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
+const express_1 = __importDefault(require("express"));
 const slack_1 = require("./handlers/slack");
 const discord_1 = require("./handlers/discord");
 const telegram_1 = require("./handlers/telegram");
+// HTTP server for Render health check
+const app = (0, express_1.default)();
+const PORT = process.env.PORT || 3000;
+app.get('/', (req, res) => {
+    res.json({
+        status: 'online',
+        bot: 'ulf',
+        platforms: {
+            slack: !!handlers.slack,
+            discord: !!handlers.discord,
+            telegram: !!handlers.telegram,
+        }
+    });
+});
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+app.listen(PORT, () => {
+    console.log(`HTTP server listening on port ${PORT}`);
+});
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     console.error('❌ Missing required environment variable: ANTHROPIC_API_KEY');

@@ -1,8 +1,33 @@
 import 'dotenv/config';
+import express from 'express';
 import { startSlackHandler } from './handlers/slack';
 import { startDiscordHandler } from './handlers/discord';
 import { startTelegramHandler } from './handlers/telegram';
 import { workspace } from './workspace';
+
+// HTTP server for Render health check
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    bot: 'ulf',
+    platforms: {
+      slack: !!handlers.slack,
+      discord: !!handlers.discord,
+      telegram: !!handlers.telegram,
+    }
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.listen(PORT, () => {
+  console.log(`HTTP server listening on port ${PORT}`);
+});
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {

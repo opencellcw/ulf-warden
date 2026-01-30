@@ -12,8 +12,9 @@
     "@anthropic-ai/sdk": "^0.32.1",
     "@slack/bolt": "^3.17.1",
     "discord.js": "^14.14.1",
-    "telegraf": "^4.15.0",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "express": "^4.22.1",
+    "telegraf": "^4.15.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
