@@ -2,11 +2,11 @@
 
 <img src=".github/assets/logo.png" alt="OpenCell Logo" width="600"/>
 
-# Ulfberht-Warden
+# OpenCell
 
-> **Multi-platform AI agent with self-improvement, security auditing, and cost management**
+> **CloudWalk's Multi-Agent AI Platform - Building the Future of Intelligent Automation**
 
-[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/lucaspressi/opencellcw)
+[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![GKE](https://img.shields.io/badge/deployed-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
@@ -14,9 +14,9 @@
 
 </div>
 
-Ulfberht-Warden (Ulf) is a production-ready AI agent inspired by legendary Viking craftsmanship - precise, reliable, and built to last. Runs simultaneously on Slack, Discord, and Telegram with advanced self-improvement, comprehensive security, and multi-platform cost monitoring.
+OpenCell is CloudWalk's production-ready multi-agent AI platform. **Ulfberht (Ulf)** is the first of many CloudBots - specialized AI agents designed for different tasks and domains. Each agent runs simultaneously on Slack, Discord, and Telegram with advanced self-improvement, comprehensive security, and multi-platform cost monitoring.
 
-**Named after ULFBERHT swords** - forged centuries ahead of their time with exceptional steel quality.
+**The CloudBots family** will include specialized agents for customer support, development operations, data analysis, and more.
 
 [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Features](#-key-features) • [Deploy](#-deploy) • [Security](#-security--safety)
 
@@ -124,7 +124,7 @@ Real-time cost monitoring across 5 platforms:
 
 ```bash
 # Clone repository
-git clone https://github.com/lucaspressi/opencellcw
+git clone https://github.com/cloudwalk/opencell
 cd opencellcw
 
 # Install dependencies
@@ -617,7 +617,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 
 1. **Fork & Clone**
    ```bash
-   git fork https://github.com/lucaspressi/opencellcw
+   git fork https://github.com/cloudwalk/opencell
    git clone https://github.com/YOUR_USERNAME/opencellcw
    cd opencellcw
    ```
@@ -688,7 +688,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support & Community
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/lucaspressi/opencellcw/issues)
+- **GitHub Issues:** [Report bugs or request features](https://github.com/cloudwalk/opencell/issues)
 - **Discord:** [Join our community](https://discord.gg/your-server) (coming soon)
 - **Documentation:** [Complete docs site](https://docs.your-domain.com) (coming soon)
 - **Email:** lucas@your-domain.com
@@ -717,25 +717,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📜 The Story of ULFBERHT
+## 🤖 The CloudBots Family
 
-The **+ULFBERH+T** swords were marked with this mysterious inscription and forged with crucible steel of exceptional quality - centuries ahead of their time. Only master Viking blacksmiths knew how to temper the metal to perfection.
+OpenCell is designed as a **multi-agent platform**. Each agent (CloudBot) specializes in different domains:
 
-These swords were made with imported steel, possibly from the Middle East or Central Asia - an impressive technological feat for the Viking Age (700-1100 AD). Only ~170 Ulfberht swords have been found, indicating they were rare and valuable. Metallurgical analysis shows the steel had very low slag content, comparable to modern steel.
+### Current CloudBots
+- **Ulfberht (Ulf)** - General-purpose AI assistant with self-improvement capabilities
 
-This project honors that precision, craftsmanship, and rarity.
+### Coming Soon
+- **Guardian** - Security monitoring and incident response
+- **Oracle** - Data analysis and business intelligence
+- **Forge** - Development operations and code management
+- **Scribe** - Documentation and knowledge management
+
+Each CloudBot shares the same robust infrastructure: security systems, cost monitoring, multi-platform support, and self-improvement capabilities.
 
 ---
 
 <div align="center">
 
-**Forged with precision by [Lucas](https://github.com/lucaspressi)**
+**Built by [CloudWalk](https://cloudwalk.io) • Engineered by [Lucas](https://github.com/lucaspressi)**
 
-[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/lucaspressi/opencellcw)
+[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.0.0-orange)](CHANGELOG.md)
 
-⚔️ *Precision, like the legendary ULFBERHT swords* ⚔️
+🤖 *OpenCell: The Future of Multi-Agent AI* 🤖
 
 [Quick Start](#-quick-start) •
 [Documentation](#-documentation) •
