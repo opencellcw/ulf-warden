@@ -4,19 +4,34 @@
 
 # OpenCell
 
-> **CloudWalk's Multi-Agent AI Platform - Building the Future of Intelligent Automation**
+> **Open-Source Multi-Agent AI Platform - Deploy Your Own CloudBots**
 
 [![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![GKE](https://img.shields.io/badge/deployed-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
+[![GKE](https://img.shields.io/badge/deploy-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
 
 </div>
 
-OpenCell is CloudWalk's production-ready multi-agent AI platform. **Ulfberht (Ulf)** is the first of many CloudBots - specialized AI agents designed for different tasks and domains. Each agent runs simultaneously on Slack, Discord, and Telegram with advanced self-improvement, comprehensive security, and multi-platform cost monitoring.
+**OpenCell** is CloudWalk's open-source template for building multi-agent AI platforms. This repository provides everything you need to **clone, customize, and deploy your own AI agents** on your Kubernetes cluster.
 
-**The CloudBots family** will include specialized agents for customer support, development operations, data analysis, and more.
+### 🎯 What is this?
+
+- ✅ **Production-ready template** for multi-platform AI agents (Slack, Discord, Telegram)
+- ✅ **Complete infrastructure** - Kubernetes manifests, Helm charts, security systems
+- ✅ **Example implementation** - "Ulfberht (Ulf)" agent showcasing all features
+- ✅ **Fork and customize** - Build your own specialized CloudBots for your needs
+
+### 💡 Use Cases
+
+Clone this repository to:
+- 🤖 Deploy AI assistants in your company's Slack/Discord/Telegram
+- 🔧 Build custom automation agents for your workflows
+- 📊 Create specialized bots for data analysis, customer support, DevOps, etc.
+- 🏗️ Learn how to build production-grade AI agents with Claude
+
+**The CloudBots family** includes specialized agents like Guardian (security), Oracle (analytics), Forge (DevOps), and Scribe (documentation) - all built on this foundation.
 
 [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Features](#-key-features) • [Deploy](#-deploy) • [Security](#-security--safety)
 
@@ -24,20 +39,25 @@ OpenCell is CloudWalk's production-ready multi-agent AI platform. **Ulfberht (Ul
 
 ---
 
-## ⚡ TL;DR
+## ⚡ TL;DR - Fork & Deploy
 
 ```bash
-# Install and run locally
+# 1. Fork/clone this repository
+git clone https://github.com/cloudwalk/opencell.git
+cd opencell
+
+# 2. Configure your environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# 3. Run locally
 npm install && npm run build && npm start
 
-# Deploy to GKE
-./scripts/gke-deploy.sh
-
-# Or via Docker
-docker run -d --env-file .env ulf-warden-agent
+# 4. Deploy to YOUR Kubernetes cluster
+./scripts/gke-deploy.sh  # Deploys to your GKE cluster
 ```
 
-**Ready in 3 commands.** Full multi-platform AI agent with self-improvement.
+**Clone → Configure → Deploy.** Your own AI agent platform in minutes.
 
 ---
 
@@ -111,26 +131,33 @@ Real-time cost monitoring across 5 platforms:
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start - Deploy Your Own Agent
 
 ### Prerequisites
 
 - Node.js ≥ 20
 - npm, pnpm, or bun
-- Docker (optional)
-- Google Cloud SDK (for GKE deployment)
+- Your own API keys (Anthropic Claude, Slack/Discord/Telegram)
+- Docker (optional for local testing)
+- Kubernetes cluster - GKE, EKS, AKS, or any K8s (for production deployment)
 
-### Installation
+### Step 1: Fork/Clone This Repository
 
 ```bash
-# Clone repository
+# Option A: Fork via GitHub (recommended)
+# Click "Fork" button on https://github.com/cloudwalk/opencell
+# Then clone YOUR fork:
+git clone https://github.com/YOUR_USERNAME/opencell
+cd opencell
+
+# Option B: Clone directly (for testing)
 git clone https://github.com/cloudwalk/opencell
-cd opencellcw
+cd opencell
 
 # Install dependencies
 npm install
 
-# Configure environment
+# Configure with YOUR API keys
 cp .env.example .env
 # Edit .env with your API keys
 
@@ -274,61 +301,108 @@ opencellcw/
 
 ---
 
-## 🚀 Deploy
+## 🚀 Deploy to YOUR Kubernetes Cluster
 
-### Google Kubernetes Engine (Recommended)
+**This is a template** - deploy to **your own infrastructure**, not CloudWalk's.
 
-**One-command deployment:**
+### Option 1: Google Kubernetes Engine (Your GKE)
+
+Deploy to **your own GKE cluster** with one command:
 
 ```bash
+# Update scripts/gke-deploy.sh with YOUR project details
+export PROJECT_ID="your-gcp-project-id"
+export CLUSTER_NAME="your-cluster-name"
+export REGION="your-region"
+
+# Deploy to YOUR cluster
 ./scripts/gke-deploy.sh
 ```
 
-**Or manually:**
+**Manual deployment to YOUR GKE:**
 
 ```bash
-# Build and push image
-gcloud builds submit --tag us-central1-docker.pkg.dev/PROJECT_ID/ulf-images/ulf-warden-agent:latest
+# 1. Build image and push to YOUR registry
+gcloud builds submit --tag us-central1-docker.pkg.dev/YOUR_PROJECT_ID/your-registry/opencell:latest
 
-# Setup secrets
+# 2. Setup secrets in YOUR Secret Manager
 ./scripts/gke-setup-secrets.sh
 
-# Deploy with Helm
-helm upgrade --install ulf-warden-agent ./infra/helm/agent -n agents
+# 3. Deploy with Helm to YOUR cluster
+helm upgrade --install opencell ./infra/helm/agent \
+  --namespace your-namespace \
+  --set image.repository=us-central1-docker.pkg.dev/YOUR_PROJECT_ID/your-registry/opencell
 ```
 
-**Features:**
-- Auto-scaling (1-3 replicas)
-- Persistent storage for learning system
-- Secret Manager CSI Driver for secure secrets
-- Cloud Build for CI/CD
-- Cloud Monitoring integration
+📖 **[Complete GKE Setup Guide](docs/GKE_QUICKSTART.md)** - Step-by-step for your GKE cluster
 
-📖 [Complete GKE Guide](docs/GKE_QUICKSTART.md)
+### Option 2: AWS EKS / Azure AKS / Any Kubernetes
 
-### Docker
+Deploy to **any Kubernetes cluster**:
+
+```bash
+# 1. Build and push to your registry
+docker build -t your-registry/opencell:latest .
+docker push your-registry/opencell:latest
+
+# 2. Create secrets in your cluster
+kubectl create namespace opencell
+kubectl create secret generic opencell-secrets -n opencell \
+  --from-literal=ANTHROPIC_API_KEY="your-key" \
+  --from-literal=SLACK_BOT_TOKEN="your-token"
+
+# 3. Deploy with Helm
+helm install opencell ./infra/helm/agent \
+  --namespace opencell \
+  --set image.repository=your-registry/opencell
+```
+
+📖 **Helm chart is fully customizable** - edit `infra/helm/agent/values.yaml` for your setup
+
+### Option 3: Docker (Local or VM)
+
+Run on **your own server**:
 
 ```bash
 # Build
-docker build -t ulf-warden-agent .
+docker build -t opencell .
 
-# Run
+# Run with your .env
 docker run -d \
   --env-file .env \
   -p 8080:8080 \
-  --name ulf \
-  ulf-warden-agent
+  --name opencell \
+  --restart unless-stopped \
+  opencell
 ```
 
-### Render.com (Alternative)
+### Option 4: Cloud Platforms
 
-1. Fork this repo
+Deploy to **your own cloud platform**:
+
+**Render.com** (PaaS)
+1. Fork this repo to **YOUR** GitHub
 2. https://render.com → New Web Service
-3. Connect repository
-4. Add environment variables
-5. Deploy
+3. Connect **YOUR** repository
+4. Add **YOUR** environment variables
+5. Deploy to **YOUR** Render account
 
-**Cost:** $7/month starter plan recommended
+**Heroku / Railway / Fly.io**
+- Similar process - deploy to **YOUR** account
+- All support Docker or buildpacks
+- Configure with **YOUR** API keys
+
+---
+
+## 🔧 Customization
+
+**This is YOUR bot** - customize everything:
+
+1. **Edit workspace files** (`workspace/*.md`) to change personality
+2. **Modify Helm values** (`infra/helm/agent/values.yaml`) for your cluster
+3. **Add custom tools** in `src/tools/` for your specific needs
+4. **Adjust security rules** in `src/security/` for your requirements
+5. **Fork and extend** - make it yours!
 
 ---
 
