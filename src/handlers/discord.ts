@@ -5,6 +5,8 @@ import { sessionManager } from '../sessions';
 import { extractMediaMetadata, cleanResponseText } from '../media-handler';
 import { uploadMediaToDiscord } from '../media-handler-discord';
 import { log } from '../logger';
+import { approvalSystem } from '../approval-system';
+import { selfImprovementSystem } from '../self-improvement';
 
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -79,7 +81,8 @@ export async function startDiscordHandler() {
       'api', 'servidor', 'server', 'app', 'service',
       // Multimodal
       'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
-      'imagem', 'image', 'foto', 'photo', 'picture',
+      'faz', 'fazer', 'faça', 'make', 'draw', 'desenha', 'desenhar',
+      'imagem', 'image', 'img', 'foto', 'photo', 'picture', 'pic',
       'video', 'vídeo', 'animate', 'anima',
       'audio', 'áudio', 'som', 'sound', 'voz', 'voice',
       'converte', 'convert', 'transcreve', 'transcribe',
@@ -99,6 +102,10 @@ export async function startDiscordHandler() {
 
   client.on('ready', () => {
     console.log(`✓ Discord handler started (${client.user?.tag})`);
+
+    // Initialize approval system
+    approvalSystem.setClient(client);
+    log.info('[Discord] Approval system initialized');
   });
 
   client.on('messageCreate', async (message: Message) => {
@@ -122,6 +129,13 @@ export async function startDiscordHandler() {
 
       if (!text) {
         await message.reply('Oi! Como posso ajudar?');
+        return;
+      }
+
+      // Handle special commands
+      if (text.startsWith('/propose-improvement')) {
+        // Example: /propose-improvement title: "Fix bug" | description: "..." | files: src/test.ts
+        await message.reply('🔧 Sistema de self-improvement detectado. Use `propor melhoria em X` para propostas automáticas.');
         return;
       }
 

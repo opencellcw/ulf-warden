@@ -8,6 +8,7 @@ const sessions_1 = require("../sessions");
 const media_handler_1 = require("../media-handler");
 const media_handler_discord_1 = require("../media-handler-discord");
 const logger_1 = require("../logger");
+const approval_system_1 = require("../approval-system");
 async function startDiscordHandler() {
     if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
         console.log('[Discord] Token not configured, skipping Discord handler');
@@ -75,7 +76,8 @@ async function startDiscordHandler() {
             'api', 'servidor', 'server', 'app', 'service',
             // Multimodal
             'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
-            'imagem', 'image', 'foto', 'photo', 'picture',
+            'faz', 'fazer', 'faça', 'make', 'draw', 'desenha', 'desenhar',
+            'imagem', 'image', 'img', 'foto', 'photo', 'picture', 'pic',
             'video', 'vídeo', 'animate', 'anima',
             'audio', 'áudio', 'som', 'sound', 'voz', 'voice',
             'converte', 'convert', 'transcreve', 'transcribe',
@@ -93,6 +95,9 @@ async function startDiscordHandler() {
     }
     client.on('ready', () => {
         console.log(`✓ Discord handler started (${client.user?.tag})`);
+        // Initialize approval system
+        approval_system_1.approvalSystem.setClient(client);
+        logger_1.log.info('[Discord] Approval system initialized');
     });
     client.on('messageCreate', async (message) => {
         try {
@@ -112,6 +117,12 @@ async function startDiscordHandler() {
             }
             if (!text) {
                 await message.reply('Oi! Como posso ajudar?');
+                return;
+            }
+            // Handle special commands
+            if (text.startsWith('/propose-improvement')) {
+                // Example: /propose-improvement title: "Fix bug" | description: "..." | files: src/test.ts
+                await message.reply('🔧 Sistema de self-improvement detectado. Use `propor melhoria em X` para propostas automáticas.');
                 return;
             }
             console.log(`[Discord] Message from ${userId}: ${text.substring(0, 50)}...`);

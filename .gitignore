@@ -1,6 +1,12 @@
 node_modules/
 .env
+.env.backup.*
 *.log
 .DS_Store
 workspace/memory/*.md
 !workspace/memory/.gitkeep
+
+# GCP credentials (nunca commitar!)
+*-key.json
+credentials.json
+service-account.json

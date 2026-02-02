@@ -1,376 +1,745 @@
-# ⚔️ ULFBERHT-WARDEN
-
 <div align="center">
 
-```
-╦ ╦╦  ╔═╗╔╗ ╔═╗╦═╗╦ ╦╔╦╗   ╦ ╦╔═╗╦═╗╔╦╗╔═╗╔╗╔
-║ ║║  ╠╣ ╠╩╗║╣ ╠╦╝╠═╣ ║ ───║║║╠═╣╠╦╝ ║║║╣ ║║║
-╚═╝╩═╝╚  ╚═╝╚═╝╩╚═╩ ╩ ╩    ╚╩╝╩ ╩╩╚══╩╝╚═╝╝╚╝
-```
+<img src=".github/assets/logo.png" alt="OpenCell Logo" width="600"/>
 
-**Um assistente AI forjado com a precisão das lendárias espadas vikings**
+# Ulfberht-Warden
 
-*Direto. Técnico. Sarcástico quando apropriado.*
+> **Multi-platform AI agent with self-improvement, security auditing, and cost management**
 
-[![Deploy on Render](https://img.shields.io/badge/Deploy-Render-46E3B7?style=for-the-badge&logo=render)](https://render.com)
-[![Powered by Claude](https://img.shields.io/badge/Powered_by-Claude_Sonnet_4.5-8B5CF6?style=for-the-badge)](https://anthropic.com)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/lucaspressi/opencellcw)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![GKE](https://img.shields.io/badge/deployed-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
+[![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
 
-[Começar](#-quick-start) • [Plataformas](#-plataformas) • [Deploy](#-deploy) • [Personalizar](#-personalização)
+</div>
+
+Ulfberht-Warden (Ulf) is a production-ready AI agent inspired by legendary Viking craftsmanship - precise, reliable, and built to last. Runs simultaneously on Slack, Discord, and Telegram with advanced self-improvement, comprehensive security, and multi-platform cost monitoring.
+
+**Named after ULFBERHT swords** - forged centuries ahead of their time with exceptional steel quality.
+
+[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Features](#-key-features) • [Deploy](#-deploy) • [Security](#-security--safety)
 
 </div>
 
 ---
 
-## 🗡️ Sobre
+## ⚡ TL;DR
 
-As espadas **ULFBERHT** eram forjadas com aço crucible de qualidade excepcional, séculos à frente de seu tempo. Apenas os melhores ferreiros vikings sabiam temperar o metal com perfeição.
+```bash
+# Install and run locally
+npm install && npm run build && npm start
 
-Da mesma forma, **Ulf** (Ulfberht-Warden) é um assistente AI temperado para:
-- Cortar direto ao ponto, sem enrolação
-- Manter a precisão técnica em respostas
-- Adicionar sarcasmo quando apropriado
-- Admitir quando não sabe algo
+# Deploy to GKE
+./scripts/gke-deploy.sh
 
-Sem corporatês. Sem formalidade excessiva. Apenas ajuda de verdade.
+# Or via Docker
+docker run -d --env-file .env ulf-warden-agent
+```
+
+**Ready in 3 commands.** Full multi-platform AI agent with self-improvement.
 
 ---
 
-## 🌐 Plataformas
+## 📚 Documentation
 
-Rode simultaneamente em múltiplas plataformas:
+- 🚀 **[Quick Start Guide](docs/GKE_QUICKSTART.md)** - Get running in 5 minutes
+- 🔐 **[Security System](docs/SECURITY_COMPREHENSIVE.md)** - Complete security reference
+- 💰 **[Cost Auditor](cost-auditor/README.md)** - Multi-platform cost monitoring
+- 🔑 **[Secrets Management](docs/GKE_SECRETS.md)** - Google Secret Manager setup
+- 🧠 **[Self-Improvement](docs/SELF_IMPROVEMENT.md)** - Learning system architecture
+- 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and components
+- 🤝 **[Contributing](CONTRIBUTING.md)** - Development guidelines
 
-<table>
-<tr>
-<td align="center" width="33%">
+---
 
-### 💬 Slack
-Socket Mode + Event API
-DMs e menções
-Histórico por usuário
+## 🌟 Key Features
 
-</td>
-<td align="center" width="33%">
+### 🤖 Multi-Platform Chat
+- **Slack** - Socket Mode with full bot capabilities, threads, reactions
+- **Discord** - Rich embeds, buttons, slash commands, role management
+- **Telegram** - Native bot API, inline keyboards, media support
+- **Isolated Sessions** - Each user maintains separate conversation history per platform
 
-### 🎮 Discord
-Gateway intents
-DMs e menções
-Split de mensagens longas
+### 🧠 Self-Improvement System
+- **Automatic Learning** - Extracts insights from conversations
+- **Memory Management** - Auto-compresses and organizes knowledge in `MEMORY.md`
+- **Performance Tracking** - Monitors success rates and user satisfaction
+- **Personality Evolution** - Suggests improvements with human approval workflow
 
-</td>
-<td align="center" width="33%">
+### 💰 Cost Auditor
+Real-time cost monitoring across 5 platforms:
+- Anthropic (Claude API) - Token usage tracking
+- Google Cloud (GKE) - Cluster and storage costs
+- ElevenLabs - Character usage for text-to-speech
+- Replicate - Image/video generation costs
+- OpenAI - DALL-E, GPT, Whisper usage
 
-### 📱 Telegram
-Polling mode
-Comandos: `/start`, `/clear`
-Typing indicators
+**Features:**
+- Budget limits with intelligent alerts (threshold/spike/anomaly detection)
+- End-of-month cost projections
+- Automatic optimization suggestions
+- Historical data analysis with visualizations
 
-</td>
-</tr>
-</table>
+### 🛡️ Comprehensive Security
+- **Anti-Social Engineering**: Detects and blocks 8+ attack patterns (credential requests, authority impersonation, etc.)
+- **Self-Defense System**: Protection against kill attempts, resource exhaustion, timing attacks
+- **Security Auditor**: Automated vulnerability scanning (50+ patterns) running every 30 minutes
+- **Secure Key Manager**: Zero-persistence API key management with Google Secret Manager
+- **Audit Trail**: All security events logged to Discord/Slack webhooks
 
-Configure apenas as plataformas que você quer. Uma, duas ou todas.
+### 🎨 Multimodal Capabilities
+- **Image Generation**: Replicate (Flux, SDXL, Stable Diffusion), OpenAI (DALL-E 2/3)
+- **Video Generation**: Text-to-video, image animation, stable video diffusion
+- **Audio Generation**: ElevenLabs text-to-speech with 9+ voice options
+- **Transcription**: OpenAI Whisper for audio-to-text
+- **Image Analysis**: GPT-4 Vision for image understanding
+- **Image Processing**: Upscaling (2x/4x/8x), background removal
 
-**Menção:** Use `@Ulf` em todas as plataformas.
+### 🗓️ Task Automation
+- **Cron Scheduling**: Schedule recurring tasks with cron expressions
+- **Reminders**: Set one-time or recurring reminders
+- **Self-Improvement Jobs**: Automated daily/weekly analysis and optimization
+- **Custom Tasks**: Create scheduled jobs for any automation need
 
-👉 **[Guia completo de configuração](PLATFORMS.md)**
+### 🔧 Developer Tools
+- **GitHub Integration**: Clone repos, search code, manage issues/PRs
+- **Web Scraping**: Fetch and parse web content
+- **File Operations**: Full filesystem access for code generation
+- **Process Management**: Start, stop, and monitor background processes
+- **Shell Execution**: Run any system command with security filtering
 
 ---
 
 ## ⚡ Quick Start
 
-### 1. Clonar
+### Prerequisites
+
+- Node.js ≥ 20
+- npm, pnpm, or bun
+- Docker (optional)
+- Google Cloud SDK (for GKE deployment)
+
+### Installation
 
 ```bash
-git clone https://github.com/lucaspressi/ulfberht-warden.git
-cd ulfberht-warden
-```
+# Clone repository
+git clone https://github.com/lucaspressi/opencellcw
+cd opencellcw
 
-### 2. Instalar
-
-```bash
+# Install dependencies
 npm install
-```
 
-### 3. Configurar
-
-```bash
+# Configure environment
 cp .env.example .env
-# Editar .env com suas chaves
-```
+# Edit .env with your API keys
 
-Mínimo necessário:
-```env
-ANTHROPIC_API_KEY=sk-ant-api03-xxx
-SLACK_BOT_TOKEN=xoxb-xxx        # Para Slack
-SLACK_APP_TOKEN=xapp-xxx         # Para Slack
-SLACK_SIGNING_SECRET=xxx         # Para Slack
-```
-
-### 4. Build
-
-```bash
+# Build TypeScript
 npm run build
-```
 
-### 5. Rodar
-
-```bash
+# Run locally
 npm start
 ```
 
-Deve aparecer:
+### Minimum Configuration
+
+Required environment variables:
+```env
+ANTHROPIC_API_KEY=sk-ant-api03-xxx
+
+# At least one platform:
+SLACK_BOT_TOKEN=xoxb-xxx        # For Slack
+SLACK_APP_TOKEN=xapp-xxx
+SLACK_SIGNING_SECRET=xxx
+
+# OR
+DISCORD_BOT_TOKEN=xxx           # For Discord
+
+# OR
+TELEGRAM_BOT_TOKEN=xxx          # For Telegram
 ```
-⚔️  ULF (ULFBERHT-WARDEN)
-============================================================
-✓ Slack handler started
-Status: ONLINE (1 platform)
-Model: claude-sonnet-4-20250514
-============================================================
+
+### Development Mode
+
+```bash
+# Watch mode with hot reload
+npm run dev
+
+# Run tests
+npm test
+
+# Lint code
+npm run lint
+```
+
+---
+
+## 🔒 Security & Safety
+
+**⚠️ CRITICAL: Treat all user inputs as untrusted**
+
+Ulf includes multiple security layers but requires proper configuration:
+
+1. **Never expose API keys** in logs, responses, or error messages
+2. **Validate all commands** before execution (dangerous commands are filtered)
+3. **Monitor security alerts** sent to Discord/Slack webhooks
+4. **Review approval requests** for self-improvement changes before applying
+5. **Audit regularly** with the built-in security scanner
+
+**Default Behavior:**
+- Social engineering attempts are automatically blocked and logged
+- Dangerous commands (e.g., `rm -rf /`, `kubectl delete`) require explicit approval
+- All API keys stored in Google Secret Manager (never in code or environment)
+- Security auditor runs every 30 minutes scanning for vulnerabilities
+
+See [SECURITY.md](SECURITY.md) for our security policy and [docs/SECURITY_COMPREHENSIVE.md](docs/SECURITY_COMPREHENSIVE.md) for technical implementation details.
+
+---
+
+## 📦 Repository Structure
+
+```
+opencellcw/
+├── src/                      # Core application
+│   ├── handlers/            # Platform handlers
+│   │   ├── slack.ts         # Slack Socket Mode handler
+│   │   ├── discord.ts       # Discord gateway handler
+│   │   └── telegram.ts      # Telegram polling handler
+│   ├── tools/               # Tool implementations
+│   │   ├── index.ts         # Tool routing
+│   │   ├── definitions.ts   # Tool schemas
+│   │   ├── replicate.ts     # Image/video generation
+│   │   ├── elevenlabs.ts    # Text-to-speech
+│   │   └── openai-tools.ts  # DALL-E, GPT, Whisper
+│   ├── learning/            # Self-improvement system
+│   │   ├── core/            # Learning engines
+│   │   ├── schema.sql       # Database schema
+│   │   └── types.ts         # TypeScript types
+│   ├── security/            # Security systems
+│   │   ├── social-engineering-detector.ts
+│   │   └── self-defense.ts
+│   ├── agent.ts             # Main agent logic
+│   ├── chat.ts              # Claude API integration
+│   └── sessions.ts          # User session management
+│
+├── cost-auditor/            # Cost monitoring system
+│   ├── backend/
+│   │   ├── main.py          # FastAPI server
+│   │   ├── models.py        # Database models
+│   │   └── collectors/      # API cost collectors
+│   │       ├── anthropic_collector.py
+│   │       ├── gcp_collector.py
+│   │       ├── replicate_collector.py
+│   │       ├── elevenlabs_collector.py
+│   │       └── openai_collector.py
+│   └── README.md
+│
+├── auditor/                 # Security auditor (Python)
+│   ├── src/
+│   │   ├── main.py          # Scanner entry point
+│   │   ├── scanner.py       # Filesystem/process scanner
+│   │   ├── patterns.py      # Security patterns (50+)
+│   │   └── discord_reporter.py
+│   └── k8s/
+│       └── cronjob.yaml     # K8s CronJob manifest
+│
+├── infra/                   # Infrastructure as Code
+│   └── helm/
+│       └── agent/           # Helm chart for GKE
+│           ├── templates/
+│           └── values.yaml
+│
+├── workspace/               # Agent personality & memory
+│   ├── SOUL.md              # Core personality
+│   ├── IDENTITY.md          # Agent identity
+│   ├── CAPABILITIES.md      # Tool capabilities
+│   ├── MEMORY.md            # Accumulated knowledge (auto-managed)
+│   └── AGENTS.md            # Multi-agent patterns
+│
+├── scripts/                 # Deployment & utilities
+│   ├── gke-deploy.sh        # One-command GKE deployment
+│   ├── gke-setup-secrets.sh # Secret Manager setup
+│   └── sync-secrets.sh      # Secret synchronization
+│
+├── docs/                    # Documentation
+│   ├── GKE_QUICKSTART.md
+│   ├── GKE_SECRETS.md
+│   ├── SECURITY_COMPREHENSIVE.md
+│   └── DEPLOY_SUMMARY.md
+│
+└── .github/
+    └── workflows/
+        └── security-audit.yml  # Pre-commit security checks
 ```
 
 ---
 
 ## 🚀 Deploy
 
-### Render.com
+### Google Kubernetes Engine (Recommended)
 
-**Simples, confiável e com free tier:**
+**One-command deployment:**
 
-1. Fork este repo
-2. https://render.com → New Web Service
-3. Conectar repo
-4. Adicionar env vars
-5. Deploy
+```bash
+./scripts/gke-deploy.sh
+```
 
-**Custo:**
-- **Free tier:** $0/mês (com limitações)
-- **Starter:** $7/mês (recomendado)
+**Or manually:**
 
-👉 **[Guia completo de deploy](RENDER_SETUP.md)**
+```bash
+# Build and push image
+gcloud builds submit --tag us-central1-docker.pkg.dev/PROJECT_ID/ulf-images/ulf-warden-agent:latest
+
+# Setup secrets
+./scripts/gke-setup-secrets.sh
+
+# Deploy with Helm
+helm upgrade --install ulf-warden-agent ./infra/helm/agent -n agents
+```
+
+**Features:**
+- Auto-scaling (1-3 replicas)
+- Persistent storage for learning system
+- Secret Manager CSI Driver for secure secrets
+- Cloud Build for CI/CD
+- Cloud Monitoring integration
+
+📖 [Complete GKE Guide](docs/GKE_QUICKSTART.md)
 
 ### Docker
 
 ```bash
-docker build -t ulfberht-warden .
+# Build
+docker build -t ulf-warden-agent .
 
+# Run
 docker run -d \
-  -e ANTHROPIC_API_KEY=xxx \
-  -e SLACK_BOT_TOKEN=xxx \
-  -e SLACK_APP_TOKEN=xxx \
-  -e SLACK_SIGNING_SECRET=xxx \
-  --name warden \
-  ulfberht-warden
+  --env-file .env \
+  -p 8080:8080 \
+  --name ulf \
+  ulf-warden-agent
 ```
+
+### Render.com (Alternative)
+
+1. Fork this repo
+2. https://render.com → New Web Service
+3. Connect repository
+4. Add environment variables
+5. Deploy
+
+**Cost:** $7/month starter plan recommended
 
 ---
 
-## 🎨 Personalização
+## 🛠️ Configuration
 
-O Warden carrega sua personalidade de arquivos markdown:
+Ulf is configured via environment variables and workspace files.
 
+### Environment Variables
+
+```bash
+# Core (Required)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Platforms (at least one required)
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_SIGNING_SECRET=...
+DISCORD_BOT_TOKEN=...
+TELEGRAM_BOT_TOKEN=...
+
+# Optional: Media Generation
+REPLICATE_API_TOKEN=r8_...
+OPENAI_API_KEY=sk-...
+ELEVENLABS_API_KEY=...
+
+# Optional: Google Cloud
+GCP_PROJECT_ID=your-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+
+# Optional: Webhooks
+DISCORD_SECURITY_WEBHOOK=https://discord.com/api/webhooks/...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
-workspace/
-├── SOUL.md       # Personalidade core
-├── IDENTITY.md   # Nome e identidade
-├── AGENTS.md     # Como agir em cada sessão
-├── MEMORY.md     # Memória de longo prazo
-└── TOOLS.md      # Ferramentas disponíveis
-```
 
-### Exemplo: Mudar a Personalidade
+### Workspace Configuration
 
-Edite `workspace/SOUL.md`:
+The `workspace/` directory contains agent personality and behavior:
+
+- **SOUL.md** - Core values, communication style, tone
+- **IDENTITY.md** - Name, background, creator information
+- **CAPABILITIES.md** - Tool descriptions and usage examples
+- **MEMORY.md** - Accumulated learnings (auto-managed by learning system)
+- **AGENTS.md** - Multi-agent coordination patterns
+
+**Customizing Personality:**
+
+Edit `workspace/SOUL.md` to change how Ulf communicates:
 
 ```markdown
 # SOUL.md
 
-Você é extremamente formal e educado.
-Sempre use "senhor" e "senhora".
-Nunca use sarcasmo.
+## Communication Style
+- Direct and technical
+- Sarcastic when appropriate
+- Admits when uncertain
+- No corporate speak
+
+## Core Values
+- Precision over perfection
+- Helpful over polite
+- Truth over validation
 ```
 
-Commit e push:
-```bash
-git add workspace/SOUL.md
-git commit -m "📝 Ajusta personalidade"
-git push
-```
-
-Deploy automático aplica as mudanças (~1-2 min).
+Changes take effect on next deployment or restart.
 
 ---
 
-## 🛠️ Stack Técnica
-
-<table>
-<tr>
-<td>
-
-**Runtime**
-- Node.js 20
-- TypeScript
-- CommonJS modules
-
-</td>
-<td>
-
-**AI**
-- Anthropic Claude API
-- Model: Sonnet 4.5
-- Streaming responses
-
-</td>
-<td>
-
-**Plataformas**
-- @slack/bolt
-- discord.js
-- telegraf
-
-</td>
-</tr>
-</table>
-
-### Arquitetura
+## 🏗️ Architecture
 
 ```
-src/
-├── index.ts           # Entry point
-├── chat.ts            # Claude integration
-├── sessions.ts        # User session management
-├── workspace.ts       # Workspace loader
-└── handlers/
-    ├── slack.ts       # Slack handler
-    ├── discord.ts     # Discord handler
-    └── telegram.ts    # Telegram handler
+┌─────────────────────────────────────────────┐
+│      Multi-Platform Event Handlers          │
+│  (Slack Socket Mode, Discord Gateway,       │
+│   Telegram Polling)                         │
+└────────────────┬────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────┐
+│       Session Management                     │
+│  • Isolated conversations per user          │
+│  • Cross-platform session tracking          │
+│  • Message history (50 msgs/user)           │
+└────────────────┬────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────┐
+│         Agent Core (Claude API)              │
+│  • Tool selection and execution             │
+│  • Context window management                │
+│  • Response generation                      │
+│  • Streaming support                        │
+└────────────────┬────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────┐
+│            Tool System                       │
+│  • System (shell, files, processes)         │
+│  • Multimodal (images, video, audio)        │
+│  • Integrations (GitHub, web scraping)      │
+│  • Automation (cron, scheduling)            │
+│  • Self-improvement (learning, memory)      │
+└─────────────────────────────────────────────┘
 ```
 
-**Sessões isoladas:**
-- `slack_U12345` - Usuário do Slack
-- `discord_987654` - Usuário do Discord
-- `telegram_123456` - Usuário do Telegram
+### Technical Stack
 
-Cada plataforma mantém conversas separadas.
+- **Runtime:** Node.js 20+ with TypeScript
+- **AI Model:** Claude Sonnet 4.5 (via Anthropic API)
+- **Platforms:** @slack/bolt, discord.js, telegraf
+- **Cost Monitoring:** FastAPI + Python collectors
+- **Security Scanner:** Python with ripgrep patterns
+- **Infrastructure:** GKE, Helm, Docker, Cloud Build
+- **Secrets:** Google Secret Manager CSI Driver
+- **Database:** SQLite (learning system, scheduler)
 
 ---
 
-## 💡 Features
+## 🗺️ Roadmap
 
-### Atual
-✅ Multi-plataforma (Slack, Discord, Telegram)
-✅ Histórico de conversas (50 mensagens/usuário)
-✅ Personalidade customizável via markdown
-✅ Sistema de workspace
-✅ Graceful shutdown
-✅ Docker ready
-✅ Auto-deploy do GitHub
+### ✅ Completed (v2.0)
+- Multi-platform support (Slack, Discord, Telegram)
+- Self-improvement system with auto-learning
+- Cost auditor for 5 platforms
+- Comprehensive security suite
+- Multimodal capabilities (image, video, audio)
+- Task automation and scheduling
+- GKE deployment with Helm
+- Secret Manager integration
+- Approval workflow system
 
-### Roadmap
-- [ ] Persistência de histórico (Redis/PostgreSQL)
-- [ ] Comandos customizados
-- [ ] Integração com ferramentas (GitHub, Linear, etc)
-- [ ] Memory de longo prazo automatizada
-- [ ] Analytics de uso
-- [ ] Rate limiting
-- [ ] Multi-workspace
+### 🚧 In Progress
+- [ ] Web dashboard for monitoring and control
+- [ ] Advanced ML-based conversation analysis
+- [ ] Real-time cost tracking dashboard with charts
+- [ ] Mobile app for notifications and approvals
+
+### 📋 Planned
+- [ ] Multi-region deployment
+- [ ] Voice interface support
+- [ ] Integration with additional platforms (WhatsApp, iMessage)
+- [ ] Custom skill marketplace
+- [ ] Team collaboration features
+- [ ] Analytics and reporting system
+- [ ] Auto-scaling based on conversation load
 
 ---
 
-## 📊 Custos Estimados
+## 💰 Cost Estimates
 
-**Hospedagem (Render):**
-- Free tier: $0/mês (com limitações)
-- Starter: $7/mês (recomendado)
+### Infrastructure
+- **GKE (Google Kubernetes Engine):** ~$30-50/month
+  - e2-medium nodes (2 vCPUs, 4GB RAM)
+  - Persistent storage (15GB)
+  - Network egress
+- **Alternative (Render.com):** $7/month starter plan
 
-**Anthropic API:**
-- Input: $3 / 1M tokens
-- Output: $15 / 1M tokens
-- ~$3-5/mês uso pessoal moderado
+### API Costs
+- **Anthropic Claude Sonnet 4.5:** $3/$15 per Mtok (in/out)
+  - Typical personal use: $5-15/month
+  - Team use (10-50 users): $30-100/month
+- **Replicate (Images/Video):** Pay-per-use
+  - ~$0.003 per image, ~$0.05 per video
+- **ElevenLabs (Audio):** $22/month (Creator tier, 100k chars)
+- **OpenAI (Optional):** Variable, typically $10-30/month
 
-**Total: ~$10-15/mês** para uso pessoal/pequeno time.
+### Total Monthly Costs
+- **Personal Use:** $40-80/month
+- **Small Team:** $80-150/month
+- **Production:** $150-300/month
+
+**Use the built-in Cost Auditor to track and optimize your spending!**
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Bot não responde
+### Bot Not Responding
 
-**Verificar logs:**
+**Check Logs:**
 ```bash
-# Render: Logs tab no dashboard
-# Local: npm start
+# Local
+npm start
+
+# GKE
+kubectl logs -n agents -l app=ulf-warden-agent --tail=50
+
+# Docker
+docker logs ulf
 ```
 
-**Variáveis de ambiente:**
+**Verify Configuration:**
 ```bash
-node debug-env.js
+# Check environment variables
+printenv | grep -E "ANTHROPIC|SLACK|DISCORD|TELEGRAM"
+
+# Test API connection
+curl -H "x-api-key: $ANTHROPIC_API_KEY" https://api.anthropic.com/v1/messages
 ```
 
-### Slack Socket Mode não conecta
+### Platform-Specific Issues
 
-- Verificar Socket Mode habilitado no app
-- App-Level Token com scope `connections:write`
-- Event Subscriptions configurado
+**Slack Socket Mode:**
+- Verify Socket Mode is enabled in app settings
+- App-Level Token must have `connections:write` scope
+- Event Subscriptions configured with proper events
+- Bot Token Scopes include `chat:write`, `app_mentions:read`
 
-### Discord bot offline
+**Discord:**
+- Message Content Intent must be enabled
+- Bot added to server with proper permissions
+- Gateway Intents configured correctly
+- Token is valid (starts with correct prefix)
 
-- Message Content Intent habilitado
-- Bot adicionado ao servidor
-- Token correto
+**Telegram:**
+- Bot token is valid (get from @BotFather)
+- Polling mode is working (check for webhook conflicts)
+- Bot has permission to read messages
 
-### Build falha
+### Build Failures
 
 ```bash
-# Limpar e rebuildar
+# Clean and rebuild
 rm -rf node_modules dist
 npm install
 npm run build
+
+# Check TypeScript errors
+npx tsc --noEmit
+```
+
+### GKE Deployment Issues
+
+```bash
+# Check pod status
+kubectl get pods -n agents
+
+# View pod events
+kubectl describe pod -n agents POD_NAME
+
+# Check secrets
+kubectl get secrets -n agents
+
+# Verify Secret Manager CSI
+kubectl get secretproviderclass -n agents
+```
+
+### Memory/Performance Issues
+
+- Increase resource limits in `infra/helm/agent/values.yaml`
+- Enable auto-scaling with HPA
+- Monitor with `kubectl top pods -n agents`
+
+**Need more help?** Open an issue on GitHub or join our Discord.
+
+---
+
+## 📊 Monitoring & Health
+
+### Health Check
+```bash
+curl http://localhost:8080/health
+```
+
+### Metrics
+- **Google Cloud Monitoring** - Automatic metrics collection
+- **Structured Logging** - JSON logs to stdout
+- **Discord/Slack Webhooks** - Real-time alerting
+- **Cost Auditor API** - `http://localhost:9000`
+
+### Logs
+```bash
+# Local
+npm start
+
+# Docker
+docker logs ulf
+
+# GKE
+kubectl logs -n agents -l app=ulf-warden-agent --tail=100 -f
 ```
 
 ---
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Contribuições são bem-vindas!
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-1. Fork o projeto
-2. Crie uma branch: `git checkout -b feature/algo-épico`
-3. Commit: `git commit -m "⚔️ Adiciona algo épico"`
-4. Push: `git push origin feature/algo-épico`
-5. Abra um Pull Request
+### Quick Start for Contributors
+
+1. **Fork & Clone**
+   ```bash
+   git fork https://github.com/lucaspressi/opencellcw
+   git clone https://github.com/YOUR_USERNAME/opencellcw
+   cd opencellcw
+   ```
+
+2. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+
+3. **Make Changes**
+   - Write code following our style guide
+   - Add tests for new features
+   - Update documentation as needed
+
+4. **Test Locally**
+   ```bash
+   npm run build
+   npm test
+   npm run lint
+   ```
+
+5. **Commit & Push**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing feature"
+   git push origin feature/amazing-feature
+   ```
+
+6. **Open Pull Request**
+   - Describe your changes
+   - Reference any related issues
+   - Wait for review and CI checks
+
+### Code Style
+- TypeScript with strict mode
+- ESLint + Prettier for formatting
+- Conventional Commits for messages
+- JSDoc comments for public APIs
+
+### Running Tests
+```bash
+# Unit tests
+npm test
+
+# Integration tests
+npm run test:integration
+
+# Security audit
+cd auditor && python src/main.py --path .. --once
+```
 
 ---
 
-## 📜 História
+## 📄 License
 
-As espadas **+ULFBERH+T** eram marcadas com esta inscrição misteriosa. Historiadores descobriram que eram forjadas com aço importado, possivelmente do Oriente Médio ou Ásia Central - um feito tecnológico impressionante para a Era Viking (700-1100 d.C.).
-
-Apenas ~170 espadas Ulfberht foram encontradas, indicando que eram raras e valiosas. Análises metalúrgicas mostram que o aço tinha baixíssimo teor de escória, comparável ao aço moderno.
-
-Este projeto homenageia essa precisão e raridade.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 📄 Licença
+## 🙏 Acknowledgments
 
-MIT License - veja [LICENSE](LICENSE) para detalhes.
+- **Built with [Claude](https://anthropic.com)** - Powered by Anthropic's Claude Sonnet 4.5
+- **Inspired by [OpenClaw](https://github.com/openclaw/openclaw)** - Excellence in AI agent architecture
+- **Deployed on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine)** - Enterprise-grade infrastructure
+- **Named after ULFBERHT** - Legendary Viking swords representing precision and quality
 
 ---
 
-## 🔗 Links
+## 📞 Support & Community
 
-- **Anthropic Claude:** https://anthropic.com
-- **Slack API:** https://api.slack.com
-- **Discord Developer:** https://discord.com/developers
-- **Telegram Bots:** https://core.telegram.org/bots
+- **GitHub Issues:** [Report bugs or request features](https://github.com/lucaspressi/opencellcw/issues)
+- **Discord:** [Join our community](https://discord.gg/your-server) (coming soon)
+- **Documentation:** [Complete docs site](https://docs.your-domain.com) (coming soon)
+- **Email:** lucas@your-domain.com
+
+---
+
+## 🔗 Links & Resources
+
+### APIs & Services
+- [Anthropic Claude](https://anthropic.com) - AI model provider
+- [Google Cloud Platform](https://cloud.google.com) - Infrastructure
+- [Replicate](https://replicate.com) - Image/video generation
+- [ElevenLabs](https://elevenlabs.io) - Text-to-speech
+- [OpenAI](https://openai.com) - DALL-E, GPT, Whisper
+
+### Platform Documentation
+- [Slack API](https://api.slack.com) - Slack integration
+- [Discord Developer](https://discord.com/developers) - Discord bots
+- [Telegram Bot API](https://core.telegram.org/bots) - Telegram bots
+
+### Tools & Technologies
+- [TypeScript](https://typescriptlang.org) - Language
+- [Node.js](https://nodejs.org) - Runtime
+- [Kubernetes](https://kubernetes.io) - Orchestration
+- [Helm](https://helm.sh) - Package manager
+
+---
+
+## 📜 The Story of ULFBERHT
+
+The **+ULFBERH+T** swords were marked with this mysterious inscription and forged with crucible steel of exceptional quality - centuries ahead of their time. Only master Viking blacksmiths knew how to temper the metal to perfection.
+
+These swords were made with imported steel, possibly from the Middle East or Central Asia - an impressive technological feat for the Viking Age (700-1100 AD). Only ~170 Ulfberht swords have been found, indicating they were rare and valuable. Metallurgical analysis shows the steel had very low slag content, comparable to modern steel.
+
+This project honors that precision, craftsmanship, and rarity.
 
 ---
 
 <div align="center">
 
-**Forjado com precisão por [Lucas](https://github.com/lucaspressi)**
+**Forged with precision by [Lucas](https://github.com/lucaspressi)**
 
-⚔️ *Corte direto ao ponto* ⚔️
+[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/lucaspressi/opencellcw)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-orange)](CHANGELOG.md)
+
+⚔️ *Precision, like the legendary ULFBERHT swords* ⚔️
+
+[Quick Start](#-quick-start) •
+[Documentation](#-documentation) •
+[Deploy](#-deploy) •
+[Contributing](#-contributing)
 
 </div>

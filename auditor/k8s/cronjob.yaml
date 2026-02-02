@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: security-auditor
+  namespace: agents
+spec:
+  # A cada 30 minutos
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid  # Não roda múltiplas instâncias simultâneas
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: security-auditor
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: auditor
+            image: us-central1-docker.pkg.dev/opencellcw-k8s/ulf-images/ulf-auditor:latest
+            imagePullPolicy: Always
+            command:
+              - python
+              - src/main.py
+              - --once
+              - --path
+              - /data
+            env:
+            - name: DISCORD_SECURITY_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: auditor-secrets
+                  key: DISCORD_SECURITY_WEBHOOK
+            - name: AUDIT_PATH
+              value: "/data"
+            volumeMounts:
+            - name: data
+              mountPath: /data
+              readOnly: true  # Read-only para segurança
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: ulf-warden-agent-data
+              readOnly: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auditor-secrets
+  namespace: agents
+type: Opaque
+stringData:
+  DISCORD_SECURITY_WEBHOOK: "REPLACE_WITH_YOUR_WEBHOOK_URL"

@@ -1,0 +1,264 @@
+name: Deploy to GKE
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GKE_CLUSTER: ulf-cluster
+  GKE_ZONE: us-central1-a
+  DEPLOYMENT_NAME: ulf-warden
+  REGISTRY_REGION: us-central1
+  REGISTRY_NAME: ulf-images
+  IMAGE_NAME: ulf-warden
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to GKE
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: 'latest'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    # Autenticação usando Workload Identity (recomendado) OU Service Account Key
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        # OU usando Workload Identity:
+        # workload_identity_provider: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+        # service_account: 'my-service-account@my-project.iam.gserviceaccount.com'
+
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker ${{ env.REGISTRY_REGION }}-docker.pkg.dev
+
+    - name: Get GKE credentials
+      run: |
+        gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+          --zone ${{ env.GKE_ZONE }}
+
+    - name: Build Docker image
+      run: |
+        docker build \
+          -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          -t ${{ env.IMAGE_NAME }}:latest \
+          .
+
+    - name: Tag Docker image
+      run: |
+        docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+        docker tag ${{ env.IMAGE_NAME }}:latest \
+          ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
+
+    - name: Update secrets in Google Secret Manager
+      run: |
+        # Update secrets in Google Secret Manager (create if not exist)
+        update_secret() {
+          local secret_name=$1
+          local secret_value=$2
+
+          if [ -n "$secret_value" ]; then
+            if gcloud secrets describe $secret_name --project=${{ env.PROJECT_ID }} &> /dev/null; then
+              echo "Updating secret: $secret_name"
+              echo -n "$secret_value" | gcloud secrets versions add $secret_name \
+                --data-file=- \
+                --project=${{ env.PROJECT_ID }}
+            else
+              echo "Creating secret: $secret_name"
+              echo -n "$secret_value" | gcloud secrets create $secret_name \
+                --data-file=- \
+                --replication-policy="automatic" \
+                --project=${{ env.PROJECT_ID }}
+            fi
+          fi
+        }
+
+        update_secret "anthropic-api-key" "${{ secrets.ANTHROPIC_API_KEY }}"
+        update_secret "slack-bot-token" "${{ secrets.SLACK_BOT_TOKEN }}"
+        update_secret "slack-app-token" "${{ secrets.SLACK_APP_TOKEN }}"
+        update_secret "slack-signing-secret" "${{ secrets.SLACK_SIGNING_SECRET }}"
+        update_secret "discord-bot-token" "${{ secrets.DISCORD_BOT_TOKEN }}"
+        update_secret "telegram-bot-token" "${{ secrets.TELEGRAM_BOT_TOKEN }}"
+
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: 'latest'
+
+    - name: Deploy with Helm
+      run: |
+        cat > /tmp/values.yaml <<EOF
+        agent:
+          name: "${{ env.DEPLOYMENT_NAME }}"
+          role: "assistant"
+          model: "sonnet"
+
+          image:
+            repository: ${{ env.REGISTRY_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}
+            pullPolicy: Always
+            tag: "${{ github.sha }}"
+
+          api:
+            enabled: true
+            port: 8080
+            service:
+              type: LoadBalancer
+
+          channel:
+            enabled: true
+            type: "slack"
+            slack:
+              enabled: true
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: GIT_COMMIT
+              value: "${{ github.sha }}"
+            - name: GIT_BRANCH
+              value: "${{ github.ref_name }}"
+
+        # Google Secret Manager integration
+        secretManager:
+          enabled: true
+          projectID: "${{ env.PROJECT_ID }}"
+          serviceAccount: "ulf-warden-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+          clusterLocation: "${{ env.GKE_ZONE }}"
+          clusterName: "${{ env.GKE_CLUSTER }}"
+
+        # Service account with Workload Identity annotation
+        serviceAccount:
+          create: true
+          name: "ulf-warden-ksa"
+          annotations:
+            iam.gke.io/gcp-service-account: "ulf-warden-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+        persistence:
+          enabled: true
+          storageClass: "standard-rwo"
+          size: 5Gi
+
+        autoscaling:
+          enabled: true
+          minReplicas: 1
+          maxReplicas: 3
+          targetCPUUtilizationPercentage: 70
+        EOF
+
+        helm upgrade --install ${{ env.DEPLOYMENT_NAME }} ./infra/helm/agent \
+          -f /tmp/values.yaml \
+          --namespace agents \
+          --wait \
+          --timeout 5m \
+          --atomic
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} -n agents
+        kubectl get pods -n agents
+        kubectl get svc -n agents
+
+    - name: Get LoadBalancer IP
+      id: get-ip
+      run: |
+        EXTERNAL_IP=$(kubectl get svc ${{ env.DEPLOYMENT_NAME }} -n agents -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo "external_ip=$EXTERNAL_IP" >> $GITHUB_OUTPUT
+        echo "External IP: $EXTERNAL_IP"
+
+    - name: Health check
+      run: |
+        sleep 30
+        EXTERNAL_IP="${{ steps.get-ip.outputs.external_ip }}"
+        if [ -n "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "null" ]; then
+          curl -f http://$EXTERNAL_IP:8080/health || echo "Health check failed, but deployment succeeded"
+        fi
+
+    - name: Deployment summary
+      run: |
+        echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environment**: ${{ env.GKE_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image**: ${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **External IP**: ${{ steps.get-ip.outputs.external_ip }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Endpoints" >> $GITHUB_STEP_SUMMARY
+        echo "- Health: http://${{ steps.get-ip.outputs.external_ip }}:8080/health" >> $GITHUB_STEP_SUMMARY
+        echo "- Status: http://${{ steps.get-ip.outputs.external_ip }}:8080/status" >> $GITHUB_STEP_SUMMARY
+
+    - name: Notify Slack (on success)
+      if: success()
+      run: |
+        curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "text": "✅ Deploy to GKE succeeded",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Deploy to GKE succeeded* ✅\n\n*Environment:* ${{ env.GKE_CLUSTER }}\n*Image:* `${{ env.IMAGE_NAME }}:${{ github.sha }}`\n*Commit:* `${{ github.sha }}`\n*Branch:* `${{ github.ref_name }}`\n*External IP:* ${{ steps.get-ip.outputs.external_ip }}"
+                }
+              }
+            ]
+          }' || true
+
+    - name: Notify Slack (on failure)
+      if: failure()
+      run: |
+        curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "text": "❌ Deploy to GKE failed",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Deploy to GKE failed* ❌\n\n*Environment:* ${{ env.GKE_CLUSTER }}\n*Commit:* `${{ github.sha }}`\n*Branch:* `${{ github.ref_name }}`\n*Workflow:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View logs>"
+                }
+              }
+            ]
+          }' || true

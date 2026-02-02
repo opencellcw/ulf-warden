@@ -7,6 +7,7 @@ export class WorkspaceLoader {
   private identity: string = '';
   private memory: string = '';
   private agents: string = '';
+  private capabilities: string = '';
 
   constructor(workspacePath: string = './workspace') {
     this.workspacePath = workspacePath;
@@ -15,7 +16,7 @@ export class WorkspaceLoader {
 
   private load(): void {
     try {
-      const files = ['SOUL.md', 'IDENTITY.md', 'MEMORY.md', 'AGENTS.md'];
+      const files = ['SOUL.md', 'IDENTITY.md', 'CAPABILITIES.md', 'MEMORY.md', 'AGENTS.md'];
 
       for (const file of files) {
         const filePath = path.join(this.workspacePath, file);
@@ -38,6 +39,7 @@ export class WorkspaceLoader {
 
     if (this.identity) parts.push(this.identity);
     if (this.soul) parts.push('\n---\n', this.soul);
+    if (this.capabilities) parts.push('\n---\n', this.capabilities);
     if (this.agents) parts.push('\n---\n', this.agents);
     if (this.memory) parts.push('\n---\n# MEMORY\n', this.memory);
 

@@ -41,6 +41,36 @@ Ulf tem acesso total ao sistema onde ele roda. Pode executar comandos, criar arq
 
 ## Exemplos de Uso
 
+### 🎨 Gerar Imagem
+```
+User: @Ulf gera uma imagem de um gato astronauta
+
+Ulf vai:
+1. Usar replicate_generate_image ou openai_generate_image
+2. Retornar URL da imagem gerada
+3. Mostrar preview no Discord
+```
+
+### 🎬 Gerar Vídeo
+```
+User: @Ulf cria um vídeo de ondas na praia
+
+Ulf vai:
+1. Usar replicate_generate_video
+2. Retornar URL do vídeo (MP4)
+3. Mostrar preview no Discord
+```
+
+### 🎤 Texto para Fala
+```
+User: @Ulf converte "olá mundo" para áudio
+
+Ulf vai:
+1. Usar elevenlabs_text_to_speech
+2. Retornar URL do áudio (MP3)
+3. Enviar arquivo no Discord
+```
+
 ### Criar API Node.js + Express
 ```
 User: @Ulf cria uma API REST em Node.js com Express
@@ -114,6 +144,25 @@ Ulf vai:
 
 ## Capacidades Gerais
 
+### 🎨 Multimodal/Media Generation (NOVO!)
+**Replicate:**
+- Gerar imagens com IA (Flux, SDXL, Stable Diffusion)
+- Gerar vídeos a partir de texto ou animar imagens
+- Upscale de imagens (2x, 4x, 8x)
+- Remover fundos de imagens
+- Rodar qualquer modelo do Replicate
+
+**ElevenLabs:**
+- Converter texto para fala (9+ vozes)
+- Listar vozes disponíveis
+- Obter informações de vozes
+
+**OpenAI:**
+- Gerar imagens com DALL-E 2/3
+- Usar GPT-4 para tarefas especializadas
+- Transcrever áudio com Whisper
+- Analisar imagens com GPT-4 Vision
+
 ### File Operations
 - Criar/editar qualquer arquivo (código, config, HTML, JSON, etc)
 - Ler arquivos existentes
@@ -147,21 +196,42 @@ Ulf vai:
 
 ---
 
+## Deploy Stack Atual
+
+### Google Kubernetes Engine (GKE)
+- **Plataforma**: GKE (Google Cloud)
+- **Container**: Docker com Node.js/TypeScript
+- **Região**: us-central1-a
+- **Orquestração**: Kubernetes com Helm charts
+- **IP Externo**: 34.72.79.4:8080
+- **Storage**: Persistent Volume (5GB) - filesystem é PERSISTENTE
+- **Database**: SQLite em /data/ulf.db (persistente entre restarts)
+- **Secrets**: Google Secret Manager (via CSI Driver)
+- **Autoscaling**: HPA configurado (1-3 replicas baseado em CPU)
+- **Recursos**:
+  - Requests: 512Mi RAM, 250m CPU
+  - Limits: 2Gi RAM, 1000m CPU
+
+### Plataformas Conectadas
+- **Slack**: ✅ Conectado via Socket Mode
+- **Discord**: Token configurado (pronto para ativar)
+- **Telegram**: Token configurado (pronto para ativar)
+
 ## Limitações
 
-### Container do Render
-- Filesystem é efêmero (restart perde arquivos não commitados)
-- Portas: apenas uma porta pública (10000)
-- Recursos: CPU/RAM limitados pelo plano
-- Sem acesso root a alguns comandos (systemctl, iptables)
+### Kubernetes Container
+- Comandos shell disponíveis (bash, curl, git, npm, etc)
+- Sem acesso a alguns comandos privilegiados (systemctl, iptables)
+- Processos devem rodar dentro do container
 
 ### Timeout
 - Comandos limitados a 30 segundos
 - Processos longos devem rodar em background
 
 ### Segurança
-- Secrets são mascarados automaticamente
+- Secrets são gerenciados pelo Google Secret Manager
 - Output é truncado se muito grande
+- Filesystem /data é persistente, resto é read-only
 
 ---
 
@@ -202,12 +272,14 @@ Ulf usa read_file() em logs ou tail -f
 
 ## Próximas Features (Futuro)
 
-- [ ] Persistência de projetos (volume no Render)
-- [ ] Deploy automatizado (GitHub → Render)
-- [ ] Monitoramento contínuo
+- [x] Persistência de projetos (✅ PersistentVolume no GKE)
+- [x] Deploy automatizado (✅ Cloud Build + Helm)
+- [ ] Monitoramento contínuo (Google Cloud Monitoring)
 - [ ] Webhooks para notificações
-- [ ] Scheduled tasks
+- [x] Scheduled tasks (✅ CronManager integrado)
 - [ ] Multi-region deploy
+- [ ] Discord handler ativo
+- [ ] Telegram handler ativo
 
 ---
 

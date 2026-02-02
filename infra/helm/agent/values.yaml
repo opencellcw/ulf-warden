@@ -129,11 +129,6 @@ agent:
 
   # Environment variables
   env:
-    - name: ANTHROPIC_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: agent-secrets
-          key: anthropic-api-key
     - name: NODE_ENV
       value: "production"
     - name: LOG_LEVEL
@@ -149,10 +144,12 @@ agent:
     - name: API_PROTOCOL
       value: "{{ .Values.agent.api.protocol }}"
 
-  # Additional environment variables from secret
-  envFrom: []
-  # - secretRef:
-  #     name: agent-secrets
+  # Environment variables from secrets
+  # When secretManager.enabled=true, uses Google Secret Manager
+  # When secretManager.enabled=false, uses Kubernetes secrets
+  envFromSecret:
+    enabled: true
+    secretName: ""  # Auto-generated: {release-name}-secrets
 
 # Resource limits and requests
 resources:
@@ -201,7 +198,7 @@ livenessProbe:
 # Readiness probe
 readinessProbe:
   httpGet:
-    path: /ready
+    path: /health
     port: api
   initialDelaySeconds: 5
   periodSeconds: 5
@@ -259,3 +256,11 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+
+# Google Secret Manager integration
+secretManager:
+  enabled: false  # Set to true to use Google Secret Manager instead of K8s secrets
+  projectID: ""  # GCP Project ID (required if enabled)
+  serviceAccount: ""  # GCP Service Account email (e.g., ulf-warden-sa@project.iam.gserviceaccount.com)
+  clusterLocation: "us-central1-a"  # GKE cluster location
+  clusterName: "ulf-cluster"  # GKE cluster name

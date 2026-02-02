@@ -11,10 +11,21 @@ const router = (0, llm_1.getRouter)();
 const claudeProvider = router.getClaudeProvider();
 const client = claudeProvider.getClient();
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
-const MAX_ITERATIONS = 10; // Prevent infinite loops
+const MAX_ITERATIONS = 30; // Prevent infinite loops
 async function runAgent(options) {
     const { userId, userMessage, history } = options;
-    logger_1.log.info('[Agent] Starting agent with tool support', { userId });
+    // Log available media tools
+    const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
+    const hasOpenAI = !!process.env.OPENAI_API_KEY;
+    const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+    logger_1.log.info('[Agent] Starting agent with tool support', {
+        userId,
+        mediaTools: {
+            replicate: hasReplicate,
+            openai: hasOpenAI,
+            elevenlabs: hasElevenLabs
+        }
+    });
     const systemPrompt = workspace_1.workspace.getSystemPrompt() + `
 
 # EXECUTION CAPABILITIES
@@ -112,7 +123,24 @@ When user asks to create/deploy something:
 - Run servers in background with &
 - Show clear, actionable results
 - Provide URLs when applicable
-- Handle errors gracefully`;
+- Handle errors gracefully
+
+## Response Formatting for Discord
+When providing code examples or command outputs:
+- Use Discord markdown: \`\`\`bash (triple backticks with language)
+- NEVER use XML-style tags like <bash>, <python>, etc.
+- Keep responses clean and readable
+- Example:
+  \`\`\`bash
+  npm install fastapi
+  uvicorn main:app
+  \`\`\`
+
+## Media/Image Response Format
+When generating images/videos/audio:
+- Always show the preview/embed in Discord
+- Provide download link
+- Use Discord embeds for better presentation`;
     const messages = [
         ...history,
         {

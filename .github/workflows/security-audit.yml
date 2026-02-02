@@ -1,0 +1,70 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install auditor dependencies
+        run: |
+          cd auditor
+          pip install -r requirements.txt
+
+      - name: Run Security Auditor
+        id: auditor
+        continue-on-error: true
+        run: |
+          cd auditor
+          python src/main.py --path ../ --once > audit_report.txt
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          cat audit_report.txt
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: auditor/audit_report.txt
+
+      - name: Check for critical violations
+        if: steps.auditor.outputs.exit_code == '2'
+        run: |
+          echo "::error::CRITICAL security violations found!"
+          exit 1
+
+      - name: Post comment on PR (if violations found)
+        if: github.event_name == 'pull_request' && steps.auditor.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('auditor/audit_report.txt', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🛡️ Security Audit Report\n\n\`\`\`\n${report}\n\`\`\`\n\n⚠️ **Action Required:** Please review and fix security violations before merging.`
+            });
+
+      - name: Fail if high/critical violations
+        if: steps.auditor.outputs.exit_code >= '1'
+        run: |
+          echo "::error::Security violations found. Please fix before merging."
+          exit 1

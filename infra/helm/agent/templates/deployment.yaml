@@ -77,36 +77,66 @@ spec:
         - name: NATS_SUBJECT_RESULTS
           value: {{ .Values.agent.taskSource.nats.subjects.results | quote }}
         {{- end }}
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-secrets
+              key: anthropic-api-key
         {{- if .Values.agent.channel.slack.enabled }}
         - name: SLACK_BOT_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "agent.fullname" . }}-slack
-              key: bot-token
+              name: {{ include "agent.fullname" . }}-secrets
+              key: slack-bot-token
         - name: SLACK_APP_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "agent.fullname" . }}-slack
-              key: app-token
+              name: {{ include "agent.fullname" . }}-secrets
+              key: slack-app-token
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-secrets
+              key: slack-signing-secret
         {{- end }}
         {{- if .Values.agent.channel.discord.enabled }}
         - name: DISCORD_BOT_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "agent.fullname" . }}-discord
-              key: bot-token
+              name: {{ include "agent.fullname" . }}-secrets
+              key: discord-bot-token
+        - name: DISCORD_ADMIN_USER_IDS
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-secrets
+              key: discord-admin-user-ids
+              optional: true
         {{- end }}
         {{- if .Values.agent.channel.telegram.enabled }}
         - name: TELEGRAM_BOT_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "agent.fullname" . }}-telegram
-              key: bot-token
+              name: {{ include "agent.fullname" . }}-secrets
+              key: telegram-bot-token
         {{- end }}
-        {{- with .Values.agent.envFrom }}
-        envFrom:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
+        - name: REPLICATE_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-media-secrets
+              key: REPLICATE_API_TOKEN
+              optional: true
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-media-secrets
+              key: OPENAI_API_KEY
+              optional: true
+        - name: ELEVENLABS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "agent.fullname" . }}-media-secrets
+              key: ELEVENLABS_API_KEY
+              optional: true
         livenessProbe:
           {{- toYaml .Values.livenessProbe | nindent 10 }}
         readinessProbe:
@@ -130,6 +160,11 @@ spec:
         - name: data
           mountPath: {{ .Values.persistence.mountPath }}
         {{- end }}
+        {{- if .Values.secretManager.enabled }}
+        - name: secrets-store
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+        {{- end }}
       volumes:
       - name: config
         configMap:
@@ -138,6 +173,14 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: {{ include "agent.fullname" . }}-data
+      {{- end }}
+      {{- if .Values.secretManager.enabled }}
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "agent.fullname" . }}-secrets
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

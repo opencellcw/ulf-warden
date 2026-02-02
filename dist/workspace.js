@@ -12,13 +12,14 @@ class WorkspaceLoader {
     identity = '';
     memory = '';
     agents = '';
+    capabilities = '';
     constructor(workspacePath = './workspace') {
         this.workspacePath = workspacePath;
         this.load();
     }
     load() {
         try {
-            const files = ['SOUL.md', 'IDENTITY.md', 'MEMORY.md', 'AGENTS.md'];
+            const files = ['SOUL.md', 'IDENTITY.md', 'CAPABILITIES.md', 'MEMORY.md', 'AGENTS.md'];
             for (const file of files) {
                 const filePath = path_1.default.join(this.workspacePath, file);
                 if (fs_1.default.existsSync(filePath)) {
@@ -42,6 +43,8 @@ class WorkspaceLoader {
             parts.push(this.identity);
         if (this.soul)
             parts.push('\n---\n', this.soul);
+        if (this.capabilities)
+            parts.push('\n---\n', this.capabilities);
         if (this.agents)
             parts.push('\n---\n', this.agents);
         if (this.memory)
