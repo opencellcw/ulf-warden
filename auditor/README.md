@@ -214,3 +214,25 @@ python src/main.py --path . --once
 ## 📄 License
 
 MIT - Use freely for security auditing
+
+## Testing Locally
+
+The auditor can be tested with fake secrets. Create a test file locally (not committed):
+
+```bash
+# Create test file (gitignored)
+cat > auditor/test_local.py << 'TEST'
+# Test file with fake secrets
+API_KEY = "sk-ant-api03-xxx...EXAMPLE"
+AWS_KEY = "AKIA...EXAMPLE"
+CPF = "123.456.789-00"
+TEST
+
+# Run auditor
+python auditor/src/main.py --path auditor --once
+
+# Clean up
+rm auditor/test_local.py
+```
+
+**Note:** `test_example.py` is gitignored to avoid triggering GitHub's secret scanning alerts.

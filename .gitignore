@@ -10,3 +10,8 @@ workspace/memory/*.md
 *-key.json
 credentials.json
 service-account.json
+
+# Test files with fake secrets (trigger security scanners)
+auditor/test_example.py
+**/test_*secrets*.py
+**/test_*keys*.py
