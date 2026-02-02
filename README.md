@@ -305,6 +305,25 @@ opencellcw/
 
 **This is a template** - deploy to **your own infrastructure**, not CloudWalk's.
 
+### ⚠️ GitHub Workflows Note
+
+GitHub workflows (`.github/workflows/`) are **intentionally gitignored** to avoid permission issues. You need to create them manually in **YOUR** forked repository:
+
+**Option 1: Copy from local template**
+```bash
+# After cloning, workflows are already in .github/workflows/ (gitignored)
+# Copy them to your repo via GitHub web interface:
+# 1. Go to YOUR_REPO → .github/workflows
+# 2. Click "Add file" → "Create new file"
+# 3. Copy content from local .github/workflows/gke-deploy.yml
+# 4. Commit to your repo
+```
+
+**Option 2: Follow setup guide**
+📖 **[Complete Workflows Setup Guide](WORKFLOWS_SETUP.md)** - Step-by-step instructions with full workflow code
+
+**Why gitignored?** GitHub blocks workflow modifications without `workflow` OAuth scope. This allows you to add workflows directly in your fork without permission errors.
+
 ### Option 1: Google Kubernetes Engine (Your GKE)
 
 Deploy to **your own GKE cluster** with one command:
@@ -402,7 +421,31 @@ Deploy to **your own cloud platform**:
 2. **Modify Helm values** (`infra/helm/agent/values.yaml`) for your cluster
 3. **Add custom tools** in `src/tools/` for your specific needs
 4. **Adjust security rules** in `src/security/` for your requirements
-5. **Fork and extend** - make it yours!
+5. **Add GitHub workflows** - Copy from `.github/workflows/` (see [WORKFLOWS_SETUP.md](WORKFLOWS_SETUP.md))
+6. **Fork and extend** - make it yours!
+
+### Setting Up GitHub Workflows (Optional)
+
+GitHub workflows are **gitignored** to avoid OAuth permission issues. To enable CI/CD:
+
+1. **Fork this repository** to your GitHub account
+2. **Copy workflow files** from your local `.github/workflows/` to your GitHub repo:
+   - Go to your repo on GitHub → `.github/workflows/`
+   - Click "Add file" → "Create new file"
+   - Name: `gke-deploy.yml`
+   - Copy content from local `.github/workflows/gke-deploy.yml`
+   - Commit
+   - Repeat for `security-audit.yml`
+
+3. **Configure secrets** in your repo (Settings → Secrets and variables → Actions):
+   ```
+   GCP_PROJECT_ID     # Your GCP project ID
+   GCP_SA_KEY         # Service account JSON
+   ```
+
+4. **Customize** workflows for your cluster/registry names
+
+📖 **Full guide:** [WORKFLOWS_SETUP.md](WORKFLOWS_SETUP.md) with complete workflow code and secrets setup
 
 ---
 

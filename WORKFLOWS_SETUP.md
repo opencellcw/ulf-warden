@@ -1,13 +1,25 @@
 # 🔧 GitHub Workflows Setup
 
-Este repositório não inclui workflows do GitHub Actions por questões de permissões OAuth. Este guia explica como criar os workflows manualmente se você precisar deles.
+Este repositório **não commita workflows** no Git por questões de permissões OAuth. Os arquivos estão **localmente** em `.github/workflows/` mas são **gitignored**. Este guia explica como adicionar workflows ao **SEU** fork do repositório.
 
-## 📋 Por que os workflows não estão incluídos?
+## 📋 Por que workflows estão gitignored?
 
-Os workflows foram removidos do repositório porque:
+Os workflows não são commitados porque:
 - ❌ GitHub bloqueia modificações em `.github/workflows/` sem o scope OAuth `workflow`
-- ✅ Evita problemas de permissão em repositórios com branch protection rules
-- ✅ Permite que cada time configure seus próprios pipelines de deploy
+- ❌ Força push de workflows gera erro: "refusing to allow an OAuth App to create or update workflow"
+- ✅ Solução: Você adiciona workflows **diretamente no seu fork** via interface web ou com token adequado
+- ✅ Permite que cada pessoa configure seus próprios pipelines de deploy
+
+## 📁 Localização dos Arquivos
+
+Após clonar, você **já tem** os workflows localmente (não versionados):
+```bash
+.github/workflows/
+├── gke-deploy.yml        # Deploy automático para GKE
+└── security-audit.yml    # Auditoria de segurança
+```
+
+**Esses arquivos existem localmente mas NÃO estão no git** (veja `.gitignore`).
 
 ## 🚀 Workflows Disponíveis
 
