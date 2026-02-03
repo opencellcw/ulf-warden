@@ -40,6 +40,8 @@ exports.WEB_TOOLS = void 0;
 exports.executeWebTool = executeWebTool;
 const axios_1 = __importDefault(require("axios"));
 const cheerio = __importStar(require("cheerio"));
+const sanitizer_1 = require("../security/sanitizer");
+const logger_1 = require("../logger");
 exports.WEB_TOOLS = [
     {
         name: 'web_fetch',
@@ -159,7 +161,22 @@ async function webFetch(input) {
         if (content.length > maxLength) {
             content = content.substring(0, maxLength) + '...';
         }
-        return `Title: ${title}\n\nContent:\n${content}`;
+        const rawOutput = `Title: ${title}\n\nContent:\n${content}`;
+        // 🔒 SECURITY: Sanitize external web content
+        try {
+            const sanitized = await (0, sanitizer_1.sanitizeContent)(rawOutput, `Fetch webpage: ${url}`, `web_fetch: ${url}`);
+            if (!sanitized.isSafe) {
+                logger_1.log.warn('[WebFetch] Suspicious content detected', {
+                    url,
+                    suspicious: sanitized.suspicious
+                });
+            }
+            return (0, sanitizer_1.formatForAgent)(sanitized, url);
+        }
+        catch (error) {
+            logger_1.log.error('[WebFetch] Sanitization failed, returning raw', { error: error.message });
+            return rawOutput; // Fallback to raw if sanitization fails
+        }
     }
     catch (error) {
         if (error.code === 'ENOTFOUND') {

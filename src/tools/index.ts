@@ -17,13 +17,70 @@ import {
 import { executeBotFactoryTool } from '../bot-factory/executor';
 import { log } from '../logger';
 import { persistence } from '../persistence';
+import { vetToolCall, isInDenylist, validateToolArgs } from '../security/vetter';
 
 export { TOOLS };
 
-export async function executeTool(toolName: string, toolInput: any, userId?: string): Promise<string> {
+export async function executeTool(toolName: string, toolInput: any, userId?: string, userRequest?: string): Promise<string> {
   const startTime = Date.now();
 
   try {
+    // 🔒 SECURITY: Auto-block denylist tools
+    if (isInDenylist(toolName)) {
+      log.warn('[Vetter] Tool is in denylist', { toolName, userId });
+      return `🚫 Tool "${toolName}" is blocked by security policy`;
+    }
+
+    // 🔒 SECURITY: Validate tool arguments for injection patterns
+    const argsValidation = validateToolArgs(toolName, toolInput);
+    if (!argsValidation.valid) {
+      log.warn('[Vetter] Invalid tool arguments', {
+        toolName,
+        userId,
+        reason: argsValidation.reason
+      });
+      return `🚫 Tool arguments rejected: ${argsValidation.reason}`;
+    }
+
+    // 🔒 SECURITY: Vet high-risk tools before execution
+    const highRiskTools = [
+      'execute_shell',
+      'write_file',
+      'delete_bot',
+      'create_bot',
+      'send_slack_message',
+      'schedule_task'
+    ];
+
+    if (highRiskTools.includes(toolName)) {
+      try {
+        const vetDecision = await vetToolCall(
+          toolName,
+          toolInput,
+          userRequest || 'Unknown request',
+          true // Use Haiku for speed
+        );
+
+        if (!vetDecision.allowed) {
+          log.warn('[Vetter] Tool call BLOCKED', {
+            toolName,
+            userId,
+            reason: vetDecision.reason
+          });
+          return `🚫 Tool blocked by security vetter: ${vetDecision.reason}`;
+        }
+
+        log.info('[Vetter] Tool call PERMITTED', {
+          toolName,
+          userId,
+          riskLevel: vetDecision.riskLevel
+        });
+      } catch (error: any) {
+        log.error('[Vetter] Vetting failed, blocking for safety', { toolName, error: error.message });
+        return `🚫 Tool blocked: Security vetting failed`;
+      }
+    }
+
     // Log tool execution start
     if (userId) {
       await persistence.logToolExecution({

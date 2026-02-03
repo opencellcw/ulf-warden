@@ -185,7 +185,8 @@ When generating images/videos/audio:
       if (block.type === 'tool_use') {
         console.log(`[Agent] Executing tool: ${block.name}`);
 
-        const result = await executeTool(block.name, block.input, userId);
+        // Pass userMessage as context for security vetter
+        const result = await executeTool(block.name, block.input, userId, userMessage);
 
         (toolResults.content as any[]).push({
           type: 'tool_result',

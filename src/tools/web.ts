@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { sanitizeContent, formatForAgent } from '../security/sanitizer';
+import { log } from '../logger';
 
 export const WEB_TOOLS: Anthropic.Tool[] = [
   {
@@ -135,7 +137,28 @@ async function webFetch(input: any): Promise<string> {
       content = content.substring(0, maxLength) + '...';
     }
 
-    return `Title: ${title}\n\nContent:\n${content}`;
+    const rawOutput = `Title: ${title}\n\nContent:\n${content}`;
+
+    // 🔒 SECURITY: Sanitize external web content
+    try {
+      const sanitized = await sanitizeContent(
+        rawOutput,
+        `Fetch webpage: ${url}`,
+        `web_fetch: ${url}`
+      );
+
+      if (!sanitized.isSafe) {
+        log.warn('[WebFetch] Suspicious content detected', {
+          url,
+          suspicious: sanitized.suspicious
+        });
+      }
+
+      return formatForAgent(sanitized, url);
+    } catch (error: any) {
+      log.error('[WebFetch] Sanitization failed, returning raw', { error: error.message });
+      return rawOutput; // Fallback to raw if sanitization fails
+    }
   } catch (error: any) {
     if (error.code === 'ENOTFOUND') {
       return `Failed to fetch URL: Domain not found`;
