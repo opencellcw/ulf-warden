@@ -15,6 +15,3 @@ service-account.json
 auditor/test_example.py
 **/test_*secrets*.py
 **/test_*keys*.py
-
-# GitHub workflows (deploy configs)
-.github/workflows/
