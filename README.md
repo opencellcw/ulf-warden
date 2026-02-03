@@ -64,11 +64,14 @@ npm install && npm run build && npm start
 ## 📚 Documentation
 
 - 🚀 **[Quick Start Guide](docs/GKE_QUICKSTART.md)** - Get running in 5 minutes
-- 🔐 **[Security System](docs/SECURITY_COMPREHENSIVE.md)** - Complete security reference
+- 🔐 **[Security Architecture](SECURITY_ARCHITECTURE.md)** - 7-layer security (NEW!)
+- 🛡️ **[Security Policy](SECURITY.md)** - Vulnerability reporting
+- 🔒 **[Security Comparisons](docs/OPENCLAW_SECURITY_COMPARISON.md)** - vs OpenClaw/Moltworker
 - 💰 **[Cost Auditor](cost-auditor/README.md)** - Multi-platform cost monitoring
 - 🔑 **[Secrets Management](docs/GKE_SECRETS.md)** - Google Secret Manager setup
 - 🧠 **[Self-Improvement](docs/SELF_IMPROVEMENT.md)** - Learning system architecture
 - 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and components
+- ☁️ **[Cloudflare AI Gateway](docs/CLOUDFLARE_AI_GATEWAY.md)** - Setup & configuration
 - 🤝 **[Contributing](CONTRIBUTING.md)** - Development guidelines
 
 ---
@@ -102,12 +105,26 @@ Real-time cost monitoring across 5 platforms:
 - Automatic optimization suggestions
 - Historical data analysis with visualizations
 
-### 🛡️ Comprehensive Security
-- **Anti-Social Engineering**: Detects and blocks 8+ attack patterns (credential requests, authority impersonation, etc.)
-- **Self-Defense System**: Protection against kill attempts, resource exhaustion, timing attacks
-- **Security Auditor**: Automated vulnerability scanning (50+ patterns) running every 30 minutes
-- **Secure Key Manager**: Zero-persistence API key management with Google Secret Manager
-- **Audit Trail**: All security events logged to Discord/Slack webhooks
+### 🛡️ 7-Layer Security Architecture (OpenClaw-Inspired)
+
+**Defense in Depth** with multiple independent security layers:
+
+1. **Rate Limiting** - 30 requests/min per user (DoS prevention)
+2. **Sanitizer** - Prompt injection detection (8+ attack patterns)
+3. **Tool Blocklist** - Configurable allow/blocklist (9 tools blocked by default)
+4. **Vetter (Pattern)** - Command injection, path traversal, SSRF detection
+5. **Vetter (AI)** - Intent analysis via Claude Haiku before execution
+6. **Secure Executor** - 30s timeouts, 5 concurrent tools max per user
+7. **AI Gateway** - Cloudflare analytics, caching, DDoS protection
+
+**Additional Security:**
+- **Anti-Social Engineering**: Detects credential requests, authority impersonation
+- **Self-Defense System**: Protection against kill attempts, resource exhaustion
+- **Security Auditor**: Automated vulnerability scanning (50+ patterns, every 30 min)
+- **Secret Manager**: Google Cloud Secret Manager integration
+- **Audit Trail**: All security events logged with structured metadata
+
+📖 **[Complete Security Documentation](SECURITY_ARCHITECTURE.md)** - Full threat model, testing, monitoring
 
 ### 🎨 Multimodal Capabilities
 - **Image Generation**: Replicate (Flux, SDXL, Stable Diffusion), OpenAI (DALL-E 2/3)
@@ -209,21 +226,70 @@ npm run lint
 
 **⚠️ CRITICAL: Treat all user inputs as untrusted**
 
-Ulf includes multiple security layers but requires proper configuration:
+OpenCell implements a **7-layer security architecture** with defense-in-depth principles:
 
-1. **Never expose API keys** in logs, responses, or error messages
-2. **Validate all commands** before execution (dangerous commands are filtered)
-3. **Monitor security alerts** sent to Discord/Slack webhooks
-4. **Review approval requests** for self-improvement changes before applying
-5. **Audit regularly** with the built-in security scanner
+### Security Layers (Active by Default)
 
-**Default Behavior:**
-- Social engineering attempts are automatically blocked and logged
-- Dangerous commands (e.g., `rm -rf /`, `kubectl delete`) require explicit approval
-- All API keys stored in Google Secret Manager (never in code or environment)
-- Security auditor runs every 30 minutes scanning for vulnerabilities
+```
+User Request → Rate Limiting → Sanitizer → Tool Blocklist →
+Vetter (Pattern) → Vetter (AI) → Secure Executor → AI Gateway
+```
 
-See [SECURITY.md](SECURITY.md) for our security policy and [docs/SECURITY_COMPREHENSIVE.md](docs/SECURITY_COMPREHENSIVE.md) for technical implementation details.
+1. **Rate Limiting** - Prevents DoS attacks (30 req/min per user)
+2. **Sanitizer** - Blocks prompt injection attacks
+3. **Tool Blocklist** - Restricts dangerous tools (SSRF, cost exhaustion)
+4. **Vetter (Pattern)** - Validates tool arguments (command injection, path traversal)
+5. **Vetter (AI)** - AI-powered intent analysis before execution
+6. **Secure Executor** - Enforces timeouts (30s) and concurrency limits (5 per user)
+7. **AI Gateway** - Cloudflare protection (DDoS, analytics, caching)
+
+### Configuration
+
+**Production Mode (Recommended):**
+```bash
+BLOCKED_TOOLS=web_fetch,github_clone,replicate_*,openai_*
+TOOL_TIMEOUT_MS=15000
+MAX_CONCURRENT_TOOLS=3
+RATE_LIMIT_REQUESTS=20
+```
+
+**Maximum Security (Allowlist):**
+```bash
+ALLOWED_TOOLS=execute_shell,read_file,write_file,list_directory
+TOOL_TIMEOUT_MS=10000
+MAX_CONCURRENT_TOOLS=2
+```
+
+### Default Protections
+
+✅ Rate limiting enabled (30 req/min)
+✅ Prompt injection detection active
+✅ 9 dangerous tools blocked by default
+✅ Command injection prevention
+✅ 30-second timeout per tool
+✅ 5 concurrent tools max per user
+✅ All API keys in Secret Manager
+✅ Security auditor runs every 30 min
+
+### Monitoring
+
+```bash
+# View security events
+kubectl logs -n agents deployment/ulf-warden-agent | grep -E "BlockedTools|Vetter|Sanitizer"
+
+# Cloudflare AI Gateway Dashboard
+https://dash.cloudflare.com/your-account/ai/ai-gateway
+```
+
+### Documentation
+
+📖 **[SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md)** - Complete security architecture
+📖 **[SECURITY.md](SECURITY.md)** - Security policy and reporting
+📖 **[Testing Security](scripts/test-security.sh)** - Automated security tests
+
+**Comparisons:**
+- [vs OpenClaw-Security](docs/OPENCLAW_SECURITY_COMPARISON.md)
+- [vs Moltworker](docs/SECURITY_COMPARISON.md)
 
 ---
 
