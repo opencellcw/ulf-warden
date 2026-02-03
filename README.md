@@ -64,7 +64,7 @@ npm install && npm run build && npm start
 ## 📚 Documentation
 
 - 🚀 **[Quick Start Guide](docs/GKE_QUICKSTART.md)** - Get running in 5 minutes
-- 🔐 **[Security Architecture](SECURITY_ARCHITECTURE.md)** - 7-layer security (NEW!)
+- 🔐 **[Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)** - 7-layer security (NEW!)
 - 🛡️ **[Security Policy](SECURITY.md)** - Vulnerability reporting
 - 🔒 **[Security Comparisons](docs/OPENCLAW_SECURITY_COMPARISON.md)** - vs OpenClaw/Moltworker
 - 💰 **[Cost Auditor](cost-auditor/README.md)** - Multi-platform cost monitoring
@@ -124,7 +124,7 @@ Real-time cost monitoring across 5 platforms:
 - **Secret Manager**: Google Cloud Secret Manager integration
 - **Audit Trail**: All security events logged with structured metadata
 
-📖 **[Complete Security Documentation](SECURITY_ARCHITECTURE.md)** - Full threat model, testing, monitoring
+📖 **[Complete Security Documentation](docs/security/SECURITY_ARCHITECTURE.md)** - Full threat model, testing, monitoring
 
 ### 🎨 Multimodal Capabilities
 - **Image Generation**: Replicate (Flux, SDXL, Stable Diffusion), OpenAI (DALL-E 2/3)
@@ -283,7 +283,7 @@ https://dash.cloudflare.com/your-account/ai/ai-gateway
 
 ### Documentation
 
-📖 **[SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md)** - Complete security architecture
+📖 **[docs/security/SECURITY_ARCHITECTURE.md](docs/security/SECURITY_ARCHITECTURE.md)** - Complete security architecture
 📖 **[SECURITY.md](SECURITY.md)** - Security policy and reporting
 📖 **[Testing Security](scripts/test-security.sh)** - Automated security tests
 

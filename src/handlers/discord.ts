@@ -8,6 +8,8 @@ import { log } from '../logger';
 import { approvalSystem } from '../approval-system';
 import { selfImprovementSystem } from '../self-improvement';
 import { handleBotCreation } from '../bot-factory/discord-handler';
+import { getNormalRateLimiter } from '../security/rate-limiter';
+import axios from 'axios';
 
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -73,6 +75,56 @@ export async function startDiscordHandler() {
     }
   }
 
+  /**
+   * Process attachments in message (download text files)
+   */
+  async function processAttachments(message: Message): Promise<string> {
+    if (message.attachments.size === 0) return '';
+
+    const textParts: string[] = [];
+
+    for (const [, attachment] of message.attachments) {
+      // Only process text files (txt, md, json, etc)
+      const textExtensions = ['.txt', '.md', '.json', '.csv', '.log', '.yaml', '.yml', '.xml', '.html'];
+      const isTextFile = textExtensions.some(ext => attachment.name?.toLowerCase().endsWith(ext));
+
+      if (!isTextFile) {
+        log.info('[Discord] Skipping non-text attachment', { name: attachment.name });
+        continue;
+      }
+
+      // Check file size (max 1MB for text files)
+      if (attachment.size > 1024 * 1024) {
+        log.warn('[Discord] Text file too large', { name: attachment.name, size: attachment.size });
+        textParts.push(`⚠️ Arquivo ${attachment.name} muito grande (${(attachment.size / 1024).toFixed(2)}KB > 1MB)`);
+        continue;
+      }
+
+      try {
+        log.info('[Discord] Downloading attachment', { name: attachment.name, size: attachment.size });
+
+        // Download file content
+        const response = await axios.get(attachment.url, {
+          responseType: 'text',
+          timeout: 10000
+        });
+
+        const content = response.data;
+        textParts.push(`\n\n--- Conteúdo do arquivo: ${attachment.name} ---\n${content}\n--- Fim do arquivo ---\n`);
+
+        log.info('[Discord] Attachment processed', { name: attachment.name, contentLength: content.length });
+      } catch (error: any) {
+        log.error('[Discord] Failed to download attachment', {
+          name: attachment.name,
+          error: error.message
+        });
+        textParts.push(`⚠️ Erro ao ler ${attachment.name}: ${error.message}`);
+      }
+    }
+
+    return textParts.join('\n');
+  }
+
   // Detect if message needs agent mode (execution)
   function needsAgent(text: string): boolean {
     const agentKeywords = [
@@ -125,11 +177,30 @@ export async function startDiscordHandler() {
       if (!isDM && !isMentioned) return;
 
       const userId = `discord_${message.author.id}`;
+
+      // Rate limiting check
+      const rateLimiter = getNormalRateLimiter();
+      const rateLimitCheck = await rateLimiter.checkLimit(userId);
+
+      if (!rateLimitCheck.allowed) {
+        await message.reply(
+          `⏱️ ${rateLimitCheck.reason}\n` +
+          `Aguarde ${rateLimitCheck.retryAfter} segundos antes de enviar outra mensagem.`
+        );
+        return;
+      }
+
       let text = message.content;
 
       // Remove mention from text
       if (isMentioned) {
         text = text.replace(/<@!?\d+>/g, '').trim();
+      }
+
+      // Process attachments (text files)
+      const attachmentContent = await processAttachments(message);
+      if (attachmentContent) {
+        text = text ? `${text}\n${attachmentContent}` : attachmentContent;
       }
 
       if (!text) {

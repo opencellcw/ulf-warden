@@ -113,7 +113,7 @@ The following environment variables contain sensitive data and should NEVER be c
 ## Security Architecture
 
 For a comprehensive overview of our security implementation, see:
-👉 **[SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md)** - Complete 7-layer security architecture documentation
+👉 **[docs/security/SECURITY_ARCHITECTURE.md](docs/security/SECURITY_ARCHITECTURE.md)** - Complete 7-layer security architecture documentation
 
 ### Quick Overview
 
@@ -173,7 +173,7 @@ Tests include:
 - Command/path injection detection
 - SSRF protection
 
-For manual testing instructions, see [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md#testing--validation).
+For manual testing instructions, see [docs/security/SECURITY_ARCHITECTURE.md](docs/security/SECURITY_ARCHITECTURE.md#testing--validation).
 
 ## Security Updates
 

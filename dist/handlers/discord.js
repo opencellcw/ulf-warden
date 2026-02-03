@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startDiscordHandler = startDiscordHandler;
 const discord_js_1 = require("discord.js");
@@ -10,6 +13,8 @@ const media_handler_discord_1 = require("../media-handler-discord");
 const logger_1 = require("../logger");
 const approval_system_1 = require("../approval-system");
 const discord_handler_1 = require("../bot-factory/discord-handler");
+const rate_limiter_1 = require("../security/rate-limiter");
+const axios_1 = __importDefault(require("axios"));
 async function startDiscordHandler() {
     if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
         console.log('[Discord] Token not configured, skipping Discord handler');
@@ -68,6 +73,48 @@ async function startDiscordHandler() {
             }
         }
     }
+    /**
+     * Process attachments in message (download text files)
+     */
+    async function processAttachments(message) {
+        if (message.attachments.size === 0)
+            return '';
+        const textParts = [];
+        for (const [, attachment] of message.attachments) {
+            // Only process text files (txt, md, json, etc)
+            const textExtensions = ['.txt', '.md', '.json', '.csv', '.log', '.yaml', '.yml', '.xml', '.html'];
+            const isTextFile = textExtensions.some(ext => attachment.name?.toLowerCase().endsWith(ext));
+            if (!isTextFile) {
+                logger_1.log.info('[Discord] Skipping non-text attachment', { name: attachment.name });
+                continue;
+            }
+            // Check file size (max 1MB for text files)
+            if (attachment.size > 1024 * 1024) {
+                logger_1.log.warn('[Discord] Text file too large', { name: attachment.name, size: attachment.size });
+                textParts.push(`⚠️ Arquivo ${attachment.name} muito grande (${(attachment.size / 1024).toFixed(2)}KB > 1MB)`);
+                continue;
+            }
+            try {
+                logger_1.log.info('[Discord] Downloading attachment', { name: attachment.name, size: attachment.size });
+                // Download file content
+                const response = await axios_1.default.get(attachment.url, {
+                    responseType: 'text',
+                    timeout: 10000
+                });
+                const content = response.data;
+                textParts.push(`\n\n--- Conteúdo do arquivo: ${attachment.name} ---\n${content}\n--- Fim do arquivo ---\n`);
+                logger_1.log.info('[Discord] Attachment processed', { name: attachment.name, contentLength: content.length });
+            }
+            catch (error) {
+                logger_1.log.error('[Discord] Failed to download attachment', {
+                    name: attachment.name,
+                    error: error.message
+                });
+                textParts.push(`⚠️ Erro ao ler ${attachment.name}: ${error.message}`);
+            }
+        }
+        return textParts.join('\n');
+    }
     // Detect if message needs agent mode (execution)
     function needsAgent(text) {
         const agentKeywords = [
@@ -115,10 +162,23 @@ async function startDiscordHandler() {
             if (!isDM && !isMentioned)
                 return;
             const userId = `discord_${message.author.id}`;
+            // Rate limiting check
+            const rateLimiter = (0, rate_limiter_1.getNormalRateLimiter)();
+            const rateLimitCheck = await rateLimiter.checkLimit(userId);
+            if (!rateLimitCheck.allowed) {
+                await message.reply(`⏱️ ${rateLimitCheck.reason}\n` +
+                    `Aguarde ${rateLimitCheck.retryAfter} segundos antes de enviar outra mensagem.`);
+                return;
+            }
             let text = message.content;
             // Remove mention from text
             if (isMentioned) {
                 text = text.replace(/<@!?\d+>/g, '').trim();
+            }
+            // Process attachments (text files)
+            const attachmentContent = await processAttachments(message);
+            if (attachmentContent) {
+                text = text ? `${text}\n${attachmentContent}` : attachmentContent;
             }
             if (!text) {
                 await message.reply('Oi! Como posso ajudar?');

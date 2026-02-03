@@ -299,7 +299,7 @@ Result: 🚫 Error - Too many concurrent tool executions (5/5)
 **Purpose:** API protection, analytics, caching
 **Implementation:** Cloudflare AI Gateway
 **Status:** ✅ Active
-**Documentation:** [`docs/CLOUDFLARE_AI_GATEWAY.md`](docs/CLOUDFLARE_AI_GATEWAY.md)
+**Documentation:** [`../CLOUDFLARE_AI_GATEWAY.md`](../CLOUDFLARE_AI_GATEWAY.md)
 
 **Features:**
 - Request/response logging
@@ -593,7 +593,7 @@ kubectl logs -n agents deployment/ulf-warden-agent | grep -E "blocked|injection|
 
 1. **No Network Isolation**
    - ⚠️ Bot is exposed via public Load Balancer
-   - Mitigation: Consider Cloudflare proxy (see [`docs/CLOUDFLARE_PROXY_SETUP.md`](docs/CLOUDFLARE_PROXY_SETUP.md))
+   - Mitigation: Consider Cloudflare proxy (see [`../CLOUDFLARE_PROXY_SETUP.md`](../CLOUDFLARE_PROXY_SETUP.md))
 
 2. **Shared Cluster Resources**
    - ⚠️ Multiple bots share same GKE cluster
@@ -609,8 +609,8 @@ kubectl logs -n agents deployment/ulf-warden-agent | grep -E "blocked|injection|
 
 ### vs OpenClaw-Security
 
-**Full Comparison:** [`docs/OPENCLAW_SECURITY_COMPARISON.md`](docs/OPENCLAW_SECURITY_COMPARISON.md)
-**Implementation Summary:** [`docs/OPENCLAW_IMPLEMENTATION_SUMMARY.md`](docs/OPENCLAW_IMPLEMENTATION_SUMMARY.md)
+**Full Comparison:** [`../OPENCLAW_SECURITY_COMPARISON.md`](../OPENCLAW_SECURITY_COMPARISON.md)
+**Implementation Summary:** [`../OPENCLAW_IMPLEMENTATION_SUMMARY.md`](../OPENCLAW_IMPLEMENTATION_SUMMARY.md)
 
 | Feature | OpenClaw | Ulfberht-Warden | Winner |
 |---------|----------|-----------------|--------|
@@ -627,7 +627,7 @@ kubectl logs -n agents deployment/ulf-warden-agent | grep -E "blocked|injection|
 
 ### vs Moltworker
 
-**Full Comparison:** [`docs/SECURITY_COMPARISON.md`](docs/SECURITY_COMPARISON.md)
+**Full Comparison:** [`../SECURITY_COMPARISON.md`](../SECURITY_COMPARISON.md)
 
 | Feature | Moltworker | Ulfberht-Warden | Winner |
 |---------|-----------|-----------------|--------|
@@ -734,7 +734,7 @@ This security architecture aligns with:
 
 1. **Network Isolation** (Priority: Medium)
    - Add Cloudflare proxy in front of GKE
-   - See: [`docs/CLOUDFLARE_PROXY_SETUP.md`](docs/CLOUDFLARE_PROXY_SETUP.md)
+   - See: [`../CLOUDFLARE_PROXY_SETUP.md`](../CLOUDFLARE_PROXY_SETUP.md)
 
 2. **Advanced Monitoring** (Priority: Low)
    - Integrate with SIEM system
@@ -750,8 +750,8 @@ This security architecture aligns with:
 
 ## Contact & Support
 
-**Security Issues:** lucas@cloudwalk.io (see [`SECURITY.md`](SECURITY.md) for full policy)
-**Documentation:** This file + linked docs in [`docs/`](docs/)
+**Security Issues:** lucas@cloudwalk.io (see [`../../SECURITY.md`](../../SECURITY.md) for full policy)
+**Documentation:** This file + linked docs in [`../`](../)
 **GitHub Issues:** https://github.com/cloudwalk/opencell/issues
 
 ---
