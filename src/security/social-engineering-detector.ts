@@ -222,7 +222,7 @@ export class SocialEngineeringDetector {
     }
 
     const primaryType = attempt.attackType[0];
-    const responses = this.EDUCATIONAL_RESPONSES[primaryType] || this.EDUCATIONAL_RESPONSES.GENERAL;
+    const responses = (this.EDUCATIONAL_RESPONSES as any)[primaryType] || this.EDUCATIONAL_RESPONSES.GENERAL;
     const response = responses[Math.floor(Math.random() * responses.length)];
 
     return response;

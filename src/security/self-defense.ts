@@ -250,7 +250,10 @@ export class SelfDefenseSystem {
     // Cleanup old hashes (keep last 1000)
     if (this.requestHashes.size > 1000) {
       const iter = this.requestHashes.values();
-      this.requestHashes.delete(iter.next().value);
+      const firstValue = iter.next().value;
+      if (firstValue !== undefined) {
+        this.requestHashes.delete(firstValue);
+      }
     }
 
     return false;

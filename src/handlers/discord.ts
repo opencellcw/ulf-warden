@@ -7,6 +7,7 @@ import { uploadMediaToDiscord } from '../media-handler-discord';
 import { log } from '../logger';
 import { approvalSystem } from '../approval-system';
 import { selfImprovementSystem } from '../self-improvement';
+import { handleBotCreation } from '../bot-factory/discord-handler';
 
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -79,6 +80,10 @@ export async function startDiscordHandler() {
       'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
       'create', 'install', 'run', 'execute', 'start', 'setup',
       'api', 'servidor', 'server', 'app', 'service',
+      // Bot Factory
+      'criar bot', 'create bot', 'novo bot', 'new bot',
+      'listar bots', 'list bots', 'delete bot', 'deletar bot',
+      'bot status', 'status do bot',
       // Multimodal
       'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
       'faz', 'fazer', 'faça', 'make', 'draw', 'desenha', 'desenhar',
@@ -136,6 +141,12 @@ export async function startDiscordHandler() {
       if (text.startsWith('/propose-improvement')) {
         // Example: /propose-improvement title: "Fix bug" | description: "..." | files: src/test.ts
         await message.reply('🔧 Sistema de self-improvement detectado. Use `propor melhoria em X` para propostas automáticas.');
+        return;
+      }
+
+      // Handle bot creation commands
+      if (text.match(/criar bot|create bot|novo bot|new bot/i)) {
+        await handleBotCreation(message);
         return;
       }
 

@@ -15,6 +15,7 @@ const openai_tools_1 = require("./openai-tools");
 const slack_messaging_1 = require("./slack-messaging");
 const scheduler_1 = require("./scheduler");
 const self_improvement_1 = require("./self-improvement");
+const executor_2 = require("../bot-factory/executor");
 const logger_1 = require("../logger");
 const persistence_1 = require("../persistence");
 async function executeTool(toolName, toolInput, userId) {
@@ -72,6 +73,13 @@ async function executeTool(toolName, toolInput, userId) {
                 break;
             case 'get_improvement_stats':
                 result = await (0, self_improvement_1.getImprovementStats)(toolInput);
+                break;
+            // Bot factory tools
+            case 'create_bot':
+            case 'list_bots':
+            case 'delete_bot':
+            case 'get_bot_status':
+                result = await (0, executor_2.executeBotFactoryTool)(toolName, toolInput, userId || 'unknown');
                 break;
             // GitHub tools
             case 'github_clone':

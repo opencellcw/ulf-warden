@@ -46,5 +46,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[2.0.0]: https://github.com/lucaspressi/opencellcw/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/lucaspressi/opencellcw/releases/tag/v1.0.0
+[2.0.0]: https://github.com/cloudwalk/opencell/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/cloudwalk/opencell/releases/tag/v1.0.0

@@ -9,6 +9,7 @@ const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const slack_1 = require("./handlers/slack");
 const discord_1 = require("./handlers/discord");
 const telegram_1 = require("./handlers/telegram");
+const whatsapp_1 = require("./handlers/whatsapp");
 const workspace_1 = require("./workspace");
 const persistence_1 = require("./persistence");
 const sessions_1 = require("./sessions");
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
             slack: !!handlers.slack,
             discord: !!handlers.discord,
             telegram: !!handlers.telegram,
+            whatsapp: !!handlers.whatsapp,
         }
     });
 });
@@ -67,30 +69,44 @@ async function initialize() {
             handlers.slack = await (0, slack_1.startSlackHandler)();
         }
         catch (error) {
-            logger_1.log.error('Failed to start Slack handler', {
+            logger_1.log.warn('Slack handler not started', {
                 error: error instanceof Error ? error.message : String(error)
             });
-            throw error;
+            // Continue without Slack
         }
         // Start Discord
         try {
             handlers.discord = await (0, discord_1.startDiscordHandler)();
         }
         catch (error) {
-            logger_1.log.error('Failed to start Discord handler', {
+            logger_1.log.warn('Discord handler not started', {
                 error: error instanceof Error ? error.message : String(error)
             });
-            throw error;
+            // Continue without Discord
         }
         // Start Telegram
         try {
             handlers.telegram = await (0, telegram_1.startTelegramHandler)();
         }
         catch (error) {
-            logger_1.log.error('Failed to start Telegram handler', {
+            logger_1.log.warn('Telegram handler not started', {
                 error: error instanceof Error ? error.message : String(error)
             });
-            throw error;
+            // Continue without Telegram
+        }
+        // Start WhatsApp (AFTER Discord so we can send QR there)
+        try {
+            // Set Discord client for QR code notifications
+            if (handlers.discord) {
+                (0, whatsapp_1.setWhatsAppDiscordClient)(handlers.discord);
+            }
+            handlers.whatsapp = await (0, whatsapp_1.startWhatsAppHandler)();
+        }
+        catch (error) {
+            logger_1.log.warn('WhatsApp handler not started', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            // Continue without WhatsApp
         }
         // Check if at least one handler is running
         const activeHandlers = Object.values(handlers).filter(Boolean).length;
@@ -101,6 +117,7 @@ async function initialize() {
             console.error('  - SLACK_BOT_TOKEN + SLACK_APP_TOKEN');
             console.error('  - DISCORD_BOT_TOKEN');
             console.error('  - TELEGRAM_BOT_TOKEN');
+            console.error('  - WHATSAPP_ENABLED=true (scan QR code on first run)');
             console.error('');
             process.exit(1);
         }
@@ -132,7 +149,8 @@ async function initialize() {
             platforms: {
                 slack: !!handlers.slack,
                 discord: !!handlers.discord,
-                telegram: !!handlers.telegram
+                telegram: !!handlers.telegram,
+                whatsapp: !!handlers.whatsapp
             }
         });
         // Start HTTP server after handlers are ready
@@ -186,6 +204,10 @@ async function gracefulShutdown(signal) {
         if (handlers.telegram) {
             handlers.telegram.stop();
             logger_1.log.info('Telegram handler stopped');
+        }
+        if (handlers.whatsapp) {
+            // WhatsApp cleanup (socket will close automatically)
+            logger_1.log.info('WhatsApp handler stopped');
         }
         // 4. Flush all sessions to database
         logger_1.log.info('Flushing sessions to database...');

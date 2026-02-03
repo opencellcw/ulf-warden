@@ -14,6 +14,7 @@ import {
   listPendingImprovements,
   getImprovementStats
 } from './self-improvement';
+import { executeBotFactoryTool } from '../bot-factory/executor';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 
@@ -88,6 +89,14 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
 
       case 'get_improvement_stats':
         result = await getImprovementStats(toolInput);
+        break;
+
+      // Bot factory tools
+      case 'create_bot':
+      case 'list_bots':
+      case 'delete_bot':
+      case 'get_bot_status':
+        result = await executeBotFactoryTool(toolName, toolInput, userId || 'unknown');
         break;
 
       // GitHub tools

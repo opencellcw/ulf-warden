@@ -9,6 +9,7 @@ const media_handler_1 = require("../media-handler");
 const media_handler_discord_1 = require("../media-handler-discord");
 const logger_1 = require("../logger");
 const approval_system_1 = require("../approval-system");
+const discord_handler_1 = require("../bot-factory/discord-handler");
 async function startDiscordHandler() {
     if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
         console.log('[Discord] Token not configured, skipping Discord handler');
@@ -74,6 +75,10 @@ async function startDiscordHandler() {
             'sobe', 'subir', 'criar', 'instala', 'deploy', 'roda', 'executa',
             'create', 'install', 'run', 'execute', 'start', 'setup',
             'api', 'servidor', 'server', 'app', 'service',
+            // Bot Factory
+            'criar bot', 'create bot', 'novo bot', 'new bot',
+            'listar bots', 'list bots', 'delete bot', 'deletar bot',
+            'bot status', 'status do bot',
             // Multimodal
             'gera', 'gerar', 'cria', 'criar', 'generate', 'create',
             'faz', 'fazer', 'faça', 'make', 'draw', 'desenha', 'desenhar',
@@ -123,6 +128,11 @@ async function startDiscordHandler() {
             if (text.startsWith('/propose-improvement')) {
                 // Example: /propose-improvement title: "Fix bug" | description: "..." | files: src/test.ts
                 await message.reply('🔧 Sistema de self-improvement detectado. Use `propor melhoria em X` para propostas automáticas.');
+                return;
+            }
+            // Handle bot creation commands
+            if (text.match(/criar bot|create bot|novo bot|new bot/i)) {
+                await (0, discord_handler_1.handleBotCreation)(message);
                 return;
             }
             console.log(`[Discord] Message from ${userId}: ${text.substring(0, 50)}...`);

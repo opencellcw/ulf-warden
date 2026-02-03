@@ -295,14 +295,14 @@ Look for issues labeled `good first issue` - these are beginner-friendly tasks t
 
 **Do not open public issues for security vulnerabilities.**
 
-Instead, email security concerns to: lucas@your-domain.com
+Instead, email security concerns to: lucas@cloudwalk
 
 See [SECURITY.md](SECURITY.md) for our security policy.
 
 ## Questions?
 
 - Open a discussion on GitHub
-- Join our Discord (coming soon)
+- Join our [Discord](https://discord.gg/WqJzPp22)
 - Comment on relevant issues
 
 ## License

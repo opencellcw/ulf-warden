@@ -15,5 +15,5 @@ dependencies:
     repository: "https://charts.bitnami.com/bitnami"
     condition: redis.enabled
 maintainers:
-  - name: Ulfberht Team
-    email: team@ulfberht.dev
+  - name: CloudWalk Team
+    email: lucas@cloudwalk

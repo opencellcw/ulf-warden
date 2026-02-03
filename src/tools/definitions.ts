@@ -9,6 +9,7 @@ import { OPENAI_TOOLS } from './openai-tools';
 import { SLACK_MESSAGING_TOOL } from './slack-messaging';
 import { SCHEDULER_TOOLS } from './scheduler';
 import { SELF_IMPROVEMENT_TOOLS } from './self-improvement';
+import { BOT_FACTORY_TOOLS } from '../bot-factory/tools';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -121,6 +122,7 @@ export const TOOLS: Anthropic.Tool[] = [
   SLACK_MESSAGING_TOOL as Anthropic.Tool,
   ...SCHEDULER_TOOLS,
   ...SELF_IMPROVEMENT_TOOLS,
+  ...BOT_FACTORY_TOOLS,
   ...GITHUB_TOOLS,
   ...WEB_TOOLS,
   ...FILE_TOOLS,
