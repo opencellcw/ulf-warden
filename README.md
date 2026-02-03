@@ -79,6 +79,7 @@ npm install && npm run build && npm start
 - **Slack** - Socket Mode with full bot capabilities, threads, reactions
 - **Discord** - Rich embeds, buttons, slash commands, role management
 - **Telegram** - Native bot API, inline keyboards, media support
+- **WhatsApp** - Baileys (WhatsApp Web API) with QR code authentication
 - **Isolated Sessions** - Each user maintains separate conversation history per platform
 
 ### 🧠 Self-Improvement System
@@ -184,6 +185,9 @@ DISCORD_BOT_TOKEN=xxx           # For Discord
 
 # OR
 TELEGRAM_BOT_TOKEN=xxx          # For Telegram
+
+# OR
+WHATSAPP_ENABLED=true           # For WhatsApp (scan QR code on first run)
 ```
 
 ### Development Mode
@@ -806,9 +810,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support & Community
 
 - **GitHub Issues:** [Report bugs or request features](https://github.com/cloudwalk/opencell/issues)
-- **Discord:** [Join our community](https://discord.gg/your-server) (coming soon)
+- **Discord:** [Join our community](https://discord.gg/47ZYQzHX)
 - **Documentation:** [Complete docs site](https://docs.your-domain.com) (coming soon)
-- **Email:** lucas@your-domain.com
+- **Email:** lucas@cloudwalk.io
 
 ---
 
