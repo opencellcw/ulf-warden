@@ -16,6 +16,8 @@ const sessions_1 = require("./sessions");
 const logger_1 = require("./logger");
 const heartbeat_manager_1 = require("./heartbeat/heartbeat-manager");
 const cron_manager_1 = require("./scheduler/cron-manager");
+const blocked_tools_1 = require("./config/blocked-tools");
+const tool_executor_1 = require("./security/tool-executor");
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
@@ -49,6 +51,10 @@ app.get('/health', (req, res) => {
 async function initialize() {
     try {
         logger_1.log.info('Starting Ulfberht-Warden...');
+        // 0. Initialize security layers (OpenClaw-Security inspired)
+        logger_1.log.info('Initializing security layers...');
+        (0, blocked_tools_1.initializeBlocklist)();
+        (0, tool_executor_1.initializeToolExecutor)();
         // 1. Initialize persistence layer
         logger_1.log.info('Initializing persistence layer...');
         await persistence_1.persistence.init();

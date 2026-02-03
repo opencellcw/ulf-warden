@@ -11,6 +11,8 @@ import { sessionManager } from './sessions';
 import { log } from './logger';
 import { getHeartbeatManager } from './heartbeat/heartbeat-manager';
 import { getCronManager } from './scheduler/cron-manager';
+import { initializeBlocklist } from './config/blocked-tools';
+import { initializeToolExecutor } from './security/tool-executor';
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -56,6 +58,11 @@ app.get('/health', (req, res) => {
 async function initialize() {
   try {
     log.info('Starting Ulfberht-Warden...');
+
+    // 0. Initialize security layers (OpenClaw-Security inspired)
+    log.info('Initializing security layers...');
+    initializeBlocklist();
+    initializeToolExecutor();
 
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');

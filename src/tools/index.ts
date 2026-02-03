@@ -18,6 +18,8 @@ import { executeBotFactoryTool } from '../bot-factory/executor';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 import { vetToolCall, isInDenylist, validateToolArgs } from '../security/vetter';
+import { executeToolSecurely } from '../security/tool-executor';
+import { isToolBlocked, getToolSecurityInfo } from '../config/blocked-tools';
 
 export { TOOLS };
 
@@ -25,7 +27,18 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
   const startTime = Date.now();
 
   try {
-    // 🔒 SECURITY: Auto-block denylist tools
+    // 🔒 SECURITY LAYER 1: Check blocklist (OpenClaw-Security inspired)
+    const securityInfo = getToolSecurityInfo(toolName);
+    if (securityInfo.blocked) {
+      log.warn('[BlockedTools] Tool execution blocked', {
+        toolName,
+        userId,
+        reason: securityInfo.reason
+      });
+      return `🚫 Tool "${toolName}" is blocked by security policy.\nReason: ${securityInfo.reason}`;
+    }
+
+    // 🔒 SECURITY LAYER 2: Auto-block denylist tools (legacy)
     if (isInDenylist(toolName)) {
       log.warn('[Vetter] Tool is in denylist', { toolName, userId });
       return `🚫 Tool "${toolName}" is blocked by security policy`;
@@ -93,10 +106,60 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
       });
     }
 
-    let result: string;
+    // 🔒 SECURITY LAYER 4: Execute with timeout and concurrency control
+    const result = await executeToolSecurely(
+      toolName,
+      userId || 'unknown',
+      async () => {
+        return await executeToolInternal(toolName, toolInput, userId);
+      }
+    );
 
-    // Base tools
-    switch (toolName) {
+    const duration = Date.now() - startTime;
+    log.tool('executed', toolName, userId || 'unknown', { duration, success: true });
+
+    // Log successful execution
+    if (userId) {
+      await persistence.logToolExecution({
+        userId,
+        toolName,
+        input: JSON.stringify(toolInput),
+        output: result.substring(0, 1000), // Truncate long outputs
+        timestamp: new Date().toISOString(),
+        status: 'success'
+      });
+    }
+
+    return result;
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    log.error(`Tool execution failed: ${toolName}`, { error, duration });
+
+    // Log failed execution
+    if (userId) {
+      await persistence.logToolExecution({
+        userId,
+        toolName,
+        input: JSON.stringify(toolInput),
+        output: null,
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        errorMessage: error.message
+      });
+    }
+
+    return `Error: ${error.message}`;
+  }
+}
+
+/**
+ * Internal tool execution (wrapped by executeToolSecurely)
+ */
+async function executeToolInternal(toolName: string, toolInput: any, userId?: string): Promise<string> {
+  let result: string;
+
+  // Base tools
+  switch (toolName) {
       case 'execute_shell':
         result = await executeShell(toolInput.command);
         break;
@@ -214,39 +277,5 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
         throw new Error(`Unknown tool: ${toolName}`);
     }
 
-    const duration = Date.now() - startTime;
-    log.tool('executed', toolName, userId || 'unknown', { duration, success: true });
-
-    // Log successful execution
-    if (userId) {
-      await persistence.logToolExecution({
-        userId,
-        toolName,
-        input: JSON.stringify(toolInput),
-        output: result.substring(0, 1000), // Truncate long outputs
-        timestamp: new Date().toISOString(),
-        status: 'success'
-      });
-    }
-
     return result;
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    log.error(`Tool execution failed: ${toolName}`, { error, duration });
-
-    // Log failed execution
-    if (userId) {
-      await persistence.logToolExecution({
-        userId,
-        toolName,
-        input: JSON.stringify(toolInput),
-        output: null,
-        timestamp: new Date().toISOString(),
-        status: 'error',
-        errorMessage: error.message
-      });
-    }
-
-    return `Error: ${error.message}`;
-  }
 }
