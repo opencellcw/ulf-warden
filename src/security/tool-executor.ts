@@ -13,6 +13,8 @@ import { log } from '../logger';
 import { isToolBlocked, getToolSecurityInfo, logBlockedToolAttempt } from '../config/blocked-tools';
 import { retryEngine } from '../core/retry-engine';
 import { featureFlags, Feature } from '../core/feature-flags';
+import { telemetry } from '../core/telemetry';
+import { SpanKind } from '@opentelemetry/api';
 
 // Configuration
 const TOOL_TIMEOUT_MS = parseInt(process.env.TOOL_TIMEOUT_MS || '30000'); // 30 seconds
@@ -71,38 +73,50 @@ export async function executeToolSecurely<T>(
   });
 
   try {
-    // 4. Execute with timeout and optional retry logic
-    let result: T;
+    // 4. Execute with timeout, retry logic, and telemetry tracing
+    return await telemetry.trace(
+      'tool.execute',
+      async (span) => {
+        span?.setAttribute('tool.name', toolName);
+        span?.setAttribute('user.id', userId.substring(0, 12));
+        span?.setAttribute('execution.id', executionId);
 
-    if (featureFlags.isEnabled(Feature.RETRY_ENGINE)) {
-      // Execute with retry engine
-      log.debug('[ToolExecutor] Using retry engine', { tool: toolName });
-      result = await retryEngine.executeWithRetry(
-        toolName,
-        async () => {
-          return await executeWithTimeout(
+        let result: T;
+
+        if (featureFlags.isEnabled(Feature.RETRY_ENGINE)) {
+          // Execute with retry engine
+          log.debug('[ToolExecutor] Using retry engine', { tool: toolName });
+          result = await retryEngine.executeWithRetry(
+            toolName,
+            async () => {
+              return await executeWithTimeout(
+                executor,
+                TOOL_TIMEOUT_MS,
+                `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
+              );
+            }
+          );
+        } else {
+          // Execute without retry (legacy behavior)
+          result = await executeWithTimeout(
             executor,
             TOOL_TIMEOUT_MS,
             `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
           );
         }
-      );
-    } else {
-      // Execute without retry (legacy behavior)
-      result = await executeWithTimeout(
-        executor,
-        TOOL_TIMEOUT_MS,
-        `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
-      );
-    }
 
-    log.debug('[ToolExecutor] Tool execution completed', {
-      tool: toolName,
-      userId: userId.substring(0, 12) + '...',
-      executionId
-    });
+        log.debug('[ToolExecutor] Tool execution completed', {
+          tool: toolName,
+          userId: userId.substring(0, 12) + '...',
+          executionId
+        });
 
-    return result;
+        span?.setAttribute('tool.success', true);
+        return result;
+      },
+      { toolName, userId: userId.substring(0, 12) },
+      SpanKind.INTERNAL
+    );
   } catch (error: any) {
     log.error('[ToolExecutor] Tool execution failed', {
       tool: toolName,

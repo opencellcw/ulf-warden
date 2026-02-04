@@ -7,6 +7,8 @@ const llm_1 = require("./llm");
 const logger_1 = require("./logger");
 const output_parser_1 = require("./core/output-parser");
 const feature_flags_1 = require("./core/feature-flags");
+const telemetry_1 = require("./core/telemetry");
+const api_1 = require("@opentelemetry/api");
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
 const router = (0, llm_1.getRouter)();
@@ -16,18 +18,27 @@ const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 const MAX_ITERATIONS = 30; // Prevent infinite loops
 async function runAgent(options) {
     const { userId, userMessage, history } = options;
-    // Log available media tools
-    const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
-    const hasOpenAI = !!process.env.OPENAI_API_KEY;
-    const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
-    logger_1.log.info('[Agent] Starting agent with tool support', {
-        userId,
-        mediaTools: {
-            replicate: hasReplicate,
-            openai: hasOpenAI,
-            elevenlabs: hasElevenLabs
-        }
-    });
+    return telemetry_1.telemetry.trace('agent.run', async (span) => {
+        span?.setAttribute('user.id', userId);
+        span?.setAttribute('message.length', userMessage.length);
+        span?.setAttribute('history.length', history.length);
+        // Log available media tools
+        const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
+        const hasOpenAI = !!process.env.OPENAI_API_KEY;
+        const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+        logger_1.log.info('[Agent] Starting agent with tool support', {
+            userId,
+            mediaTools: {
+                replicate: hasReplicate,
+                openai: hasOpenAI,
+                elevenlabs: hasElevenLabs
+            }
+        });
+        return runAgentInternal(options, span);
+    }, { userId, messageLength: userMessage.length }, api_1.SpanKind.SERVER);
+}
+async function runAgentInternal(options, parentSpan) {
+    const { userId, userMessage, history } = options;
     const systemPrompt = workspace_1.workspace.getSystemPrompt() + `
 
 # EXECUTION CAPABILITIES
@@ -158,6 +169,16 @@ When generating images/videos/audio:
         messages,
         tools: tools_1.TOOLS,
     });
+    // Track cost for initial LLM call
+    if (response.usage && telemetry_1.telemetry.isEnabled()) {
+        const cost = telemetry_1.telemetry.calculateCost(MODEL, response.usage.input_tokens || 0, response.usage.output_tokens || 0);
+        telemetry_1.telemetry.trackCost({
+            inputTokens: response.usage.input_tokens || 0,
+            outputTokens: response.usage.output_tokens || 0,
+            model: MODEL,
+            estimatedCost: cost
+        }, userId, 'agent_loop');
+    }
     // Agent loop - continue while Claude wants to use tools
     while (response.stop_reason === 'tool_use' && iteration < MAX_ITERATIONS) {
         iteration++;

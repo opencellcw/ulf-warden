@@ -6,6 +6,8 @@ import { getRouter } from './llm';
 import { log } from './logger';
 import { OutputParser, AgentResponse } from './core/output-parser';
 import { featureFlags, Feature } from './core/feature-flags';
+import { telemetry } from './core/telemetry';
+import { SpanKind } from '@opentelemetry/api';
 
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
@@ -25,19 +27,36 @@ export interface AgentOptions {
 export async function runAgent(options: AgentOptions): Promise<string> {
   const { userId, userMessage, history } = options;
 
-  // Log available media tools
-  const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+  return telemetry.trace(
+    'agent.run',
+    async (span) => {
+      span?.setAttribute('user.id', userId);
+      span?.setAttribute('message.length', userMessage.length);
+      span?.setAttribute('history.length', history.length);
 
-  log.info('[Agent] Starting agent with tool support', {
-    userId,
-    mediaTools: {
-      replicate: hasReplicate,
-      openai: hasOpenAI,
-      elevenlabs: hasElevenLabs
-    }
-  });
+      // Log available media tools
+      const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
+      const hasOpenAI = !!process.env.OPENAI_API_KEY;
+      const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+
+      log.info('[Agent] Starting agent with tool support', {
+        userId,
+        mediaTools: {
+          replicate: hasReplicate,
+          openai: hasOpenAI,
+          elevenlabs: hasElevenLabs
+        }
+      });
+
+      return runAgentInternal(options, span);
+    },
+    { userId, messageLength: userMessage.length },
+    SpanKind.SERVER
+  );
+}
+
+async function runAgentInternal(options: AgentOptions, parentSpan: any): Promise<string> {
+  const { userId, userMessage, history } = options;
 
   const systemPrompt = workspace.getSystemPrompt() + `
 
@@ -171,6 +190,21 @@ When generating images/videos/audio:
     messages,
     tools: TOOLS,
   });
+
+  // Track cost for initial LLM call
+  if (response.usage && telemetry.isEnabled()) {
+    const cost = telemetry.calculateCost(
+      MODEL,
+      response.usage.input_tokens || 0,
+      response.usage.output_tokens || 0
+    );
+    telemetry.trackCost({
+      inputTokens: response.usage.input_tokens || 0,
+      outputTokens: response.usage.output_tokens || 0,
+      model: MODEL,
+      estimatedCost: cost
+    }, userId, 'agent_loop');
+  }
 
   // Agent loop - continue while Claude wants to use tools
   while (response.stop_reason === 'tool_use' && iteration < MAX_ITERATIONS) {
