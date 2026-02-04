@@ -13,6 +13,7 @@ import { getHeartbeatManager } from './heartbeat/heartbeat-manager';
 import { getCronManager } from './scheduler/cron-manager';
 import { initializeBlocklist } from './config/blocked-tools';
 import { initializeToolExecutor } from './security/tool-executor';
+import { featureFlags } from './core/feature-flags';
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -67,6 +68,10 @@ async function initialize() {
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();
+
+    // 1.5. Initialize feature flags (Phase 1)
+    log.info('Initializing feature flags...');
+    await featureFlags.init(persistence.getDatabaseManager());
 
     // 2. Initialize session manager (loads sessions from database)
     log.info('Initializing session manager...');

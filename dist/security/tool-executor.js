@@ -17,6 +17,8 @@ exports.initializeToolExecutor = initializeToolExecutor;
 exports.resetToolExecutor = resetToolExecutor;
 const logger_1 = require("../logger");
 const blocked_tools_1 = require("../config/blocked-tools");
+const retry_engine_1 = require("../core/retry-engine");
+const feature_flags_1 = require("../core/feature-flags");
 // Configuration
 const TOOL_TIMEOUT_MS = parseInt(process.env.TOOL_TIMEOUT_MS || '30000'); // 30 seconds
 const MAX_CONCURRENT_TOOLS = parseInt(process.env.MAX_CONCURRENT_TOOLS || '5'); // 5 tools per user
@@ -59,8 +61,19 @@ async function executeToolSecurely(toolName, userId, executor) {
         timeout: `${TOOL_TIMEOUT_MS}ms`
     });
     try {
-        // 4. Execute with timeout
-        const result = await executeWithTimeout(executor, TOOL_TIMEOUT_MS, `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`);
+        // 4. Execute with timeout and optional retry logic
+        let result;
+        if (feature_flags_1.featureFlags.isEnabled(feature_flags_1.Feature.RETRY_ENGINE)) {
+            // Execute with retry engine
+            logger_1.log.debug('[ToolExecutor] Using retry engine', { tool: toolName });
+            result = await retry_engine_1.retryEngine.executeWithRetry(toolName, async () => {
+                return await executeWithTimeout(executor, TOOL_TIMEOUT_MS, `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`);
+            });
+        }
+        else {
+            // Execute without retry (legacy behavior)
+            result = await executeWithTimeout(executor, TOOL_TIMEOUT_MS, `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`);
+        }
         logger_1.log.debug('[ToolExecutor] Tool execution completed', {
             tool: toolName,
             userId: userId.substring(0, 12) + '...',

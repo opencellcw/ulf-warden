@@ -14,6 +14,8 @@ const logger_1 = require("../logger");
 const approval_system_1 = require("../approval-system");
 const discord_handler_1 = require("../bot-factory/discord-handler");
 const rate_limiter_1 = require("../security/rate-limiter");
+const discord_voice_1 = require("../voice/discord-voice");
+const tts_generator_1 = require("../voice/tts-generator");
 const axios_1 = __importDefault(require("axios"));
 async function startDiscordHandler() {
     if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -26,6 +28,7 @@ async function startDiscordHandler() {
             discord_js_1.GatewayIntentBits.GuildMessages,
             discord_js_1.GatewayIntentBits.DirectMessages,
             discord_js_1.GatewayIntentBits.MessageContent,
+            discord_js_1.GatewayIntentBits.GuildVoiceStates,
         ],
     });
     /**
@@ -115,6 +118,79 @@ async function startDiscordHandler() {
         }
         return textParts.join('\n');
     }
+    // Handle voice commands
+    async function handleVoiceCommand(message, text) {
+        const guildId = message.guild?.id;
+        if (!guildId) {
+            await message.reply('❌ Comandos de voz só funcionam em servidores!');
+            return true;
+        }
+        // Join voice channel
+        if (text.match(/entrar|join|conecta|connect/i) && text.match(/voz|voice|canal/i)) {
+            const member = message.guild.members.cache.get(message.author.id);
+            const voiceChannel = member?.voice.channel;
+            if (!voiceChannel) {
+                await message.reply('❌ Você precisa estar em um canal de voz!');
+                return true;
+            }
+            if (discord_voice_1.voiceManager.isConnected(guildId)) {
+                await message.reply('✅ Já estou conectado ao canal de voz!');
+                return true;
+            }
+            const success = await discord_voice_1.voiceManager.joinChannel(voiceChannel);
+            if (success) {
+                await message.reply(`🎤 Conectado ao canal **${voiceChannel.name}**!`);
+            }
+            else {
+                await message.reply('❌ Erro ao conectar no canal de voz.');
+            }
+            return true;
+        }
+        // Leave voice channel
+        if (text.match(/sair|leave|desconecta|disconnect/i) && text.match(/voz|voice|canal/i)) {
+            if (!discord_voice_1.voiceManager.isConnected(guildId)) {
+                await message.reply('❌ Não estou em nenhum canal de voz!');
+                return true;
+            }
+            discord_voice_1.voiceManager.leaveChannel(guildId);
+            await message.reply('👋 Saí do canal de voz!');
+            return true;
+        }
+        // Speak text
+        if (text.match(/fala|falar|speak|say|diz|dizer/i)) {
+            if (!discord_voice_1.voiceManager.isConnected(guildId)) {
+                await message.reply('❌ Preciso estar em um canal de voz! Use "entrar no canal de voz" primeiro.');
+                return true;
+            }
+            // Extract text to speak
+            const speakMatch = text.match(/(?:fala|falar|speak|say|diz|dizer)\s+[""]?(.+?)[""]?$/i);
+            if (!speakMatch || !speakMatch[1]) {
+                await message.reply('❌ O que você quer que eu fale? Ex: "fala olá mundo"');
+                return true;
+            }
+            const textToSpeak = speakMatch[1].trim();
+            try {
+                const audioStream = await tts_generator_1.ttsGenerator.generateSpeech(textToSpeak);
+                await discord_voice_1.voiceManager.playAudio(guildId, audioStream, textToSpeak);
+                await message.reply(`🔊 Falando: "${textToSpeak}"`);
+            }
+            catch (error) {
+                logger_1.log.error('[Voice] Failed to play audio', { error: error.message });
+                await message.reply(`❌ Erro ao gerar áudio: ${error.message}`);
+            }
+            return true;
+        }
+        // List available voices
+        if (text.match(/vozes|voices|lista.*voz/i)) {
+            const voices = tts_generator_1.ttsGenerator.getVoices();
+            const voiceList = Object.entries(voices)
+                .map(([name, id]) => `• **${name}**`)
+                .join('\n');
+            await message.reply(`🎤 **Vozes disponíveis:**\n${voiceList}\n\nPara mudar: "usar voz rachel"`);
+            return true;
+        }
+        return false;
+    }
     // Detect if message needs agent mode (execution)
     function needsAgent(text) {
         const agentKeywords = [
@@ -195,6 +271,11 @@ async function startDiscordHandler() {
                 await (0, discord_handler_1.handleBotCreation)(message);
                 return;
             }
+            // Handle voice commands
+            const handledVoice = await handleVoiceCommand(message, text);
+            if (handledVoice) {
+                return;
+            }
             console.log(`[Discord] Message from ${userId}: ${text.substring(0, 50)}...`);
             // Show typing indicator
             if ('sendTyping' in message.channel) {
@@ -222,6 +303,21 @@ async function startDiscordHandler() {
             await sessions_1.sessionManager.addMessage(userId, { role: 'user', content: text });
             await sessions_1.sessionManager.addMessage(userId, { role: 'assistant', content: response });
             await sendResponse(message, response);
+            // If connected to voice channel, speak the response
+            const guildId = message.guild?.id;
+            if (guildId && discord_voice_1.voiceManager.isConnected(guildId)) {
+                try {
+                    // Limit voice response to first 500 characters to avoid long speech
+                    const voiceText = response.substring(0, 500);
+                    const audioStream = await tts_generator_1.ttsGenerator.generateSpeech(voiceText);
+                    await discord_voice_1.voiceManager.playAudio(guildId, audioStream, voiceText);
+                    logger_1.log.info('[Voice] Auto-speaking response', { textLength: voiceText.length });
+                }
+                catch (error) {
+                    logger_1.log.error('[Voice] Failed to auto-speak', { error: error.message });
+                    // Don't fail the main response if voice fails
+                }
+            }
         }
         catch (error) {
             console.error('[Discord] Error handling message:', error);

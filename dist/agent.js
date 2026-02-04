@@ -5,6 +5,8 @@ const workspace_1 = require("./workspace");
 const tools_1 = require("./tools");
 const llm_1 = require("./llm");
 const logger_1 = require("./logger");
+const output_parser_1 = require("./core/output-parser");
+const feature_flags_1 = require("./core/feature-flags");
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
 const router = (0, llm_1.getRouter)();
@@ -160,22 +162,38 @@ When generating images/videos/audio:
     while (response.stop_reason === 'tool_use' && iteration < MAX_ITERATIONS) {
         iteration++;
         console.log(`[Agent] Iteration ${iteration}`);
+        // Parse response using new output parser if feature is enabled
+        let parsedResponse = null;
+        if (feature_flags_1.featureFlags.isEnabled(feature_flags_1.Feature.OUTPUT_PARSER)) {
+            try {
+                parsedResponse = output_parser_1.OutputParser.parseClaudeResponse(response);
+                logger_1.log.debug('[Agent] Using OutputParser for response parsing');
+            }
+            catch (error) {
+                logger_1.log.warn('[Agent] OutputParser failed, falling back to legacy parsing', { error });
+            }
+        }
         // Execute all tool calls
         const toolResults = {
             role: 'user',
             content: [],
         };
-        for (const block of response.content) {
-            if (block.type === 'tool_use') {
-                console.log(`[Agent] Executing tool: ${block.name}`);
-                // Pass userMessage as context for security vetter
-                const result = await (0, tools_1.executeTool)(block.name, block.input, userId, userMessage);
-                toolResults.content.push({
-                    type: 'tool_result',
-                    tool_use_id: block.id,
-                    content: result,
-                });
-            }
+        // Use parsed tool calls if available, otherwise use legacy method
+        const toolCalls = parsedResponse?.toolCalls ||
+            response.content.filter((block) => block.type === 'tool_use');
+        for (const toolCall of toolCalls) {
+            // Handle both new and legacy format
+            const toolName = toolCall.name;
+            const toolInput = toolCall.input;
+            const toolId = toolCall.id;
+            console.log(`[Agent] Executing tool: ${toolName}`);
+            // Pass userMessage as context for security vetter
+            const result = await (0, tools_1.executeTool)(toolName, toolInput, userId, userMessage);
+            toolResults.content.push({
+                type: 'tool_result',
+                tool_use_id: toolId,
+                content: result,
+            });
         }
         // Add assistant response and tool results to messages
         messages.push({
@@ -196,10 +214,26 @@ When generating images/videos/audio:
         console.warn(`[Agent] Max iterations reached for user ${userId}`);
     }
     // Extract final text response
-    const finalMessage = response.content
-        .filter((block) => block.type === 'text')
-        .map((block) => block.text)
-        .join('\n\n');
+    let finalMessage;
+    if (feature_flags_1.featureFlags.isEnabled(feature_flags_1.Feature.OUTPUT_PARSER)) {
+        try {
+            const parsedResponse = output_parser_1.OutputParser.parseClaudeResponse(response);
+            finalMessage = parsedResponse.text || 'Task completed.';
+        }
+        catch (error) {
+            logger_1.log.warn('[Agent] OutputParser failed for final message, using legacy', { error });
+            finalMessage = response.content
+                .filter((block) => block.type === 'text')
+                .map((block) => block.text)
+                .join('\n\n');
+        }
+    }
+    else {
+        finalMessage = response.content
+            .filter((block) => block.type === 'text')
+            .map((block) => block.text)
+            .join('\n\n');
+    }
     console.log(`[Agent] Completed after ${iteration} iterations`);
     return finalMessage || 'Task completed.';
 }

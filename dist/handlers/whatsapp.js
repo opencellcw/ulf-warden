@@ -52,6 +52,8 @@ const whatsapp_qr_1 = require("./whatsapp-qr");
 let sock = null;
 let qrGenerated = false;
 let discordClient = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 /**
  * Set Discord client for QR code notifications
  */
@@ -139,15 +141,22 @@ async function connectToWhatsApp(authPath) {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== baileys_1.DisconnectReason.loggedOut;
             logger_1.log.info('[WhatsApp] Connection closed', {
                 shouldReconnect,
-                error: lastDisconnect?.error?.message
+                error: lastDisconnect?.error?.message,
+                attempts: reconnectAttempts
             });
-            if (shouldReconnect) {
-                logger_1.log.info('[WhatsApp] Reconnecting...');
+            if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                logger_1.log.info('[WhatsApp] Reconnecting...', { attempt: reconnectAttempts, max: MAX_RECONNECT_ATTEMPTS });
                 await connectToWhatsApp(authPath);
+            }
+            else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                logger_1.log.warn('[WhatsApp] Max reconnection attempts reached. Stopping auto-reconnect.');
+                console.log('[WhatsApp] ⚠️  Max reconnection attempts reached. Use command to reconnect manually.');
             }
         }
         else if (connection === 'open') {
             qrGenerated = false;
+            reconnectAttempts = 0; // Reset counter on successful connection
             logger_1.log.info('[WhatsApp] Connected successfully');
             console.log('✓ WhatsApp authenticated and ready');
             // Notify Discord

@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Message } from 'discord.js';
+import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel } from 'discord.js';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
@@ -9,6 +9,8 @@ import { approvalSystem } from '../approval-system';
 import { selfImprovementSystem } from '../self-improvement';
 import { handleBotCreation } from '../bot-factory/discord-handler';
 import { getNormalRateLimiter } from '../security/rate-limiter';
+import { voiceManager } from '../voice/discord-voice';
+import { ttsGenerator } from '../voice/tts-generator';
 import axios from 'axios';
 
 export async function startDiscordHandler() {
@@ -23,6 +25,7 @@ export async function startDiscordHandler() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildVoiceStates,
     ],
   });
 
@@ -125,6 +128,90 @@ export async function startDiscordHandler() {
     return textParts.join('\n');
   }
 
+  // Handle voice commands
+  async function handleVoiceCommand(message: Message, text: string): Promise<boolean> {
+    const guildId = message.guild?.id;
+    if (!guildId) {
+      await message.reply('❌ Comandos de voz só funcionam em servidores!');
+      return true;
+    }
+
+    // Join voice channel
+    if (text.match(/entrar|join|conecta|connect/i) && text.match(/voz|voice|canal/i)) {
+      const member = message.guild.members.cache.get(message.author.id);
+      const voiceChannel = member?.voice.channel;
+
+      if (!voiceChannel) {
+        await message.reply('❌ Você precisa estar em um canal de voz!');
+        return true;
+      }
+
+      if (voiceManager.isConnected(guildId)) {
+        await message.reply('✅ Já estou conectado ao canal de voz!');
+        return true;
+      }
+
+      const success = await voiceManager.joinChannel(voiceChannel as VoiceChannel | StageChannel);
+      if (success) {
+        await message.reply(`🎤 Conectado ao canal **${voiceChannel.name}**!`);
+      } else {
+        await message.reply('❌ Erro ao conectar no canal de voz.');
+      }
+      return true;
+    }
+
+    // Leave voice channel
+    if (text.match(/sair|leave|desconecta|disconnect/i) && text.match(/voz|voice|canal/i)) {
+      if (!voiceManager.isConnected(guildId)) {
+        await message.reply('❌ Não estou em nenhum canal de voz!');
+        return true;
+      }
+
+      voiceManager.leaveChannel(guildId);
+      await message.reply('👋 Saí do canal de voz!');
+      return true;
+    }
+
+    // Speak text
+    if (text.match(/fala|falar|speak|say|diz|dizer/i)) {
+      if (!voiceManager.isConnected(guildId)) {
+        await message.reply('❌ Preciso estar em um canal de voz! Use "entrar no canal de voz" primeiro.');
+        return true;
+      }
+
+      // Extract text to speak
+      const speakMatch = text.match(/(?:fala|falar|speak|say|diz|dizer)\s+[""]?(.+?)[""]?$/i);
+      if (!speakMatch || !speakMatch[1]) {
+        await message.reply('❌ O que você quer que eu fale? Ex: "fala olá mundo"');
+        return true;
+      }
+
+      const textToSpeak = speakMatch[1].trim();
+
+      try {
+        const audioStream = await ttsGenerator.generateSpeech(textToSpeak);
+        await voiceManager.playAudio(guildId, audioStream, textToSpeak);
+        await message.reply(`🔊 Falando: "${textToSpeak}"`);
+      } catch (error: any) {
+        log.error('[Voice] Failed to play audio', { error: error.message });
+        await message.reply(`❌ Erro ao gerar áudio: ${error.message}`);
+      }
+      return true;
+    }
+
+    // List available voices
+    if (text.match(/vozes|voices|lista.*voz/i)) {
+      const voices = ttsGenerator.getVoices();
+      const voiceList = Object.entries(voices)
+        .map(([name, id]) => `• **${name}**`)
+        .join('\n');
+      await message.reply(`🎤 **Vozes disponíveis:**\n${voiceList}\n\nPara mudar: "usar voz rachel"`);
+      return true;
+    }
+
+    return false;
+  }
+
   // Detect if message needs agent mode (execution)
   function needsAgent(text: string): boolean {
     const agentKeywords = [
@@ -221,6 +308,12 @@ export async function startDiscordHandler() {
         return;
       }
 
+      // Handle voice commands
+      const handledVoice = await handleVoiceCommand(message, text);
+      if (handledVoice) {
+        return;
+      }
+
       console.log(`[Discord] Message from ${userId}: ${text.substring(0, 50)}...`);
 
       // Show typing indicator
@@ -253,6 +346,21 @@ export async function startDiscordHandler() {
       await sessionManager.addMessage(userId, { role: 'assistant', content: response });
 
       await sendResponse(message, response);
+
+      // If connected to voice channel, speak the response
+      const guildId = message.guild?.id;
+      if (guildId && voiceManager.isConnected(guildId)) {
+        try {
+          // Limit voice response to first 500 characters to avoid long speech
+          const voiceText = response.substring(0, 500);
+          const audioStream = await ttsGenerator.generateSpeech(voiceText);
+          await voiceManager.playAudio(guildId, audioStream, voiceText);
+          log.info('[Voice] Auto-speaking response', { textLength: voiceText.length });
+        } catch (error: any) {
+          log.error('[Voice] Failed to auto-speak', { error: error.message });
+          // Don't fail the main response if voice fails
+        }
+      }
     } catch (error) {
       console.error('[Discord] Error handling message:', error);
       await message.reply('Desculpa, tive um problema. Tenta de novo?');

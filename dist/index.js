@@ -18,6 +18,7 @@ const heartbeat_manager_1 = require("./heartbeat/heartbeat-manager");
 const cron_manager_1 = require("./scheduler/cron-manager");
 const blocked_tools_1 = require("./config/blocked-tools");
 const tool_executor_1 = require("./security/tool-executor");
+const feature_flags_1 = require("./core/feature-flags");
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
@@ -58,6 +59,9 @@ async function initialize() {
         // 1. Initialize persistence layer
         logger_1.log.info('Initializing persistence layer...');
         await persistence_1.persistence.init();
+        // 1.5. Initialize feature flags (Phase 1)
+        logger_1.log.info('Initializing feature flags...');
+        await feature_flags_1.featureFlags.init(persistence_1.persistence.getDatabaseManager());
         // 2. Initialize session manager (loads sessions from database)
         logger_1.log.info('Initializing session manager...');
         await sessions_1.sessionManager.init();

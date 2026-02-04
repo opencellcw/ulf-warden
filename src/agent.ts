@@ -4,6 +4,8 @@ import { workspace } from './workspace';
 import { TOOLS, executeTool } from './tools';
 import { getRouter } from './llm';
 import { log } from './logger';
+import { OutputParser, AgentResponse } from './core/output-parser';
+import { featureFlags, Feature } from './core/feature-flags';
 
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
@@ -175,25 +177,43 @@ When generating images/videos/audio:
     iteration++;
     console.log(`[Agent] Iteration ${iteration}`);
 
+    // Parse response using new output parser if feature is enabled
+    let parsedResponse: AgentResponse | null = null;
+    if (featureFlags.isEnabled(Feature.OUTPUT_PARSER)) {
+      try {
+        parsedResponse = OutputParser.parseClaudeResponse(response);
+        log.debug('[Agent] Using OutputParser for response parsing');
+      } catch (error) {
+        log.warn('[Agent] OutputParser failed, falling back to legacy parsing', { error });
+      }
+    }
+
     // Execute all tool calls
     const toolResults: Anthropic.MessageParam = {
       role: 'user',
       content: [],
     };
 
-    for (const block of response.content) {
-      if (block.type === 'tool_use') {
-        console.log(`[Agent] Executing tool: ${block.name}`);
+    // Use parsed tool calls if available, otherwise use legacy method
+    const toolCalls = parsedResponse?.toolCalls ||
+      response.content.filter((block: any) => block.type === 'tool_use');
 
-        // Pass userMessage as context for security vetter
-        const result = await executeTool(block.name, block.input, userId, userMessage);
+    for (const toolCall of toolCalls) {
+      // Handle both new and legacy format
+      const toolName = (toolCall as any).name;
+      const toolInput = (toolCall as any).input;
+      const toolId = (toolCall as any).id;
 
-        (toolResults.content as any[]).push({
-          type: 'tool_result',
-          tool_use_id: block.id,
-          content: result,
-        });
-      }
+      console.log(`[Agent] Executing tool: ${toolName}`);
+
+      // Pass userMessage as context for security vetter
+      const result = await executeTool(toolName, toolInput, userId, userMessage);
+
+      (toolResults.content as any[]).push({
+        type: 'tool_result',
+        tool_use_id: toolId,
+        content: result,
+      });
     }
 
     // Add assistant response and tool results to messages
@@ -218,10 +238,25 @@ When generating images/videos/audio:
   }
 
   // Extract final text response
-  const finalMessage = response.content
-    .filter((block: any) => block.type === 'text')
-    .map((block: any) => (block as any).text)
-    .join('\n\n');
+  let finalMessage: string;
+
+  if (featureFlags.isEnabled(Feature.OUTPUT_PARSER)) {
+    try {
+      const parsedResponse = OutputParser.parseClaudeResponse(response);
+      finalMessage = parsedResponse.text || 'Task completed.';
+    } catch (error) {
+      log.warn('[Agent] OutputParser failed for final message, using legacy', { error });
+      finalMessage = response.content
+        .filter((block: any) => block.type === 'text')
+        .map((block: any) => (block as any).text)
+        .join('\n\n');
+    }
+  } else {
+    finalMessage = response.content
+      .filter((block: any) => block.type === 'text')
+      .map((block: any) => (block as any).text)
+      .join('\n\n');
+  }
 
   console.log(`[Agent] Completed after ${iteration} iterations`);
 

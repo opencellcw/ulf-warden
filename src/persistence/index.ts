@@ -72,6 +72,11 @@ export class SQLitePersistence implements PersistenceLayer {
     await this.db.close();
   }
 
+  // Get database manager for feature flags
+  getDatabaseManager(): DatabaseManager {
+    return this.db;
+  }
+
   // Sessions
   async saveSession(userId: string, session: Session): Promise<void> {
     try {

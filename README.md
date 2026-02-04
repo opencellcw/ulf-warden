@@ -134,6 +134,25 @@ Real-time cost monitoring across 5 platforms:
 - **Image Analysis**: GPT-4 Vision for image understanding
 - **Image Processing**: Upscaling (2x/4x/8x), background removal
 
+### 🎤 Discord Voice Support
+Join Discord voice channels and have Ulf speak responses using text-to-speech:
+
+**Commands:**
+- `@Ulf entrar no canal de voz` / `@Ulf join voice` - Connect to your current voice channel
+- `@Ulf sair do canal de voz` / `@Ulf leave voice` - Disconnect from voice channel
+- `@Ulf fala "hello world"` / `@Ulf speak "hello world"` - Say specific text
+- `@Ulf vozes` / `@Ulf voices` - List available TTS voices
+
+**Features:**
+- **Auto-speak responses**: When connected to voice, Ulf automatically speaks chat responses
+- **Multiple voices**: Sarah, Rachel, Antoni, Josh, Adam (powered by ElevenLabs)
+- **Queue management**: Multiple audio requests are queued and played sequentially
+- **Hands-free interaction**: Perfect for team meetings or ambient assistance
+
+**Requirements:**
+- `ELEVENLABS_API_KEY` environment variable
+- Bot must have voice channel permissions in Discord
+
 ### 🗓️ Task Automation
 - **Cron Scheduling**: Schedule recurring tasks with cron expressions
 - **Reminders**: Set one-time or recurring reminders
@@ -642,6 +661,7 @@ Changes take effect on next deployment or restart.
 - GKE deployment with Helm
 - Secret Manager integration
 - Approval workflow system
+- Discord voice interface with TTS support
 
 ### 🚧 In Progress
 - [ ] Web dashboard for monitoring and control
@@ -651,7 +671,6 @@ Changes take effect on next deployment or restart.
 
 ### 📋 Planned
 - [ ] Multi-region deployment
-- [ ] Voice interface support
 - [ ] Integration with additional platforms (WhatsApp, iMessage)
 - [ ] Custom skill marketplace
 - [ ] Team collaboration features

@@ -11,6 +11,8 @@
 
 import { log } from '../logger';
 import { isToolBlocked, getToolSecurityInfo, logBlockedToolAttempt } from '../config/blocked-tools';
+import { retryEngine } from '../core/retry-engine';
+import { featureFlags, Feature } from '../core/feature-flags';
 
 // Configuration
 const TOOL_TIMEOUT_MS = parseInt(process.env.TOOL_TIMEOUT_MS || '30000'); // 30 seconds
@@ -69,12 +71,30 @@ export async function executeToolSecurely<T>(
   });
 
   try {
-    // 4. Execute with timeout
-    const result = await executeWithTimeout(
-      executor,
-      TOOL_TIMEOUT_MS,
-      `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
-    );
+    // 4. Execute with timeout and optional retry logic
+    let result: T;
+
+    if (featureFlags.isEnabled(Feature.RETRY_ENGINE)) {
+      // Execute with retry engine
+      log.debug('[ToolExecutor] Using retry engine', { tool: toolName });
+      result = await retryEngine.executeWithRetry(
+        toolName,
+        async () => {
+          return await executeWithTimeout(
+            executor,
+            TOOL_TIMEOUT_MS,
+            `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
+          );
+        }
+      );
+    } else {
+      // Execute without retry (legacy behavior)
+      result = await executeWithTimeout(
+        executor,
+        TOOL_TIMEOUT_MS,
+        `Tool "${toolName}" execution exceeded ${TOOL_TIMEOUT_MS}ms timeout`
+      );
+    }
 
     log.debug('[ToolExecutor] Tool execution completed', {
       tool: toolName,

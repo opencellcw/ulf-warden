@@ -29,6 +29,10 @@ class SQLitePersistence {
     async close() {
         await this.db.close();
     }
+    // Get database manager for feature flags
+    getDatabaseManager() {
+        return this.db;
+    }
     // Sessions
     async saveSession(userId, session) {
         try {
