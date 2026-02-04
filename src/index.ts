@@ -13,7 +13,9 @@ import { getHeartbeatManager } from './heartbeat/heartbeat-manager';
 import { getCronManager } from './scheduler/cron-manager';
 import { initializeBlocklist } from './config/blocked-tools';
 import { initializeToolExecutor } from './security/tool-executor';
-import { featureFlags } from './core/feature-flags';
+import { featureFlags, Feature } from './core/feature-flags';
+import { toolRegistry } from './core/tool-registry';
+import path from 'path';
 
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -72,6 +74,29 @@ async function initialize() {
     // 1.5. Initialize feature flags (Phase 1)
     log.info('Initializing feature flags...');
     await featureFlags.init(persistence.getDatabaseManager());
+
+    // 1.6. Initialize Tool Registry (Phase 2)
+    log.info('Initializing Tool Registry...');
+    await featureFlags.enable(Feature.TOOL_REGISTRY);
+    await featureFlags.enable(Feature.WORKFLOW_MANAGER);
+
+    const toolsRegistryPath = path.join(__dirname, 'tools', 'registry');
+    try {
+      await toolRegistry.autoDiscover(toolsRegistryPath);
+      const stats = toolRegistry.getStats();
+      log.info('Tool Registry initialized', {
+        totalTools: stats.totalTools,
+        enabledTools: stats.enabledTools,
+        byCategory: stats.byCategory,
+        byRiskLevel: stats.byRiskLevel
+      });
+    } catch (error) {
+      log.warn('Tool Registry auto-discovery failed (directory may not exist yet)', {
+        path: toolsRegistryPath,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Continue without registry tools - will fall back to legacy executor
+    }
 
     // 2. Initialize session manager (loads sessions from database)
     log.info('Initializing session manager...');
@@ -180,6 +205,13 @@ async function initialize() {
     console.log('='.repeat(60));
     console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
     console.log('Model: claude-sonnet-4-20250514');
+
+    // Show Tool Registry stats
+    const registryStats = toolRegistry.getStats();
+    if (registryStats.totalTools > 0) {
+      console.log(`Tools: ${registryStats.enabledTools}/${registryStats.totalTools} enabled (Registry)`);
+    }
+
     console.log('='.repeat(60));
     console.log('');
 
@@ -189,6 +221,14 @@ async function initialize() {
         discord: !!handlers.discord,
         telegram: !!handlers.telegram,
         whatsapp: !!handlers.whatsapp
+      },
+      toolRegistry: {
+        enabled: featureFlags.isEnabled(Feature.TOOL_REGISTRY),
+        totalTools: registryStats.totalTools,
+        enabledTools: registryStats.enabledTools
+      },
+      workflowManager: {
+        enabled: featureFlags.isEnabled(Feature.WORKFLOW_MANAGER)
       }
     });
 
