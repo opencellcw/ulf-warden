@@ -11,6 +11,7 @@ import { handleBotCreation } from '../bot-factory/discord-handler';
 import { getNormalRateLimiter } from '../security/rate-limiter';
 import { voiceManager } from '../voice/discord-voice';
 import { ttsGenerator } from '../voice/tts-generator';
+import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
 import axios from 'axios';
 
 export async function startDiscordHandler() {
@@ -252,6 +253,27 @@ export async function startDiscordHandler() {
     log.info('[Discord] Approval system initialized');
   });
 
+  // Handle button interactions
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isButton()) return;
+
+    try {
+      // Handle status buttons
+      if (interaction.customId.startsWith('status_')) {
+        await handleStatusButtons(interaction);
+        return;
+      }
+    } catch (error) {
+      console.error('[Discord] Error handling button interaction:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '❌ Erro ao processar interação. Tente novamente.',
+          ephemeral: true
+        });
+      }
+    }
+  });
+
   client.on('messageCreate', async (message: Message) => {
     try {
       // Ignore bot messages
@@ -305,6 +327,12 @@ export async function startDiscordHandler() {
       // Handle bot creation commands
       if (text.match(/criar bot|create bot|novo bot|new bot/i)) {
         await handleBotCreation(message);
+        return;
+      }
+
+      // Handle status command
+      if (text.match(/status|system|servidor|server status|ulf status/i)) {
+        await sendStatusReport(message);
         return;
       }
 
