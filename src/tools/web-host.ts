@@ -8,7 +8,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 const NAMESPACE = 'web-apps';
-const BASE_DOMAIN = process.env.WEB_HOST_DOMAIN || 'opencell.dev'; // Configure your domain
+const BASE_DOMAIN = process.env.WEB_HOST_DOMAIN || 'apps.104.198.214.246.nip.io'; // nip.io magic DNS
 
 interface DeployWebAppParams {
   name: string;
