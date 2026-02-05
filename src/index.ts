@@ -16,6 +16,8 @@ import { initializeToolExecutor } from './security/tool-executor';
 import { featureFlags, Feature } from './core/feature-flags';
 import { toolRegistry } from './core/tool-registry';
 import { prometheusMetrics } from './core/prometheus-metrics';
+import { cache } from './core/cache';
+import { getToolRateLimiter } from './security/rate-limit-instance';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -77,6 +79,24 @@ async function initialize() {
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();
+
+    // 1.3. Initialize cache system
+    log.info('Initializing cache system...');
+    const cacheStats = cache.getStats();
+    log.info('Cache system initialized', {
+      provider: cacheStats.provider,
+      redisConnected: cacheStats.redisConnected,
+      memoryEnabled: true
+    });
+
+    // 1.4. Initialize rate limiter
+    log.info('Initializing rate limiter...');
+    const rateLimiter = getToolRateLimiter();
+    log.info('Rate limiter initialized', {
+      defaultLimit: '200/hour',
+      adminMultiplier: '5x',
+      tieredLimits: 'AI:10/h, Web:20/h, API:60/h, File:120/h, Shell:100/h'
+    });
 
     // 1.5. Initialize feature flags (Phase 1)
     log.info('Initializing feature flags...');
@@ -310,7 +330,11 @@ async function gracefulShutdown(signal: string) {
     log.info('Saving workspace state...');
     await workspace.saveState();
 
-    // 6. Close database connections
+    // 6. Close cache connections
+    log.info('Closing cache connections...');
+    await cache.close();
+
+    // 7. Close database connections
     log.info('Closing database connections...');
     await persistence.close();
 
