@@ -80,10 +80,17 @@ npm install && npm run build && npm start
 
 ### 🤖 Multi-Platform Chat
 - **Slack** - Socket Mode with full bot capabilities, threads, reactions
-- **Discord** - Rich embeds, buttons, slash commands, role management
+- **Discord** - Rich embeds with status-aware colors, interactive buttons, system metrics, mobile-friendly layouts
 - **Telegram** - Native bot API, inline keyboards, media support
 - **WhatsApp** - Baileys (WhatsApp Web API) with QR code authentication
 - **Isolated Sessions** - Each user maintains separate conversation history per platform
+
+### 🎨 Discord Rich Formatting (NEW!)
+- **Interactive Status Reports** - Real-time system metrics with refresh buttons
+- **Color-Coded Embeds** - Green (online), Yellow (warning), Red (error)
+- **Button Components** - Refresh, logs, details, and process viewers
+- **Mobile-Friendly** - Responsive layouts that work on all devices
+- **[Complete Documentation](docs/discord-formatting-integration.md)** - Integration guide with examples
 
 ### 🧠 Self-Improvement System
 - **Automatic Learning** - Extracts insights from conversations
@@ -104,6 +111,15 @@ Real-time cost monitoring across 5 platforms:
 - End-of-month cost projections
 - Automatic optimization suggestions
 - Historical data analysis with visualizations
+
+### 🏗️ Hybrid Architecture (NEW!)
+Modern LangGraph-inspired architecture with reliability:
+- **Output Parser** - Structured tool call parsing with validation
+- **Retry Engine** - Intelligent retry with exponential backoff
+- **Tool Registry** - Centralized tool management and versioning
+- **Workflow Manager** - Complex multi-step workflow orchestration
+- **Observability** - Comprehensive telemetry and monitoring
+- **[Architecture Docs](docs/architecture/)** - Complete implementation guide
 
 ### 🛡️ 7-Layer Security Architecture (OpenClaw-Inspired)
 

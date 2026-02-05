@@ -6,6 +6,35 @@ node_modules/
 workspace/memory/*.md
 !workspace/memory/.gitkeep
 
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Data and databases
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js.snap
+
+# Temp files
+tmp/
+temp/
+*.tmp
+.cache/
+
 # GCP credentials (nunca commitar!)
 *-key.json
 credentials.json
