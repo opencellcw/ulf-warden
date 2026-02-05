@@ -18,6 +18,8 @@ import { toolRegistry } from './core/tool-registry';
 import { prometheusMetrics } from './core/prometheus-metrics';
 import { cache } from './core/cache';
 import { getToolRateLimiter } from './security/rate-limit-instance';
+import { queueService } from './core/queue-types';
+import { telemetry } from './core/telemetry';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -102,7 +104,36 @@ async function initialize() {
     log.info('Initializing feature flags...');
     await featureFlags.init(persistence.getDatabaseManager());
 
-    // 1.6. Initialize Tool Registry (Phase 2)
+    // 1.6. Initialize Queue System (Background jobs)
+    if (process.env.QUEUE_ENABLED !== 'false') {
+      try {
+        log.info('Initializing queue system...');
+        await queueService.initialize();
+        log.info('Queue system initialized', {
+          queues: 9,
+          workers: 'active',
+          redis: process.env.REDIS_URL ? 'connected' : 'localhost'
+        });
+      } catch (error) {
+        log.warn('Queue system initialization failed (Redis may not be available)', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without queue system
+      }
+    }
+
+    // 1.7. Initialize Telemetry (Phase 3)
+    if (telemetry.isEnabled()) {
+      log.info('Telemetry system active', {
+        piiScrubbing: '8 patterns',
+        costTracking: 'enabled',
+        tracing: 'basic'
+      });
+    } else {
+      log.info('Telemetry disabled (set TELEMETRY_ENABLED=true to enable)');
+    }
+
+    // 1.8. Initialize Tool Registry (Phase 2)
     log.info('Initializing Tool Registry...');
     await featureFlags.enable(Feature.TOOL_REGISTRY);
     await featureFlags.enable(Feature.WORKFLOW_MANAGER);
@@ -330,11 +361,25 @@ async function gracefulShutdown(signal: string) {
     log.info('Saving workspace state...');
     await workspace.saveState();
 
-    // 6. Close cache connections
+    // 6. Close queue system
+    try {
+      log.info('Closing queue system...');
+      await queueService.shutdown();
+    } catch {
+      // Queue system may not be initialized
+    }
+
+    // 7. Close cache connections
     log.info('Closing cache connections...');
     await cache.close();
 
-    // 7. Close database connections
+    // 8. Shutdown telemetry
+    if (telemetry.isEnabled()) {
+      log.info('Shutting down telemetry...');
+      await telemetry.shutdown();
+    }
+
+    // 9. Close database connections
     log.info('Closing database connections...');
     await persistence.close();
 
