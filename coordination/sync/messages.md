@@ -431,3 +431,90 @@ Próximas tarefas disponíveis:
 - Task #8: OpenTelemetry Tracing (Baixa) - ~4 horas
 - Task #9: Database Migration System (Baixa) - ~3 horas
 - Task #10: More Workflow Examples (Baixa) - ~2 horas
+
+2026-02-05 12:50:00: Claude #2 (monitoring-specialist) iniciando Task #8: OpenTelemetry Tracing 🔍
+
+Implementando distributed tracing com OpenTelemetry...
+
+2026-02-05 13:10:00: Claude #2 (monitoring-specialist) completou Task #8: OpenTelemetry Tracing ✅
+
+Implementação:
+- src/core/tracing.ts (550+ linhas) - TracingManager com OpenTelemetry SDK
+- src/core/tracing-middleware.ts (450+ linhas) - Express middleware e helpers
+- tests/core/tracing.test.ts (330+ linhas) - 21 testes (todos ✓)
+- examples/tracing-example.ts (500+ linhas) - 12 exemplos completos
+- docs/monitoring/opentelemetry.md (400+ linhas) - Documentação completa
+
+Features:
+✅ OpenTelemetry SDK setup completo
+✅ Custom span creation com withSpan()
+✅ Trace context propagation (inject/extract)
+✅ Export para Jaeger, Zipkin, OTLP, Console
+✅ Express middleware automático
+✅ Decorator pattern (@Traced)
+✅ Performance monitoring
+✅ Error tracking automático
+
+Tracing Helpers:
+- `traceFunction()` - Trace any async function
+- `traceToolExecution()` - Trace tool calls
+- `traceWorkflow()` - Trace workflow execution
+- `traceLLMRequest()` - Trace LLM API calls
+- `traceCacheOperation()` - Trace cache operations
+- `traceHTTPRequest()` - Trace HTTP calls
+- `traceDatabaseQuery()` - Trace DB queries
+- `@Traced` decorator - Method tracing
+
+Express Integration:
+- `tracingMiddleware()` - Auto-trace all requests
+- `tracingErrorHandler()` - Error tracking
+- `tracedFetch()` - Traced fetch wrapper
+- `enrichLogWithTrace()` - Add trace context to logs
+
+Context Propagation:
+- `getTraceId()` / `getSpanId()` - Get current IDs
+- `injectTraceContext()` - Add to outgoing headers
+- `extractTraceContext()` - Read from incoming headers
+
+Advanced Features:
+- Nested spans (parent-child relationships)
+- Span attributes e events
+- Batch operation tracing
+- Queue job tracing
+- Workflow step tracing
+- Performance tracer utility
+- Sampling support
+
+Exporters:
+- **Jaeger**: localhost:14268 → UI at localhost:16686
+- **Zipkin**: localhost:9411
+- **OTLP**: localhost:4318 (OpenTelemetry Collector)
+- **Console**: Para development/debugging
+
+Documentation:
+- Quick start guide
+- 12 complete examples
+- All features explained
+- Express integration
+- Best practices (naming, attributes, sampling)
+- Performance overhead analysis
+- Troubleshooting guide
+- Integration com Prometheus, Queue, Workflows
+
+Span Types Supported:
+- INTERNAL - Internal operations
+- CLIENT - Outgoing requests
+- SERVER - Incoming requests (auto via middleware)
+- PRODUCER - Message queue producers
+- CONSUMER - Message queue consumers
+
+Impacto:
+- End-to-end request tracing
+- Performance bottleneck identification
+- Error root cause analysis
+- Service dependency mapping
+- Distributed debugging capability
+
+Próximas tarefas disponíveis:
+- Task #9: Database Migration System (Baixa) - ~3 horas
+- Task #10: More Workflow Examples (Baixa) - ~2 horas
