@@ -1,6 +1,7 @@
 import { toolRegistry, ToolContext } from './tool-registry';
 import { executeTool as legacyExecuteTool } from '../tools';
 import { TOOLS } from '../tools/definitions';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { log } from '../logger';
 import { featureFlags, Feature } from './feature-flags';
 
@@ -148,13 +149,30 @@ export class ToolCompatLayer {
       };
     }
 
-    // Basic conversion - for now return permissive schema
-    // TODO: Enhance with proper Zod to JSON Schema conversion
-    return {
-      type: 'object',
-      properties: {},
-      required: []
-    };
+    // Use zod-to-json-schema for proper conversion
+    try {
+      const jsonSchema = zodToJsonSchema(schema, {
+        name: undefined, // Don't include $schema or definitions
+        target: 'openApi3', // OpenAPI 3.0 compatible format
+        $refStrategy: 'none' // Inline all references
+      });
+
+      // Remove $schema field as Claude API doesn't need it
+      const { $schema, ...cleanSchema } = jsonSchema as any;
+
+      return cleanSchema;
+    } catch (error) {
+      log.error('[ToolCompat] Failed to convert Zod schema to JSON Schema', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      // Fallback to permissive schema
+      return {
+        type: 'object',
+        properties: {},
+        required: []
+      };
+    }
   }
 }
 

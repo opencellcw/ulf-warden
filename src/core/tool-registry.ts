@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { log } from '../logger';
 
 export interface ToolMetadata {
@@ -188,13 +189,31 @@ export class ToolRegistry {
       };
     }
 
-    // Basic conversion - can be enhanced with zod-to-json-schema library
-    // For now, return a permissive schema
-    return {
-      type: 'object',
-      properties: {},
-      required: []
-    };
+    // Use zod-to-json-schema for proper conversion
+    try {
+      // Cast to any to avoid TypeScript infinite depth issues
+      const jsonSchema: any = zodToJsonSchema(schema as any, {
+        name: undefined,
+        target: 'openApi3',
+        $refStrategy: 'none'
+      });
+
+      // Remove $schema field as Claude API doesn't need it
+      const { $schema, ...cleanSchema } = jsonSchema;
+
+      return cleanSchema;
+    } catch (error) {
+      log.error('[ToolRegistry] Failed to convert Zod schema to JSON Schema', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+
+      // Fallback to permissive schema
+      return {
+        type: 'object',
+        properties: {},
+        required: []
+      };
+    }
   }
 
   /**
