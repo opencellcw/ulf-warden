@@ -20,6 +20,7 @@ import { cache } from './core/cache';
 import { getToolRateLimiter } from './security/rate-limit-instance';
 import { queueService } from './core/queue-types';
 import { telemetry } from './core/telemetry';
+import { initializeMigrations } from './core/migrations';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -81,6 +82,50 @@ async function initialize() {
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();
+
+    // 1.2. Run database migrations (if enabled)
+    if (process.env.AUTO_MIGRATE !== 'false') {
+      try {
+        log.info('Checking for pending migrations...');
+
+        const migrationManager = await initializeMigrations({
+          client: 'better-sqlite3',
+          connection: process.env.DATABASE_PATH || './data/ulf.db',
+          useNullAsDefault: true,
+          migrations: {
+            directory: 'migrations',
+            tableName: 'knex_migrations'
+          }
+        });
+
+        const status = await migrationManager.status();
+
+        if (status.pending.length > 0) {
+          log.info('Running pending migrations', {
+            count: status.pending.length,
+            migrations: status.pending
+          });
+
+          const [batch, applied] = await migrationManager.migrate();
+
+          log.info('Migrations completed', {
+            batch,
+            applied: applied.length,
+            migrations: applied
+          });
+        } else {
+          log.info('Database schema up to date');
+        }
+      } catch (error) {
+        log.error('Migration failed', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Don't exit - continue with existing schema
+        log.warn('Continuing with existing database schema');
+      }
+    } else {
+      log.info('Auto-migration disabled (set AUTO_MIGRATE=false to disable)');
+    }
 
     // 1.3. Initialize cache system
     log.info('Initializing cache system...');
@@ -159,6 +204,11 @@ async function initialize() {
     // 2. Initialize session manager (loads sessions from database)
     log.info('Initializing session manager...');
     await sessionManager.init();
+
+    // Start auto-flush (every 60s) and garbage collection (every 1h, max 24h age)
+    sessionManager.startAutoFlush(60000); // 60s
+    sessionManager.startGarbageCollection(3600000, 24); // 1h interval, 24h max age
+    log.info('Session auto-flush and garbage collection started');
 
     // 3. Check for incomplete tool executions (crash recovery)
     const incompleteTools = await persistence.getIncompleteToolExecutions();
@@ -353,9 +403,9 @@ async function gracefulShutdown(signal: string) {
       log.info('WhatsApp handler stopped');
     }
 
-    // 4. Flush all sessions to database
-    log.info('Flushing sessions to database...');
-    await sessionManager.flushAll();
+    // 4. Shutdown session manager (stops timers + flushes all)
+    log.info('Shutting down session manager...');
+    await sessionManager.shutdown();
 
     // 5. Save workspace state
     log.info('Saving workspace state...');
