@@ -15,6 +15,7 @@ import { retryEngine } from '../core/retry-engine';
 import { featureFlags, Feature } from '../core/feature-flags';
 import { telemetry } from '../core/telemetry';
 import { SpanKind } from '@opentelemetry/api';
+import { getToolRateLimiter } from './rate-limit-instance';
 
 // Configuration
 const TOOL_TIMEOUT_MS = parseInt(process.env.TOOL_TIMEOUT_MS || '30000'); // 30 seconds
@@ -45,7 +46,27 @@ export async function executeToolSecurely<T>(
     );
   }
 
-  // 2. Check concurrent tool limit
+  // 2. Check rate limit
+  const rateLimiter = getToolRateLimiter();
+  const rateLimitCheck = await rateLimiter.checkLimit({
+    path: toolName,
+    ip: userId, // Use userId as identifier
+  } as any);
+
+  if (!rateLimitCheck.allowed) {
+    log.warn('[ToolExecutor] Rate limit exceeded', {
+      tool: toolName,
+      userId: userId.substring(0, 12) + '...',
+      limit: rateLimitCheck.limit,
+      retryAfter: rateLimitCheck.retryAfter
+    });
+    throw new Error(
+      `${rateLimitCheck.message}\n` +
+      `Please wait ${rateLimitCheck.retryAfter}s before trying again.`
+    );
+  }
+
+  // 3. Check concurrent tool limit
   const currentCount = userToolCounts.get(userId) || 0;
   if (currentCount >= MAX_CONCURRENT_TOOLS) {
     log.warn('[ToolExecutor] Concurrent tool limit reached', {
@@ -60,7 +81,7 @@ export async function executeToolSecurely<T>(
     );
   }
 
-  // 3. Increment concurrent count
+  // 4. Increment concurrent count
   userToolCounts.set(userId, currentCount + 1);
   const executionId = `${userId}_${toolName}_${Date.now()}`;
 
@@ -73,7 +94,7 @@ export async function executeToolSecurely<T>(
   });
 
   try {
-    // 4. Execute with timeout, retry logic, and telemetry tracing
+    // 5. Execute with timeout, retry logic, and telemetry tracing
     return await telemetry.trace(
       'tool.execute',
       async (span) => {
@@ -126,7 +147,7 @@ export async function executeToolSecurely<T>(
     });
     throw error;
   } finally {
-    // 5. Decrement concurrent count
+    // 6. Decrement concurrent count
     const newCount = (userToolCounts.get(userId) || 1) - 1;
     if (newCount <= 0) {
       userToolCounts.delete(userId);
