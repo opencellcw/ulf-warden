@@ -1,11 +1,11 @@
 /**
  * Web Host Tool - Deploy static sites/forms to GKE with public HTTPS URLs
+ *
+ * Simplified version: Uses ConfigMap + nginx:alpine (no Docker build needed)
  */
 
 import { executeShell } from './executor';
 import { log } from '../logger';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 const NAMESPACE = 'web-apps';
 const BASE_DOMAIN = process.env.WEB_HOST_DOMAIN || 'apps.104.198.214.246.nip.io'; // nip.io magic DNS
@@ -25,46 +25,40 @@ interface DeploymentResult {
 }
 
 export class WebHost {
-  private tempDir = '/tmp/web-deployments';
-
   async deployStaticSite(params: DeployWebAppParams): Promise<DeploymentResult> {
     const { name, html, expiresInHours = 24 } = params;
 
     // Sanitize name for k8s
-    const deploymentName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const deploymentName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 63);
     const subdomain = `${deploymentName}.${BASE_DOMAIN}`;
 
     log.info('[WebHost] Starting deployment', { name: deploymentName, subdomain });
 
     try {
-      // 1. Create temp directory structure
-      const appDir = path.join(this.tempDir, deploymentName);
-      await fs.mkdir(appDir, { recursive: true });
+      // 1. Create namespace if doesn't exist
+      await executeShell(`kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -`);
 
-      // Write HTML file
-      await fs.writeFile(path.join(appDir, 'index.html'), html);
+      // 2. Create ConfigMap with HTML content
+      // Escape HTML for safe shell execution
+      const escapedHtml = Buffer.from(html).toString('base64');
+      await executeShell(`cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ${deploymentName}-html
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${deploymentName}
+    managed-by: ulf-web-host
+data:
+  index.html: |
+$(echo "${escapedHtml}" | base64 -d | sed 's/^/    /')
+EOF`);
 
-      // Write nginx config
-      const nginxConf = this.generateNginxConfig();
-      await fs.writeFile(path.join(appDir, 'nginx.conf'), nginxConf);
+      // 3. Create Kubernetes resources (Deployment, Service, Ingress)
+      await this.createK8sResources(deploymentName, subdomain, expiresInHours);
 
-      // Write Dockerfile
-      const dockerfile = this.generateDockerfile();
-      await fs.writeFile(path.join(appDir, 'Dockerfile'), dockerfile);
-
-      // 2. Build and push Docker image
-      const imageTag = `gcr.io/${process.env.GCP_PROJECT}/${deploymentName}:latest`;
-
-      log.info('[WebHost] Building Docker image', { imageTag });
-      await executeShell(`cd ${appDir} && docker build -t ${imageTag} .`);
-
-      log.info('[WebHost] Pushing image to GCR');
-      await executeShell(`docker push ${imageTag}`);
-
-      // 3. Create Kubernetes resources
-      await this.createK8sResources(deploymentName, imageTag, subdomain, expiresInHours);
-
-      // 4. Wait for ingress to be ready
+      // 4. Success!
       const url = `https://${subdomain}`;
       const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
 
@@ -73,9 +67,6 @@ export class WebHost {
         url,
         expiresAt
       });
-
-      // 5. Cleanup temp files
-      await fs.rm(appDir, { recursive: true, force: true });
 
       return {
         success: true,
@@ -98,12 +89,12 @@ export class WebHost {
   }
 
   async deleteApp(name: string): Promise<void> {
-    const deploymentName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const deploymentName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 63);
 
     log.info('[WebHost] Deleting app', { name: deploymentName });
 
     try {
-      await executeShell(`kubectl delete all,ingress -n ${NAMESPACE} -l app=${deploymentName}`);
+      await executeShell(`kubectl delete all,ingress,configmap -n ${NAMESPACE} -l app=${deploymentName}`);
       log.info('[WebHost] App deleted', { name: deploymentName });
     } catch (error: any) {
       log.error('[WebHost] Delete failed', { name: deploymentName, error: error.message });
@@ -124,11 +115,12 @@ export class WebHost {
 
   private async createK8sResources(
     name: string,
-    image: string,
     subdomain: string,
     expiresInHours: number
   ): Promise<void> {
-    const manifest = `
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString();
+
+    const manifest = `---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -147,20 +139,28 @@ spec:
       labels:
         app: ${name}
       annotations:
-        expires-at: "${new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()}"
+        expires-at: "${expiresAt}"
     spec:
       containers:
-      - name: web
-        image: ${image}
+      - name: nginx
+        image: nginx:alpine
         ports:
         - containerPort: 80
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
         resources:
           requests:
-            memory: "64Mi"
+            memory: "32Mi"
             cpu: "50m"
           limits:
-            memory: "128Mi"
+            memory: "64Mi"
             cpu: "100m"
+      volumes:
+      - name: html
+        configMap:
+          name: ${name}-html
 ---
 apiVersion: v1
 kind: Service
@@ -205,52 +205,12 @@ spec:
               number: 80
 `;
 
-    // Write manifest to temp file
-    const manifestPath = `/tmp/${name}-manifest.yaml`;
-    await fs.writeFile(manifestPath, manifest);
-
-    // Create namespace if doesn't exist
-    await executeShell(`kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -`);
-
-    // Apply manifest
-    await executeShell(`kubectl apply -f ${manifestPath}`);
-
-    // Cleanup
-    await fs.unlink(manifestPath);
+    // Apply manifest via kubectl
+    await executeShell(`cat <<'EOF' | kubectl apply -f -
+${manifest}
+EOF`);
 
     log.info('[WebHost] Kubernetes resources created', { name });
-  }
-
-  private generateDockerfile(): string {
-    return `FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-`;
-  }
-
-  private generateNginxConfig(): string {
-    return `server {
-    listen 80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-
-    # Compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
-}
-`;
   }
 }
 
@@ -276,64 +236,63 @@ The deployment:
 ✅ Runs on GKE with auto-scaling and monitoring
 ✅ Auto-expires after 24h (configurable, max 7 days)
 ✅ Fully secure and production-ready
-✅ CDN-backed for fast global access
 
 Example:
 {
   "name": "my-dashboard",
-  "html": "<!DOCTYPE html><html>...",
+  "html": "<!DOCTYPE html><html><body><h1>Hello World</h1></body></html>",
   "expiresInHours": 48
 }
 
-Returns public URL like: https://my-dashboard.opencell.dev`,
-  input_schema: {
-    type: 'object',
-    properties: {
-      name: {
-        type: 'string',
-        description: 'App name (alphanumeric, hyphens ok). Will be used for subdomain.'
+Returns public URL like: https://my-dashboard.apps.104.198.214.246.nip.io`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'App name (alphanumeric, hyphens ok). Will be used for subdomain.'
+        },
+        html: {
+          type: 'string',
+          description: 'Complete HTML content (must be valid HTML with <!DOCTYPE html>)'
+        },
+        expiresInHours: {
+          type: 'number',
+          description: 'Hours until auto-delete (default: 24, max: 168)',
+          default: 24
+        }
       },
-      html: {
-        type: 'string',
-        description: 'Complete HTML content (must be valid HTML with <!DOCTYPE html>)'
-      },
-      expiresInHours: {
-        type: 'number',
-        description: 'Hours until auto-delete (default: 24, max: 168)',
-        default: 24
-      }
-    },
-    required: ['name', 'html']
-  }
-},
-{
-  name: 'list_public_apps',
-  description: `List all currently deployed public apps/sites.
+      required: ['name', 'html']
+    }
+  },
+  {
+    name: 'list_public_apps',
+    description: `List all currently deployed public apps/sites.
 
 Shows all active deployments with their names and expiration times.
 Useful for managing and cleaning up old deployments.`,
-  input_schema: {
-    type: 'object',
-    properties: {}
-  }
-},
-{
-  name: 'delete_public_app',
-  description: `Delete a deployed public app by name.
+    input_schema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'delete_public_app',
+    description: `Delete a deployed public app by name.
 
 Removes the deployment, service, and ingress from GKE.
 The URL will immediately become inactive.
 
 Example: { "name": "my-dashboard" }`,
-  input_schema: {
-    type: 'object',
-    properties: {
-      name: {
-        type: 'string',
-        description: 'Name of the app to delete'
-      }
-    },
-    required: ['name']
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Name of the app to delete'
+        }
+      },
+      required: ['name']
+    }
   }
-}
 ];
