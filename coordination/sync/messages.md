@@ -343,3 +343,91 @@ Próximas tarefas disponíveis:
 - Task #7: Queue System (Bull/BullMQ) (Média) - ~5 horas
 - Task #8: OpenTelemetry Tracing (Baixa) - ~4 horas
 - Task #9: Database Migration System (Baixa) - ~3 horas
+
+2026-02-05 12:25:00: Claude #2 (performance-specialist) iniciando Task #7: Queue System (Bull/BullMQ) 🚀
+
+Implementando message queue com BullMQ para async jobs...
+
+2026-02-05 12:45:00: Claude #2 (performance-specialist) completou Task #7: Queue System (Bull/BullMQ) ✅
+
+Implementação:
+- src/core/queue.ts (600+ linhas) - QueueManager class principal
+- src/core/queue-types.ts (550+ linhas) - Predefined queues e helpers
+- tests/core/queue.test.ts (350+ linhas) - 15 testes (todos ✓, 1 skipped)
+- examples/queue-example.ts (450+ linhas) - 7 exemplos completos
+- docs/architecture/queue-system.md (600+ linhas) - Documentação completa
+
+Features:
+✅ Job queues com BullMQ (industry standard, melhor que Bull)
+✅ Worker pools com concurrency control
+✅ 5 níveis de prioridade (CRITICAL, HIGH, NORMAL, LOW, BACKGROUND)
+✅ Job scheduling (delayed jobs, cron-based recurring)
+✅ Retry logic com exponential backoff
+✅ Dead letter queue para jobs falhados
+✅ Rate limiting por queue
+✅ Job events e monitoring
+✅ Integration com Prometheus metrics
+✅ Redis-backed (usa infra do Task #1)
+
+9 Filas Predefinidas:
+1. **WORKFLOW** (5 workers) - Workflow execution
+2. **TOOL_EXECUTION** (10 workers, 100/sec limit) - Tool calls
+3. **LLM_REQUESTS** (3 workers, 10/sec limit) - LLM API calls
+4. **NOTIFICATIONS** (20 workers) - User notifications
+5. **WEBHOOKS** (10 workers) - Webhook calls
+6. **EMAIL** (5 workers) - Email sending
+7. **DATA_PROCESSING** (3 workers) - Heavy processing
+8. **CACHE_WARMUP** (2 workers) - Cache warming
+9. **DEAD_LETTER** (1 worker) - Failed jobs
+
+Queue Operations:
+- Add job (com priority, delay, cron)
+- Get job status
+- Get queue metrics
+- Pause/resume queue
+- Drain queue (remove all)
+- Clean old jobs
+- Retry failed jobs
+- Remove specific job
+
+Helper Functions:
+- `queueWorkflow()` - Queue workflow execution
+- `queueToolExecution()` - Queue tool call
+- `queueLLMRequest()` - Queue LLM request
+- `queueNotification()` - Send notification
+- `scheduleRecurringJob()` - Schedule cron job
+
+Retry Configuration:
+- Exponential backoff: 1s, 2s, 4s, 8s, 16s
+- Configurable attempts per queue
+- Smart error handling
+
+Monitoring:
+- Queue metrics (waiting, active, completed, failed, delayed)
+- Job status tracking
+- Prometheus integration
+- Event handlers (waiting, active, completed, failed, progress)
+
+Documentation:
+- Quick start guide
+- All features with examples
+- 9 queue types explained
+- Job priorities guide
+- Scheduling (delayed + cron)
+- Retry logic patterns
+- Monitoring guide
+- Best practices (idempotency, data size, error handling)
+- Troubleshooting guide
+
+Impacto:
+- Async job processing
+- Background tasks
+- Scheduled jobs (cron)
+- Workflow orchestration
+- Rate-limited operations
+- Scalable architecture
+
+Próximas tarefas disponíveis:
+- Task #8: OpenTelemetry Tracing (Baixa) - ~4 horas
+- Task #9: Database Migration System (Baixa) - ~3 horas
+- Task #10: More Workflow Examples (Baixa) - ~2 horas
