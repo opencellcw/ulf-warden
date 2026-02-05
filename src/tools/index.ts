@@ -273,6 +273,29 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
         result = await executeOpenAITool(toolName, toolInput);
         break;
 
+      // Web hosting tool
+      case 'deploy_public_app':
+        const { webHost } = await import('./web-host');
+        const deployResult = await webHost.deployStaticSite(toolInput);
+        result = deployResult.success
+          ? `✅ App deployed!\n\n🌐 URL: ${deployResult.url}\n📛 Name: ${deployResult.name}\n⏰ Expires: ${deployResult.expiresAt}\n\nYour app is live and accessible at the URL above!`
+          : `❌ Deployment failed: ${deployResult.error}`;
+        break;
+
+      case 'list_public_apps':
+        const { webHost: webHostList } = await import('./web-host');
+        const apps = await webHostList.listApps();
+        result = apps.length > 0
+          ? `📋 Active apps:\n${apps.map(app => `• ${app}`).join('\n')}`
+          : 'No apps currently deployed';
+        break;
+
+      case 'delete_public_app':
+        const { webHost: webHostDelete } = await import('./web-host');
+        await webHostDelete.deleteApp(toolInput.name);
+        result = `✅ App "${toolInput.name}" deleted successfully`;
+        break;
+
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }

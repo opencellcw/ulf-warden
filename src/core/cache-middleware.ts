@@ -1,61 +1,38 @@
 /**
- * Cache Middleware for Database Operations
+ * Cache Middleware and Helper Functions
  *
- * Transparent caching layer for frequently accessed database queries
+ * Provides convenient wrappers and middleware for caching integration.
  */
 
+import { Request, Response, NextFunction } from 'express';
 import { cache, CacheNamespace } from './cache';
 import { log } from '../logger';
 
 export interface CacheOptions {
-  ttl?: number;
   namespace?: CacheNamespace | string;
   keyGenerator?: (...args: any[]) => string;
-  bypass?: boolean; // Skip cache for this call
+  ttl?: number;
 }
 
 /**
- * Cache wrapper for database query functions
+ * Wrap async function with caching
  */
 export function cached<T extends (...args: any[]) => Promise<any>>(
   fn: T,
   options: CacheOptions = {}
 ): T {
-  const {
-    ttl,
-    namespace = CacheNamespace.DATABASE_QUERY,
-    keyGenerator = (...args) => JSON.stringify(args),
-    bypass = false,
-  } = options;
+  const namespace = options.namespace || CacheNamespace.API_RESPONSE;
+  const keyGenerator = options.keyGenerator || ((...args: any[]) => JSON.stringify(args));
+  const ttl = options.ttl;
 
   return (async (...args: Parameters<T>) => {
-    // Bypass cache if requested
-    if (bypass || process.env.CACHE_DISABLED === 'true') {
-      return await fn(...args);
-    }
-
-    const cacheKey = keyGenerator(...args);
-
-    // Try to get from cache
-    const cached = await cache.get(namespace, cacheKey);
-    if (cached !== null) {
-      log.debug('[CacheMiddleware] Hit', { namespace, key: cacheKey });
-      return cached;
-    }
-
-    // Cache miss - execute function
-    log.debug('[CacheMiddleware] Miss', { namespace, key: cacheKey });
-    const result = await fn(...args);
-
-    // Store in cache
-    await cache.set(namespace, cacheKey, result, ttl);
-
-    return result;
+    const key = keyGenerator(...args);
+    return await cache.cached(namespace, key, () => fn(...args), ttl);
   }) as T;
 }
 
 /**
- * Decorator for caching methods
+ * Decorator for caching method results
  */
 export function Cached(options: CacheOptions = {}) {
   return function (
@@ -64,135 +41,165 @@ export function Cached(options: CacheOptions = {}) {
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
+    const namespace = options.namespace || CacheNamespace.API_RESPONSE;
+    const keyGenerator = options.keyGenerator || ((self: any, ...args: any[]) =>
+      `${target.constructor.name}.${propertyKey}:${JSON.stringify(args)}`
+    );
+    const ttl = options.ttl;
 
-    descriptor.value = cached(originalMethod, options);
+    descriptor.value = async function (...args: any[]) {
+      const key = keyGenerator(this, ...args);
+      return await cache.cached(namespace, key, () => originalMethod.apply(this, args), ttl);
+    };
 
     return descriptor;
   };
 }
 
 /**
- * Invalidate cache for a specific namespace
- */
-export async function invalidateCache(namespace: CacheNamespace | string): Promise<number> {
-  log.info('[CacheMiddleware] Invalidating cache', { namespace });
-  return await cache.deleteNamespace(namespace);
-}
-
-/**
- * Invalidate specific cache key
- */
-export async function invalidateCacheKey(
-  namespace: CacheNamespace | string,
-  key: string
-): Promise<boolean> {
-  log.debug('[CacheMiddleware] Invalidating key', { namespace, key });
-  return await cache.delete(namespace, key);
-}
-
-/**
- * Cache statistics
- */
-export function getCacheStats() {
-  return cache.getStats();
-}
-
-/**
- * Cached session getter
- */
-export const cachedSession = <T extends (...args: any[]) => Promise<any>>(fn: T) =>
-  cached(fn, {
-    namespace: CacheNamespace.SESSION,
-    keyGenerator: (userId: string) => userId,
-  });
-
-/**
- * Cached user data getter
- */
-export const cachedUserData = <T extends (...args: any[]) => Promise<any>>(fn: T) =>
-  cached(fn, {
-    namespace: CacheNamespace.USER_DATA,
-    keyGenerator: (userId: string) => userId,
-  });
-
-/**
- * Cached bot state getter
- */
-export const cachedBotState = <T extends (...args: any[]) => Promise<any>>(fn: T) =>
-  cached(fn, {
-    namespace: CacheNamespace.BOT_STATE,
-    keyGenerator: (...args) => args.join(':'),
-  });
-
-/**
- * Cache invalidation triggers
- */
-export const CacheInvalidation = {
-  /**
-   * Invalidate session cache when session is updated
-   */
-  onSessionUpdate: async (userId: string) => {
-    await invalidateCacheKey(CacheNamespace.SESSION, userId);
-  },
-
-  /**
-   * Invalidate user data cache when user data changes
-   */
-  onUserDataUpdate: async (userId: string) => {
-    await invalidateCacheKey(CacheNamespace.USER_DATA, userId);
-  },
-
-  /**
-   * Invalidate tool results cache when tool is re-executed
-   */
-  onToolExecution: async (toolName: string, input: any) => {
-    const key = `${toolName}:${JSON.stringify(input)}`;
-    await invalidateCacheKey(CacheNamespace.TOOL_RESULT, key);
-  },
-
-  /**
-   * Invalidate all database query cache
-   */
-  onDatabaseUpdate: async () => {
-    await invalidateCache(CacheNamespace.DATABASE_QUERY);
-  },
-
-  /**
-   * Invalidate workflow cache
-   */
-  onWorkflowUpdate: async (workflowId: string) => {
-    await invalidateCacheKey(CacheNamespace.WORKFLOW, workflowId);
-  },
-};
-
-/**
- * Express middleware for API response caching
+ * Express middleware for caching API responses
  */
 export function apiCacheMiddleware(ttl: number = 600) {
-  return async (req: any, res: any, next: any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     // Only cache GET requests
     if (req.method !== 'GET') {
       return next();
     }
 
-    const cacheKey = req.originalUrl || req.url;
+    // Build cache key from request
+    const cacheKey = `${req.path}:${JSON.stringify(req.query)}`;
 
-    // Try cache
-    const cached = await cache.get(CacheNamespace.API_RESPONSE, cacheKey);
-    if (cached !== null) {
-      log.debug('[APICacheMiddleware] Hit', { url: cacheKey });
-      return res.json(cached);
+    try {
+      // Check cache
+      const cachedResponse = await cache.get<any>(CacheNamespace.API_RESPONSE, cacheKey);
+
+      if (cachedResponse) {
+        log.debug('[Cache Middleware] API cache HIT', { path: req.path });
+        return res.json(cachedResponse);
+      }
+
+      // Cache miss - intercept response
+      const originalJson = res.json.bind(res);
+      res.json = (body: any) => {
+        // Store in cache
+        cache.set(CacheNamespace.API_RESPONSE, cacheKey, body, ttl).catch((error) => {
+          log.error('[Cache Middleware] Failed to cache response', { error });
+        });
+
+        return originalJson(body);
+      };
+
+      next();
+    } catch (error) {
+      log.error('[Cache Middleware] Error', { error });
+      next();
     }
-
-    // Cache miss - capture response
-    const originalJson = res.json.bind(res);
-    res.json = async (body: any) => {
-      // Store in cache
-      await cache.set(CacheNamespace.API_RESPONSE, cacheKey, body, ttl);
-      log.debug('[APICacheMiddleware] Cached', { url: cacheKey, ttl });
-      return originalJson(body);
-    };
-
-    next();
   };
+}
+
+/**
+ * Cache Invalidation Helpers
+ */
+export const CacheInvalidation = {
+  /**
+   * Invalidate session cache for a user
+   */
+  onSessionUpdate: async (userId: string): Promise<void> => {
+    await cache.delete(CacheNamespace.SESSION, userId);
+    log.info('[Cache] Invalidated session cache', { userId });
+  },
+
+  /**
+   * Invalidate user data cache
+   */
+  onUserDataUpdate: async (userId: string): Promise<void> => {
+    await cache.delete(CacheNamespace.USER_DATA, userId);
+    log.info('[Cache] Invalidated user data cache', { userId });
+  },
+
+  /**
+   * Invalidate tool result cache
+   */
+  onToolExecution: async (toolName: string, input: any): Promise<void> => {
+    const key = `${toolName}:${JSON.stringify(input)}`;
+    await cache.delete(CacheNamespace.TOOL_RESULT, key);
+    log.info('[Cache] Invalidated tool cache', { toolName });
+  },
+
+  /**
+   * Invalidate database query cache
+   */
+  onDatabaseUpdate: async (): Promise<void> => {
+    await cache.deleteNamespace(CacheNamespace.DATABASE_QUERY);
+    log.info('[Cache] Invalidated all database query cache');
+  },
+
+  /**
+   * Invalidate workflow cache
+   */
+  onWorkflowUpdate: async (workflowId: string): Promise<void> => {
+    await cache.delete(CacheNamespace.WORKFLOW, workflowId);
+    log.info('[Cache] Invalidated workflow cache', { workflowId });
+  },
+};
+
+/**
+ * Convenience functions for common cache operations
+ */
+
+/**
+ * Cache database query result
+ */
+export async function cacheQuery<T>(
+  queryKey: string,
+  queryFn: () => Promise<T>,
+  ttl?: number
+): Promise<T> {
+  return await cache.cached(CacheNamespace.DATABASE_QUERY, queryKey, queryFn, ttl);
+}
+
+/**
+ * Cache LLM response
+ */
+export async function cacheLLM<T>(
+  prompt: string,
+  llmFn: () => Promise<T>,
+  ttl?: number
+): Promise<T> {
+  return await cache.cached(CacheNamespace.LLM_RESPONSE, prompt, llmFn, ttl);
+}
+
+/**
+ * Cache tool execution result
+ */
+export async function cacheTool<T>(
+  toolName: string,
+  input: any,
+  toolFn: () => Promise<T>,
+  ttl?: number
+): Promise<T> {
+  const key = `${toolName}:${JSON.stringify(input)}`;
+  return await cache.cached(CacheNamespace.TOOL_RESULT, key, toolFn, ttl);
+}
+
+/**
+ * Cache user session
+ */
+export async function cacheSession<T>(
+  userId: string,
+  sessionFn: () => Promise<T>,
+  ttl?: number
+): Promise<T> {
+  return await cache.cached(CacheNamespace.SESSION, userId, sessionFn, ttl);
+}
+
+/**
+ * Cache workflow state
+ */
+export async function cacheWorkflow<T>(
+  workflowId: string,
+  workflowFn: () => Promise<T>,
+  ttl?: number
+): Promise<T> {
+  return await cache.cached(CacheNamespace.WORKFLOW, workflowId, workflowFn, ttl);
 }

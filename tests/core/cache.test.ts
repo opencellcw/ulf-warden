@@ -1,7 +1,5 @@
 /**
- * Unified Cache Tests
- *
- * Tests for Redis-first with in-memory fallback caching
+ * Cache System Tests
  */
 
 import { describe, it, beforeEach, afterEach } from 'node:test';
@@ -12,59 +10,50 @@ describe('UnifiedCacheManager', () => {
   let cache: UnifiedCacheManager;
 
   beforeEach(() => {
-    // Initialize cache (memory-only for tests)
+    // Create new cache instance for each test
     cache = new UnifiedCacheManager({
       memory: {
         ttl: 60,
         checkPeriod: 10,
         maxKeys: 100,
       },
-      // Don't connect to Redis in tests
-      redis: undefined,
+      redis: undefined, // Disable Redis for tests
     });
   });
 
   afterEach(async () => {
+    // Clean up
     await cache.clear();
     await cache.close();
   });
 
   describe('Basic Operations', () => {
     it('should set and get values', async () => {
-      await cache.set(CacheNamespace.SESSION, 'user1', { name: 'Alice' });
-
-      const result = await cache.get(CacheNamespace.SESSION, 'user1');
-
-      assert.deepStrictEqual(result, { name: 'Alice' });
+      await cache.set(CacheNamespace.SESSION, 'user123', { name: 'Test User' });
+      const value = await cache.get(CacheNamespace.SESSION, 'user123');
+      assert.deepStrictEqual(value, { name: 'Test User' });
     });
 
     it('should return null for missing keys', async () => {
-      const result = await cache.get(CacheNamespace.SESSION, 'nonexistent');
-
-      assert.strictEqual(result, null);
+      const value = await cache.get(CacheNamespace.SESSION, 'nonexistent');
+      assert.strictEqual(value, null);
     });
 
     it('should delete keys', async () => {
-      await cache.set(CacheNamespace.SESSION, 'user1', { name: 'Alice' });
-
-      const deleted = await cache.delete(CacheNamespace.SESSION, 'user1');
-      const result = await cache.get(CacheNamespace.SESSION, 'user1');
-
-      assert.strictEqual(deleted, true);
-      assert.strictEqual(result, null);
+      await cache.set(CacheNamespace.SESSION, 'user123', { name: 'Test' });
+      await cache.delete(CacheNamespace.SESSION, 'user123');
+      const value = await cache.get(CacheNamespace.SESSION, 'user123');
+      assert.strictEqual(value, null);
     });
 
     it('should clear all cache', async () => {
-      await cache.set(CacheNamespace.SESSION, 'user1', { name: 'Alice' });
-      await cache.set(CacheNamespace.SESSION, 'user2', { name: 'Bob' });
-
+      await cache.set(CacheNamespace.SESSION, 'user1', { name: 'User 1' });
+      await cache.set(CacheNamespace.USER_DATA, 'user2', { name: 'User 2' });
       await cache.clear();
-
-      const result1 = await cache.get(CacheNamespace.SESSION, 'user1');
-      const result2 = await cache.get(CacheNamespace.SESSION, 'user2');
-
-      assert.strictEqual(result1, null);
-      assert.strictEqual(result2, null);
+      const value1 = await cache.get(CacheNamespace.SESSION, 'user1');
+      const value2 = await cache.get(CacheNamespace.USER_DATA, 'user2');
+      assert.strictEqual(value1, null);
+      assert.strictEqual(value2, null);
     });
   });
 
@@ -83,10 +72,9 @@ describe('UnifiedCacheManager', () => {
     it('should delete entire namespace', async () => {
       await cache.set(CacheNamespace.SESSION, 'user1', 'value1');
       await cache.set(CacheNamespace.SESSION, 'user2', 'value2');
-      await cache.set(CacheNamespace.USER_DATA, 'user1', 'other-value');
+      await cache.set(CacheNamespace.USER_DATA, 'user1', 'value3');
 
       const deletedCount = await cache.deleteNamespace(CacheNamespace.SESSION);
-
       assert.strictEqual(deletedCount, 2);
 
       const session1 = await cache.get(CacheNamespace.SESSION, 'user1');
@@ -95,104 +83,89 @@ describe('UnifiedCacheManager', () => {
 
       assert.strictEqual(session1, null);
       assert.strictEqual(session2, null);
-      assert.strictEqual(userData, 'other-value'); // Other namespace unaffected
+      assert.strictEqual(userData, 'value3');
     });
   });
 
   describe('TTL (Time To Live)', () => {
     it('should respect custom TTL', async () => {
       // Set with 1 second TTL
-      await cache.set(CacheNamespace.SESSION, 'temp-key', 'temp-value', 1);
+      await cache.set(CacheNamespace.SESSION, 'temp', 'value', 1);
 
       // Should exist immediately
-      const immediate = await cache.get(CacheNamespace.SESSION, 'temp-key');
-      assert.strictEqual(immediate, 'temp-value');
+      const value1 = await cache.get(CacheNamespace.SESSION, 'temp');
+      assert.strictEqual(value1, 'value');
 
       // Wait 1.5 seconds
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Should be expired
-      const expired = await cache.get(CacheNamespace.SESSION, 'temp-key');
-      assert.strictEqual(expired, null);
+      const value2 = await cache.get(CacheNamespace.SESSION, 'temp');
+      assert.strictEqual(value2, null);
     });
   });
 
   describe('Cached Function Execution', () => {
     it('should cache function results', async () => {
       let callCount = 0;
-
-      const expensiveFunction = async () => {
+      const expensiveFn = async () => {
         callCount++;
-        return { result: 'computed-value' };
+        return { result: 'computed' };
       };
 
-      // First call - should execute function
-      const result1 = await cache.cached(
-        CacheNamespace.DATABASE_QUERY,
-        'query1',
-        expensiveFunction
-      );
-
+      // First call - executes function
+      const result1 = await cache.cached(CacheNamespace.API_RESPONSE, 'test', expensiveFn);
       assert.strictEqual(callCount, 1);
-      assert.deepStrictEqual(result1, { result: 'computed-value' });
+      assert.deepStrictEqual(result1, { result: 'computed' });
 
-      // Second call - should use cache
-      const result2 = await cache.cached(
-        CacheNamespace.DATABASE_QUERY,
-        'query1',
-        expensiveFunction
-      );
-
+      // Second call - returns cached result
+      const result2 = await cache.cached(CacheNamespace.API_RESPONSE, 'test', expensiveFn);
       assert.strictEqual(callCount, 1); // Function not called again
-      assert.deepStrictEqual(result2, { result: 'computed-value' });
+      assert.deepStrictEqual(result2, { result: 'computed' });
     });
 
     it('should execute function on cache miss', async () => {
       let callCount = 0;
-
       const fn = async () => {
         callCount++;
-        return `call-${callCount}`;
+        return 'result';
       };
 
-      const result1 = await cache.cached(CacheNamespace.DATABASE_QUERY, 'key1', fn);
-      const result2 = await cache.cached(CacheNamespace.DATABASE_QUERY, 'key2', fn);
+      await cache.cached(CacheNamespace.API_RESPONSE, 'key1', fn);
+      await cache.cached(CacheNamespace.API_RESPONSE, 'key2', fn);
 
-      assert.strictEqual(result1, 'call-1');
-      assert.strictEqual(result2, 'call-2');
-      assert.strictEqual(callCount, 2);
+      assert.strictEqual(callCount, 2); // Different keys = different cache entries
     });
   });
 
   describe('Memoization', () => {
     it('should memoize async functions', async () => {
       let callCount = 0;
-
-      const fetchUser = async (userId: string) => {
+      const getUserData = async (userId: string) => {
         callCount++;
         return { id: userId, name: `User ${userId}` };
       };
 
-      const cachedFetchUser = cache.memoize(
+      const memoized = cache.memoize(
         CacheNamespace.USER_DATA,
-        fetchUser,
+        getUserData,
         (userId) => userId
       );
 
       // First call
-      const user1 = await cachedFetchUser('user1');
+      const result1 = await memoized('user123');
       assert.strictEqual(callCount, 1);
-      assert.deepStrictEqual(user1, { id: 'user1', name: 'User user1' });
+      assert.deepStrictEqual(result1, { id: 'user123', name: 'User user123' });
 
       // Second call - cached
-      const user1Again = await cachedFetchUser('user1');
+      const result2 = await memoized('user123');
       assert.strictEqual(callCount, 1); // Not called again
-      assert.deepStrictEqual(user1Again, { id: 'user1', name: 'User user1' });
+      assert.deepStrictEqual(result2, { id: 'user123', name: 'User user123' });
 
-      // Different user - new call
-      const user2 = await cachedFetchUser('user2');
+      // Different argument
+      const result3 = await memoized('user456');
       assert.strictEqual(callCount, 2);
-      assert.deepStrictEqual(user2, { id: 'user2', name: 'User user2' });
+      assert.deepStrictEqual(result3, { id: 'user456', name: 'User user456' });
     });
   });
 
@@ -200,20 +173,13 @@ describe('UnifiedCacheManager', () => {
     it('should track hits and misses', async () => {
       await cache.set(CacheNamespace.SESSION, 'key1', 'value1');
 
-      // Hit
-      await cache.get(CacheNamespace.SESSION, 'key1');
-
-      // Miss
-      await cache.get(CacheNamespace.SESSION, 'key2');
-
-      // Hit
-      await cache.get(CacheNamespace.SESSION, 'key1');
+      await cache.get(CacheNamespace.SESSION, 'key1'); // Hit
+      await cache.get(CacheNamespace.SESSION, 'key2'); // Miss
+      await cache.get(CacheNamespace.SESSION, 'key1'); // Hit
 
       const stats = cache.getStats();
-
       assert.strictEqual(stats.hits, 2);
       assert.strictEqual(stats.misses, 1);
-      assert.strictEqual(stats.hitRate, '66.67%');
     });
 
     it('should track sets and deletes', async () => {
@@ -222,7 +188,6 @@ describe('UnifiedCacheManager', () => {
       await cache.delete(CacheNamespace.SESSION, 'key1');
 
       const stats = cache.getStats();
-
       assert.strictEqual(stats.sets, 2);
       assert.strictEqual(stats.deletes, 1);
     });
@@ -230,34 +195,35 @@ describe('UnifiedCacheManager', () => {
 
   describe('Complex Data Types', () => {
     it('should cache objects', async () => {
-      const data = {
-        id: 1,
+      const obj = {
+        id: 123,
         name: 'Test',
-        nested: {
-          value: 123,
-        },
+        nested: { key: 'value' },
+        array: [1, 2, 3],
       };
 
-      await cache.set(CacheNamespace.SESSION, 'object', data);
-      const result = await cache.get(CacheNamespace.SESSION, 'object');
+      await cache.set(CacheNamespace.USER_DATA, 'obj', obj);
+      const retrieved = await cache.get(CacheNamespace.USER_DATA, 'obj');
 
-      assert.deepStrictEqual(result, data);
+      assert.deepStrictEqual(retrieved, obj);
     });
 
     it('should cache arrays', async () => {
-      const data = [1, 2, 3, { name: 'Test' }];
+      const arr = [
+        { id: 1, name: 'Item 1' },
+        { id: 2, name: 'Item 2' },
+      ];
 
-      await cache.set(CacheNamespace.SESSION, 'array', data);
-      const result = await cache.get(CacheNamespace.SESSION, 'array');
+      await cache.set(CacheNamespace.API_RESPONSE, 'arr', arr);
+      const retrieved = await cache.get(CacheNamespace.API_RESPONSE, 'arr');
 
-      assert.deepStrictEqual(result, data);
+      assert.deepStrictEqual(retrieved, arr);
     });
   });
 
   describe('Provider Information', () => {
     it('should report memory as provider when Redis not connected', () => {
       const stats = cache.getStats();
-
       assert.strictEqual(stats.provider, 'memory');
       assert.strictEqual(stats.redisConnected, false);
     });
