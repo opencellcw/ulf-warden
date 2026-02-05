@@ -16,6 +16,7 @@ const discord_handler_1 = require("../bot-factory/discord-handler");
 const rate_limiter_1 = require("../security/rate-limiter");
 const discord_voice_1 = require("../voice/discord-voice");
 const tts_generator_1 = require("../voice/tts-generator");
+const discord_status_example_1 = require("../utils/discord-status-example");
 const axios_1 = __importDefault(require("axios"));
 async function startDiscordHandler() {
     if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -227,6 +228,27 @@ async function startDiscordHandler() {
         approval_system_1.approvalSystem.setClient(client);
         logger_1.log.info('[Discord] Approval system initialized');
     });
+    // Handle button interactions
+    client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isButton())
+            return;
+        try {
+            // Handle status buttons
+            if (interaction.customId.startsWith('status_')) {
+                await (0, discord_status_example_1.handleStatusButtons)(interaction);
+                return;
+            }
+        }
+        catch (error) {
+            console.error('[Discord] Error handling button interaction:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Erro ao processar interação. Tente novamente.',
+                    ephemeral: true
+                });
+            }
+        }
+    });
     client.on('messageCreate', async (message) => {
         try {
             // Ignore bot messages
@@ -269,6 +291,11 @@ async function startDiscordHandler() {
             // Handle bot creation commands
             if (text.match(/criar bot|create bot|novo bot|new bot/i)) {
                 await (0, discord_handler_1.handleBotCreation)(message);
+                return;
+            }
+            // Handle status command
+            if (text.match(/status|system|servidor|server status|ulf status/i)) {
+                await (0, discord_status_example_1.sendStatusReport)(message);
                 return;
             }
             // Handle voice commands

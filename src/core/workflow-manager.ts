@@ -3,6 +3,12 @@ import { toolRegistry, ToolContext } from './tool-registry';
 import { toolCompat } from './tool-compat';
 import { retryEngine } from './retry-engine';
 import { BranchDefinition, branchResolver } from './workflow-conditions';
+import {
+  ParallelGroup,
+  WaitStrategy,
+  ParallelExecutionManager,
+  WorkerPoolConfig,
+} from './workflow-parallel';
 
 export interface WorkflowStep {
   id: string;
@@ -11,8 +17,9 @@ export interface WorkflowStep {
   dependsOn?: string[]; // Step IDs this depends on
   condition?: (context: WorkflowContext) => boolean; // Skip if false (legacy)
   onError?: 'fail' | 'continue' | 'retry'; // Error handling strategy
-  parallel?: boolean; // Can run in parallel with siblings
+  parallel?: boolean; // Can run in parallel with siblings (legacy)
   branch?: BranchDefinition; // Conditional or switch branch
+  parallelGroup?: ParallelGroup; // Advanced parallel execution
 }
 
 export interface WorkflowDefinition {
@@ -20,6 +27,7 @@ export interface WorkflowDefinition {
   description: string;
   steps: WorkflowStep[];
   maxDuration?: number; // Max workflow duration in ms
+  parallelConfig?: WorkerPoolConfig; // Parallel execution configuration
 }
 
 export interface WorkflowContext {
@@ -31,6 +39,8 @@ export interface WorkflowContext {
 }
 
 export class WorkflowManager {
+  private parallelManager: ParallelExecutionManager | null = null;
+
   /**
    * Execute a workflow
    */
@@ -45,9 +55,15 @@ export class WorkflowManager {
       startTime: Date.now()
     };
 
+    // Initialize parallel manager if parallel config provided
+    if (workflow.parallelConfig) {
+      this.parallelManager = new ParallelExecutionManager(workflow.parallelConfig);
+    }
+
     log.info('[WorkflowManager] Starting workflow', {
       name: workflow.name,
-      steps: workflow.steps.length
+      steps: workflow.steps.length,
+      parallelConfig: !!workflow.parallelConfig,
     });
 
     try {
@@ -145,6 +161,46 @@ export class WorkflowManager {
     // Check condition (legacy support)
     if (step.condition && !step.condition(context)) {
       log.debug('[WorkflowManager] Skipping step due to condition', { stepId });
+      return;
+    }
+
+    // Handle parallel group steps
+    if (step.parallelGroup && this.parallelManager) {
+      log.debug('[WorkflowManager] Executing parallel group', {
+        stepId,
+        groupId: step.parallelGroup.id,
+        steps: step.parallelGroup.steps.length,
+      });
+
+      const result = await this.parallelManager.executeGroup(
+        step.parallelGroup,
+        (groupStepId) => this.executeStep(groupStepId, workflow, context),
+        context
+      );
+
+      // Store parallel group results
+      context.results.set(stepId, {
+        groupId: result.groupId,
+        completedSteps: result.completedSteps,
+        failedSteps: result.failedSteps,
+        skippedSteps: result.skippedSteps,
+        duration: result.duration,
+        success: result.success,
+      });
+
+      // Merge individual step results and errors
+      result.results.forEach((value, key) => {
+        context.results.set(key, value);
+      });
+
+      result.errors.forEach((value, key) => {
+        context.errors.set(key, value);
+      });
+
+      if (!result.success) {
+        throw new Error(`Parallel group ${result.groupId} failed`);
+      }
+
       return;
     }
 

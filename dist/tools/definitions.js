@@ -12,6 +12,7 @@ const slack_messaging_1 = require("./slack-messaging");
 const scheduler_1 = require("./scheduler");
 const self_improvement_1 = require("./self-improvement");
 const tools_1 = require("../bot-factory/tools");
+const web_host_1 = require("./web-host");
 const BASE_TOOLS = [
     {
         name: 'execute_shell',
@@ -125,6 +126,7 @@ exports.TOOLS = [
     ...tools_1.BOT_FACTORY_TOOLS,
     ...github_1.GITHUB_TOOLS,
     ...web_1.WEB_TOOLS,
+    ...web_host_1.WEB_HOST_TOOLS,
     ...files_1.FILE_TOOLS,
     ...process_1.PROCESS_TOOLS,
     ...replicate_1.REPLICATE_TOOLS,

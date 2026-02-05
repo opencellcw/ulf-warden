@@ -5,7 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { enhancedToolRegistry } from '../core/tool-registry-enhanced';
+import { toolRegistry } from '../core/tool-registry';
 import { log } from '../logger';
 
 export const toolRegistryRouter = Router();
@@ -18,7 +18,7 @@ toolRegistryRouter.get('/tools', async (req: Request, res: Response) => {
   try {
     const { category, tag, enabled, deprecated } = req.query;
 
-    let tools = enhancedToolRegistry.getAllTools();
+    let tools = toolRegistry.listTools();
 
     // Filter by category
     if (category && typeof category === 'string') {

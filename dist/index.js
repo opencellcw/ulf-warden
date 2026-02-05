@@ -19,6 +19,8 @@ const cron_manager_1 = require("./scheduler/cron-manager");
 const blocked_tools_1 = require("./config/blocked-tools");
 const tool_executor_1 = require("./security/tool-executor");
 const feature_flags_1 = require("./core/feature-flags");
+const tool_registry_1 = require("./core/tool-registry");
+const path_1 = __importDefault(require("path"));
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
     logger_1.log.error('Missing required environment variable: ANTHROPIC_API_KEY');
@@ -62,6 +64,28 @@ async function initialize() {
         // 1.5. Initialize feature flags (Phase 1)
         logger_1.log.info('Initializing feature flags...');
         await feature_flags_1.featureFlags.init(persistence_1.persistence.getDatabaseManager());
+        // 1.6. Initialize Tool Registry (Phase 2)
+        logger_1.log.info('Initializing Tool Registry...');
+        await feature_flags_1.featureFlags.enable(feature_flags_1.Feature.TOOL_REGISTRY);
+        await feature_flags_1.featureFlags.enable(feature_flags_1.Feature.WORKFLOW_MANAGER);
+        const toolsRegistryPath = path_1.default.join(__dirname, 'tools', 'registry');
+        try {
+            await tool_registry_1.toolRegistry.autoDiscover(toolsRegistryPath);
+            const stats = tool_registry_1.toolRegistry.getStats();
+            logger_1.log.info('Tool Registry initialized', {
+                totalTools: stats.totalTools,
+                enabledTools: stats.enabledTools,
+                byCategory: stats.byCategory,
+                byRiskLevel: stats.byRiskLevel
+            });
+        }
+        catch (error) {
+            logger_1.log.warn('Tool Registry auto-discovery failed (directory may not exist yet)', {
+                path: toolsRegistryPath,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            // Continue without registry tools - will fall back to legacy executor
+        }
         // 2. Initialize session manager (loads sessions from database)
         logger_1.log.info('Initializing session manager...');
         await sessions_1.sessionManager.init();
@@ -153,6 +177,11 @@ async function initialize() {
         console.log('='.repeat(60));
         console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
         console.log('Model: claude-sonnet-4-20250514');
+        // Show Tool Registry stats
+        const registryStats = tool_registry_1.toolRegistry.getStats();
+        if (registryStats.totalTools > 0) {
+            console.log(`Tools: ${registryStats.enabledTools}/${registryStats.totalTools} enabled (Registry)`);
+        }
         console.log('='.repeat(60));
         console.log('');
         logger_1.log.info(`System online with ${activeHandlers} platform(s)`, {
@@ -161,6 +190,14 @@ async function initialize() {
                 discord: !!handlers.discord,
                 telegram: !!handlers.telegram,
                 whatsapp: !!handlers.whatsapp
+            },
+            toolRegistry: {
+                enabled: feature_flags_1.featureFlags.isEnabled(feature_flags_1.Feature.TOOL_REGISTRY),
+                totalTools: registryStats.totalTools,
+                enabledTools: registryStats.enabledTools
+            },
+            workflowManager: {
+                enabled: feature_flags_1.featureFlags.isEnabled(feature_flags_1.Feature.WORKFLOW_MANAGER)
             }
         });
         // Start HTTP server after handlers are ready

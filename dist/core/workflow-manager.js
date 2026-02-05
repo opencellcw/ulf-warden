@@ -4,6 +4,7 @@ exports.workflowManager = exports.WorkflowManager = void 0;
 const logger_1 = require("../logger");
 const tool_compat_1 = require("./tool-compat");
 const retry_engine_1 = require("./retry-engine");
+const workflow_conditions_1 = require("./workflow-conditions");
 class WorkflowManager {
     /**
      * Execute a workflow
@@ -90,24 +91,55 @@ class WorkflowManager {
      */
     async executeStep(stepId, workflow, context) {
         const step = workflow.steps.find(s => s.id === stepId);
-        // Check condition
+        // Check condition (legacy support)
         if (step.condition && !step.condition(context)) {
             logger_1.log.debug('[WorkflowManager] Skipping step due to condition', { stepId });
             return;
         }
+        // Handle branch steps (if/else, switch/case)
+        if (step.branch) {
+            logger_1.log.debug('[WorkflowManager] Resolving branch', {
+                stepId,
+                branchType: step.branch.type
+            });
+            const branchSteps = workflow_conditions_1.branchResolver.resolve(step.branch, context);
+            logger_1.log.info('[WorkflowManager] Branch resolved', {
+                stepId,
+                branchType: step.branch.type,
+                stepsToExecute: branchSteps.length
+            });
+            // Execute branch steps
+            for (const branchStepId of branchSteps) {
+                await this.executeStep(branchStepId, workflow, context);
+            }
+            // Store branch result (which branch was taken)
+            context.results.set(stepId, {
+                branchType: step.branch.type,
+                executedSteps: branchSteps
+            });
+            return;
+        }
+        // Regular tool execution
+        if (!step.toolName) {
+            logger_1.log.warn('[WorkflowManager] Step has no toolName and no branch', { stepId });
+            return;
+        }
+        // Type narrowing: toolName is now guaranteed to be string
+        const toolName = step.toolName;
         // Resolve input
         const input = typeof step.input === 'function'
             ? step.input(context)
             : step.input;
         logger_1.log.debug('[WorkflowManager] Executing step', {
             stepId,
-            toolName: step.toolName
+            toolName
         });
         try {
             // Execute with retry if configured
+            const userRequest = context.userRequest || 'Workflow execution';
             const result = step.onError === 'retry'
-                ? await retry_engine_1.retryEngine.executeWithRetry(step.toolName, () => tool_compat_1.toolCompat.execute(step.toolName, input, context.userId, context.userRequest))
-                : await tool_compat_1.toolCompat.execute(step.toolName, input, context.userId, context.userRequest);
+                ? await retry_engine_1.retryEngine.executeWithRetry(toolName, () => tool_compat_1.toolCompat.execute(toolName, input, context.userId, userRequest))
+                : await tool_compat_1.toolCompat.execute(toolName, input, context.userId, userRequest);
             context.results.set(stepId, result);
             logger_1.log.debug('[WorkflowManager] Step completed', {
                 stepId,
