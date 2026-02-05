@@ -1,0 +1,105 @@
+═══════════════════════════════════════════════════════════════
+📋 PROMPT PARA CLAUDE CODE #2 - COPIAR E COLAR
+═══════════════════════════════════════════════════════════════
+
+Olá! Você foi designado para trabalhar no projeto OpenCell em paralelo
+com outro Claude Code. Aqui está seu contexto:
+
+🎯 SUA MISSÃO:
+Trabalhar na branch feature/core-architecture focando em Backend,
+Core Features e Performance do sistema.
+
+📍 SETUP RÁPIDO:
+```
+cd /caminho/para/opencellcw
+git fetch origin
+git checkout feature/core-architecture
+git pull origin feature/core-architecture
+```
+
+📖 DOCUMENTAÇÃO COMPLETA:
+Leia o arquivo CLAUDE_2_ONBOARDING.md que tem TODAS as instruções
+detalhadas, incluindo:
+- O que você deve/não deve editar
+- Lista de tarefas sugeridas (alta/média/baixa prioridade)
+- Workflow de trabalho
+- Como se comunicar com o outro Claude
+- Troubleshooting
+
+📝 SUAS RESPONSABILIDADES:
+✅ VOCÊ TRABALHA EM:
+- src/core/ - Sistema central
+- src/tools/ - Tool implementations
+- src/workflows/ - Workflow engine
+- src/agent.ts, src/chat.ts
+- examples/workflows/
+- docs/architecture/
+- Performance, caching, queue system, monitoring
+
+❌ EVITE EDITAR (são do Claude #1):
+- src/handlers/ (Discord, Slack, Telegram, WhatsApp)
+- src/utils/discord-formatter.ts
+- src/media-handler-*.ts
+- docs/discord-*.md
+
+⚠️ ARQUIVOS COMPARTILHADOS (coordenar):
+- src/index.ts
+- package.json
+- README.md
+- .env.example
+
+🚀 TAREFAS SUGERIDAS (Alta Prioridade):
+1. Implementar caching layer (Redis ou in-memory)
+2. Tool Registry enhancements (versioning, validation)
+3. Workflow Engine (conditional branching, parallel execution)
+4. Queue system (Bull/BullMQ)
+5. Monitoring & observability improvements
+6. API improvements (REST, rate limiting)
+
+📋 WORKFLOW:
+```bash
+# Sempre trabalhe nesta branch:
+git checkout feature/core-architecture
+
+# Antes de começar:
+git pull origin feature/core-architecture
+
+# Depois de trabalhar:
+git add .
+git commit -m "feat: your feature description"
+git push origin feature/core-architecture
+
+# Sync com main periodicamente:
+git fetch origin
+git merge origin/main
+```
+
+🤝 COMUNICAÇÃO:
+- Via commit messages (seja descritivo)
+- Via BRANCHING_STRATEGY.md (atualize se necessário)
+- Via GitHub Issues (para discussões maiores)
+
+📊 STATUS ATUAL:
+- Claude #1 já implementou: Discord rich formatting, repo cleanup
+- Você pode começar com: Caching layer, performance optimizations
+- Hybrid Architecture (Phases 1-3) já está implementada
+- 4 workflow examples já existem
+
+✅ CHECKLIST INICIAL:
+[ ] Estou na branch feature/core-architecture
+[ ] Li CLAUDE_2_ONBOARDING.md completamente
+[ ] Entendi minhas responsabilidades
+[ ] Sei quais arquivos evitar
+[ ] Pronto para começar!
+
+🎯 PRIMEIRO PASSO:
+```bash
+git checkout feature/core-architecture
+cat CLAUDE_2_ONBOARDING.md
+ls -la src/core/
+```
+
+Escolha uma tarefa da lista de Alta Prioridade e comece! 🚀
+
+Documentação completa: CLAUDE_2_ONBOARDING.md
+Estratégia de branches: BRANCHING_STRATEGY.md
