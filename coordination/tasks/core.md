@@ -155,25 +155,37 @@ Permitir steps de workflow rodarem em paralelo.
 
 ### 5. API Rate Limiting Per Endpoint
 **Agente:** security-specialist
-**Status:** ⏳ Pendente
-**Estimativa:** ~3 horas
+**Status:** ✅ Completo (2026-02-05)
+**Tempo gasto:** ~3 horas
+**Prioridade:** 🟡 MÉDIA
 
 **Descrição:**
 Implementar rate limiting granular por endpoint.
 
 **Subtasks:**
-- [ ] Design rate limit configuration
-- [ ] Per-endpoint rate limits
-- [ ] Per-user rate limits
-- [ ] Rate limit headers (X-RateLimit-*)
-- [ ] Rate limit exceeded responses
-- [ ] Admin override capability
-- [ ] Metrics para rate limiting
+- [x] Design rate limit configuration
+- [x] Per-endpoint rate limits (6 categorias diferentes)
+- [x] Per-user rate limits (Redis-backed)
+- [x] Rate limit headers (X-RateLimit-*)
+- [x] Rate limit exceeded responses (mensagens claras)
+- [x] Admin override capability (5x multiplier)
+- [x] Metrics para rate limiting (comprehensive tracking)
 
-**Arquivos a editar:**
-- `src/security/rate-limiter.ts` (enhance)
-- `src/index.ts` (apply middleware)
-- `.env.example` (rate limit configs)
+**Arquivos criados:**
+- `src/security/rate-limiter-enhanced.ts` (523 linhas)
+- `src/security/rate-limit-config.ts` (177 linhas)
+- `src/security/rate-limit-instance.ts` (singleton)
+- `tests/security/rate-limiter-enhanced.test.ts` (463 linhas, 21 testes)
+- `docs/RATE_LIMITING.md` (316 linhas)
+- `examples/rate-limit-config.ts`
+
+**Impacto alcançado:**
+- 6 tiers de rate limit (AI: 10/h, Web: 20/h, API: 60/h, File: 120/h, Shell: 100/h, Read: 200/h)
+- Admin multiplier (5x para admins)
+- Redis-backed (distribuído) com fallback in-memory
+- Integrado em tool-executor.ts
+- 21 testes cobrindo todos os casos (100% passing)
+- Documentação completa com exemplos
 
 ---
 
@@ -313,43 +325,44 @@ Criar mais workflow examples para casos de uso comuns.
 | Prioridade | Total | Pendente | Em Progresso | Completo |
 |------------|-------|----------|--------------|----------|
 | Alta | 2 | 0 | 0 | 2 |
-| Média | 5 | 3 | 0 | 2 |
+| Média | 5 | 2 | 0 | 3 |
 | Baixa | 3 | 2 | 0 | 1 |
-| **TOTAL** | **10** | **5** | **0** | **5** |
+| **TOTAL** | **10** | **4** | **0** | **6** |
 
 ---
 
 ## 🎯 Recomendação de Próxima Task
 
-**Sugestão:** Começar com **API Rate Limiting Per Endpoint** (Média Prioridade)
+**Sugestão:** Começar com **Prometheus Metrics Endpoint** (Média Prioridade)
 
 **Por quê:**
-1. Alta prioridade completada (Redis + Tool Registry)
-2. Workflow features completas (Conditional + Parallel)
-3. Próximo passo lógico: segurança e proteção
-4. Previne abuso e garante disponibilidade
+1. Alta prioridade 100% completa ✓
+2. Core features completas (Workflows, Rate Limiting)
+3. Próximo passo lógico: observabilidade
+4. Complementa telemetry já existente
 
 **Como começar:**
 ```bash
 # 1. Ler implementação atual
-cat src/security/rate-limiter.ts  # Se existir
-cat src/index.ts  # Verificar middleware atual
+cat src/core/prometheus-metrics.ts  # Se existir
+cat src/core/telemetry.ts  # Ver telemetry existente
 
 # 2. Ativar agente
-echo "$(date): Iniciando security-specialist - Rate Limiting" >> coordination/sync/messages.md
+echo "$(date): Iniciando monitoring-specialist - Prometheus" >> coordination/sync/messages.md
 
 # 3. Entender requisitos
-# - Rate limiting per endpoint
-# - Per-user rate limits
-# - Rate limit headers (X-RateLimit-*)
-# - Admin override capability
-# - Metrics para rate limiting
+# - Setup prom-client
+# - Create metrics collectors
+# - Expose /metrics endpoint
+# - Custom metrics (tool execution, cache hits)
+# - Grafana dashboard (opcional)
 
 # 4. Implementar
-# - Design rate limit configuration
-# - Implementar middleware
-# - Adicionar headers
+# - Install prom-client
+# - Create metrics collectors
+# - Add /metrics route to index.ts
 # - Criar testes
+# - Documentar
 ```
 
 ---
@@ -385,5 +398,5 @@ Prometheus Metrics (6)
 ---
 
 **Última atualização:** 2026-02-05
-**Tasks total:** 10 (5 completas, 5 pendentes)
-**Próxima prioridade:** API Rate Limiting Per Endpoint (MÉDIA)
+**Tasks total:** 10 (6 completas, 4 pendentes)
+**Próxima prioridade:** Prometheus Metrics Endpoint (MÉDIA)
