@@ -15,6 +15,7 @@ import { initializeBlocklist } from './config/blocked-tools';
 import { initializeToolExecutor } from './security/tool-executor';
 import { featureFlags, Feature } from './core/feature-flags';
 import { toolRegistry } from './core/tool-registry';
+import { prometheusMetrics } from './core/prometheus-metrics';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -40,6 +41,9 @@ const handlers: {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Prometheus metrics middleware (collect HTTP metrics)
+app.use(prometheusMetrics.httpMiddleware());
+
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
@@ -56,6 +60,9 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Prometheus metrics endpoint
+app.get('/metrics', prometheusMetrics.metricsHandler());
 
 // Initialize and start all handlers
 async function initialize() {

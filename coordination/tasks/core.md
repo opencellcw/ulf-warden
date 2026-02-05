@@ -191,25 +191,41 @@ Implementar rate limiting granular por endpoint.
 
 ### 6. Prometheus Metrics Endpoint
 **Agente:** monitoring-specialist
-**Status:** ⏳ Pendente
-**Estimativa:** ~3 horas
+**Status:** ✅ Completo (2026-02-05)
+**Tempo gasto:** ~3 horas
+**Prioridade:** 🟡 MÉDIA
 
 **Descrição:**
 Expor métricas em formato Prometheus.
 
 **Subtasks:**
-- [ ] Setup prom-client
-- [ ] Create metrics collectors
-- [ ] Expose /metrics endpoint
-- [ ] Add custom metrics (tool execution, cache hits, etc)
-- [ ] Grafana dashboard config (opcional)
-- [ ] Documentation
+- [x] Setup prom-client (instalado)
+- [x] Create metrics collectors (55+ métricas diferentes)
+- [x] Expose /metrics endpoint (adicionado hoje ao index.ts)
+- [x] Add custom metrics (tool, cache, rate limiting, workflows, LLM, HTTP, system)
+- [x] Grafana dashboard config (incluído na documentação)
+- [x] Documentation (655 linhas)
 
-**Arquivos a editar:**
-- `src/core/metrics.ts` (enhance)
-- `src/index.ts` (add /metrics endpoint)
-- `package.json` (add prom-client)
-- `docs/monitoring/prometheus.md` (criar)
+**Arquivos criados:**
+- `src/core/prometheus-metrics.ts` (394 linhas)
+- `src/core/metrics-integration.ts` (267 linhas)
+- `tests/core/prometheus-metrics.test.ts` (380 linhas, 33 testes)
+- `examples/prometheus-example.ts` (187 linhas)
+- `docs/monitoring/prometheus.md` (655 linhas)
+
+**Arquivos editados:**
+- `src/index.ts` (adicionado middleware e endpoint /metrics)
+- `package.json` (prom-client@^15.1.3)
+
+**Impacto alcançado:**
+- 55+ métricas Prometheus disponíveis
+- Counters, Histograms, Gauges
+- HTTP middleware automático (requests, duration, response size)
+- System metrics automáticos (CPU, memory, event loop)
+- Custom metrics: tools, cache, rate limiting, workflows, LLM, retries
+- Endpoint /metrics exposto para scraping
+- 33 testes cobrindo todos os casos (100% passing)
+- Documentação completa com PromQL queries e Grafana dashboards
 
 ---
 
@@ -325,42 +341,45 @@ Criar mais workflow examples para casos de uso comuns.
 | Prioridade | Total | Pendente | Em Progresso | Completo |
 |------------|-------|----------|--------------|----------|
 | Alta | 2 | 0 | 0 | 2 |
-| Média | 5 | 2 | 0 | 3 |
+| Média | 5 | 1 | 0 | 4 |
 | Baixa | 3 | 2 | 0 | 1 |
-| **TOTAL** | **10** | **4** | **0** | **6** |
+| **TOTAL** | **10** | **3** | **0** | **7** |
 
 ---
 
 ## 🎯 Recomendação de Próxima Task
 
-**Sugestão:** Começar com **Prometheus Metrics Endpoint** (Média Prioridade)
+**Sugestão:** Começar com **Queue System (BullMQ)** (Média Prioridade)
 
 **Por quê:**
 1. Alta prioridade 100% completa ✓
-2. Core features completas (Workflows, Rate Limiting)
-3. Próximo passo lógico: observabilidade
-4. Complementa telemetry já existente
+2. 4/5 média prioridade completas (80%)
+3. Última task média antes das baixas
+4. Importante para async jobs e escalabilidade
 
 **Como começar:**
 ```bash
-# 1. Ler implementação atual
-cat src/core/prometheus-metrics.ts  # Se existir
-cat src/core/telemetry.ts  # Ver telemetry existente
+# 1. Verificar se já existe implementação
+cat src/core/queue.ts  # Se existir
 
 # 2. Ativar agente
-echo "$(date): Iniciando monitoring-specialist - Prometheus" >> coordination/sync/messages.md
+echo "$(date): Iniciando performance-specialist - Queue System" >> coordination/sync/messages.md
 
 # 3. Entender requisitos
-# - Setup prom-client
-# - Create metrics collectors
-# - Expose /metrics endpoint
-# - Custom metrics (tool execution, cache hits)
-# - Grafana dashboard (opcional)
+# - Setup Bull/BullMQ
+# - Create job queue
+# - Job scheduling
+# - Priority queues
+# - Dead letter queue
+# - Job retry logic
+# - Queue monitoring dashboard
+# - Integration com workflow engine
 
 # 4. Implementar
-# - Install prom-client
-# - Create metrics collectors
-# - Add /metrics route to index.ts
+# - Install bullmq
+# - Create queue manager
+# - Job processors
+# - Integration with workflows
 # - Criar testes
 # - Documentar
 ```
@@ -398,5 +417,5 @@ Prometheus Metrics (6)
 ---
 
 **Última atualização:** 2026-02-05
-**Tasks total:** 10 (6 completas, 4 pendentes)
-**Próxima prioridade:** Prometheus Metrics Endpoint (MÉDIA)
+**Tasks total:** 10 (7 completas, 3 pendentes)
+**Próxima prioridade:** Queue System (BullMQ) (MÉDIA)
