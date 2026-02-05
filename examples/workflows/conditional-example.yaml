@@ -1,0 +1,112 @@
+# Workflow with If/Else Conditional Branching
+#
+# This example demonstrates:
+# - If/else branching based on conditions
+# - Switch/case branching based on values
+# - Dynamic condition evaluation
+# - Accessing step results in conditions
+
+name: "Conditional Workflow Example"
+description: "Demonstrates if/else and switch/case branching"
+maxDuration: 60000 # 1 minute
+
+steps:
+  # Step 1: Fetch user data
+  - id: fetch_user
+    toolName: database_query
+    input:
+      query: "SELECT * FROM users WHERE id = ?"
+      params: ["user123"]
+
+  # Step 2: Conditional branch - check user status
+  - id: check_user_status
+    branch:
+      type: if
+      # String expression: access previous step results
+      condition: "$results.fetch_user.status == 'active'"
+      thenSteps:
+        - process_active_user
+      elseSteps:
+        - handle_inactive_user
+
+  # Step 3a: Process active user (if branch)
+  - id: process_active_user
+    toolName: send_email
+    input:
+      to: "$results.fetch_user.email"
+      subject: "Welcome back!"
+      body: "Your account is active"
+
+  # Step 3b: Handle inactive user (else branch)
+  - id: handle_inactive_user
+    toolName: send_email
+    input:
+      to: "$results.fetch_user.email"
+      subject: "Account suspended"
+      body: "Please contact support"
+
+  # Step 4: Fetch user type
+  - id: fetch_user_type
+    toolName: database_query
+    dependsOn: [fetch_user]
+    input:
+      query: "SELECT type FROM users WHERE id = ?"
+      params: ["user123"]
+
+  # Step 5: Switch/case branch - handle different user types
+  - id: handle_user_type
+    dependsOn: [fetch_user_type]
+    branch:
+      type: switch
+      # Evaluate expression to get value
+      expression: "$results.fetch_user_type.type"
+      cases:
+        - value: "premium"
+          steps:
+            - grant_premium_access
+        - value: "basic"
+          steps:
+            - grant_basic_access
+        - value: "trial"
+          steps:
+            - grant_trial_access
+      # Default case if no match
+      defaultSteps:
+        - handle_unknown_type
+
+  # Step 6a: Grant premium access (switch case)
+  - id: grant_premium_access
+    toolName: update_permissions
+    input:
+      userId: "user123"
+      permissions: ["read", "write", "admin"]
+
+  # Step 6b: Grant basic access (switch case)
+  - id: grant_basic_access
+    toolName: update_permissions
+    input:
+      userId: "user123"
+      permissions: ["read"]
+
+  # Step 6c: Grant trial access (switch case)
+  - id: grant_trial_access
+    toolName: update_permissions
+    input:
+      userId: "user123"
+      permissions: ["read"]
+      expiresIn: 604800 # 7 days
+
+  # Step 6d: Handle unknown type (default case)
+  - id: handle_unknown_type
+    toolName: log_error
+    input:
+      message: "Unknown user type"
+      userId: "user123"
+
+  # Step 7: Final notification
+  - id: send_final_notification
+    dependsOn: [handle_user_type]
+    toolName: send_notification
+    input:
+      userId: "user123"
+      message: "Account setup complete"

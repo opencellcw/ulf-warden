@@ -1,0 +1,230 @@
+# Parallel Workflow Execution Example
+#
+# This example demonstrates:
+# - Parallel execution groups
+# - Worker pool with concurrency limits
+# - Different wait strategies (all, any, allSettled, race)
+# - Resource management
+# - Error handling in parallel steps
+
+name: "Parallel Execution Example"
+description: "Demonstrates advanced parallel execution features"
+maxDuration: 120000 # 2 minutes
+
+# Parallel execution configuration
+parallelConfig:
+  maxConcurrent: 5      # Max 5 concurrent workers
+  timeout: 30000        # 30 second default timeout per task
+
+steps:
+  # Step 1: Fetch initial data
+  - id: fetch_config
+    toolName: database_query
+    input:
+      query: "SELECT * FROM config WHERE active = true"
+
+  # Step 2: Parallel group - Fetch data from multiple sources
+  # Wait strategy: 'all' - Wait for all to complete
+  - id: parallel_fetch_all
+    dependsOn: [fetch_config]
+    parallelGroup:
+      id: fetch_all_sources
+      waitStrategy: all        # Wait for all (default)
+      maxConcurrent: 3         # Max 3 concurrent
+      continueOnError: false   # Fail if any fails
+      timeout: 15000           # 15 second timeout for group
+      steps:
+        - fetch_user_data
+        - fetch_product_data
+        - fetch_analytics_data
+
+  # Steps in parallel group
+  - id: fetch_user_data
+    toolName: http_request
+    input:
+      url: "https://api.example.com/users"
+      method: GET
+
+  - id: fetch_product_data
+    toolName: http_request
+    input:
+      url: "https://api.example.com/products"
+      method: GET
+
+  - id: fetch_analytics_data
+    toolName: database_query
+    input:
+      query: "SELECT * FROM analytics WHERE date = TODAY()"
+
+  # Step 3: Process fetched data
+  - id: process_fetched_data
+    dependsOn: [parallel_fetch_all]
+    toolName: data_processor
+    input:
+      userData: "$results.fetch_user_data"
+      productData: "$results.fetch_product_data"
+      analyticsData: "$results.fetch_analytics_data"
+
+  # Step 4: Parallel group - Enrich data from multiple APIs
+  # Wait strategy: 'allSettled' - Wait for all, don't fail on errors
+  - id: parallel_enrich_allSettled
+    dependsOn: [process_fetched_data]
+    parallelGroup:
+      id: enrich_data
+      waitStrategy: allSettled  # Don't fail if some fail
+      maxConcurrent: 4
+      continueOnError: true
+      steps:
+        - enrich_user_profiles
+        - enrich_product_reviews
+        - enrich_pricing_data
+        - enrich_inventory_status
+
+  # Enrichment steps
+  - id: enrich_user_profiles
+    toolName: http_request
+    input:
+      url: "https://profiles.example.com/enrich"
+      method: POST
+      body: "$results.process_fetched_data.users"
+
+  - id: enrich_product_reviews
+    toolName: http_request
+    input:
+      url: "https://reviews.example.com/fetch"
+      method: GET
+
+  - id: enrich_pricing_data
+    toolName: http_request
+    input:
+      url: "https://pricing.example.com/current"
+      method: GET
+
+  - id: enrich_inventory_status
+    toolName: database_query
+    input:
+      query: "SELECT * FROM inventory WHERE available = true"
+
+  # Step 5: Parallel group - Send notifications
+  # Wait strategy: 'any' - Return as soon as any succeeds
+  - id: parallel_notify_any
+    dependsOn: [parallel_enrich_allSettled]
+    parallelGroup:
+      id: send_notifications
+      waitStrategy: any         # Return on first success
+      maxConcurrent: 5
+      timeout: 10000
+      steps:
+        - send_email_notification
+        - send_sms_notification
+        - send_push_notification
+        - send_webhook_notification
+
+  # Notification steps
+  - id: send_email_notification
+    toolName: send_email
+    input:
+      to: "user@example.com"
+      subject: "Data update complete"
+      body: "Your data has been updated"
+
+  - id: send_sms_notification
+    toolName: send_sms
+    input:
+      to: "+1234567890"
+      message: "Data update complete"
+
+  - id: send_push_notification
+    toolName: send_push
+    input:
+      deviceId: "device123"
+      message: "Data update complete"
+
+  - id: send_webhook_notification
+    toolName: http_request
+    input:
+      url: "https://webhook.example.com/notify"
+      method: POST
+      body:
+        event: "data_updated"
+        timestamp: "$now"
+
+  # Step 6: Parallel group - Generate reports
+  # Wait strategy: 'race' - Return first completed (success or failure)
+  - id: parallel_reports_race
+    dependsOn: [parallel_notify_any]
+    parallelGroup:
+      id: generate_reports
+      waitStrategy: race        # First to complete wins
+      maxConcurrent: 3
+      steps:
+        - generate_pdf_report
+        - generate_excel_report
+        - generate_html_report
+
+  # Report generation steps
+  - id: generate_pdf_report
+    toolName: generate_pdf
+    input:
+      template: "summary"
+      data: "$results.parallel_enrich_allSettled"
+
+  - id: generate_excel_report
+    toolName: generate_excel
+    input:
+      template: "detailed"
+      data: "$results.parallel_enrich_allSettled"
+
+  - id: generate_html_report
+    toolName: generate_html
+    input:
+      template: "dashboard"
+      data: "$results.parallel_enrich_allSettled"
+
+  # Step 7: Upload report
+  - id: upload_report
+    dependsOn: [parallel_reports_race]
+    toolName: upload_file
+    input:
+      file: "$results.parallel_reports_race"
+      destination: "s3://reports/latest"
+
+  # Step 8: Parallel cleanup (no wait - fire and forget)
+  - id: parallel_cleanup
+    dependsOn: [upload_report]
+    parallelGroup:
+      id: cleanup_resources
+      waitStrategy: allSettled
+      continueOnError: true
+      steps:
+        - cleanup_temp_files
+        - cleanup_cache
+        - update_metrics
+
+  # Cleanup steps
+  - id: cleanup_temp_files
+    toolName: delete_files
+    input:
+      pattern: "/tmp/workflow_*"
+
+  - id: cleanup_cache
+    toolName: cache_clear
+    input:
+      namespace: "workflow_temp"
+
+  - id: update_metrics
+    toolName: update_metrics
+    input:
+      workflow: "parallel_example"
+      status: "completed"
+
+  # Step 9: Final result
+  - id: build_result
+    dependsOn: [parallel_cleanup]
+    toolName: format_response
+    input:
+      status: "success"
+      report: "$results.upload_report.url"
+      notifications_sent: "$results.parallel_notify_any"
+      data_sources: 3
+      enrichments_completed: "$results.parallel_enrich_allSettled.completedSteps.length"

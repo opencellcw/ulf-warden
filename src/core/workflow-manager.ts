@@ -2,15 +2,24 @@ import { log } from '../logger';
 import { toolRegistry, ToolContext } from './tool-registry';
 import { toolCompat } from './tool-compat';
 import { retryEngine } from './retry-engine';
+import { BranchDefinition, branchResolver } from './workflow-conditions';
+import {
+  ParallelGroup,
+  WaitStrategy,
+  ParallelExecutionManager,
+  WorkerPoolConfig,
+} from './workflow-parallel';
 
 export interface WorkflowStep {
   id: string;
-  toolName: string;
-  input: any | ((context: WorkflowContext) => any); // Static or dynamic
+  toolName?: string; // Optional now - branches don't execute tools
+  input?: any | ((context: WorkflowContext) => any); // Static or dynamic
   dependsOn?: string[]; // Step IDs this depends on
-  condition?: (context: WorkflowContext) => boolean; // Skip if false
+  condition?: (context: WorkflowContext) => boolean; // Skip if false (legacy)
   onError?: 'fail' | 'continue' | 'retry'; // Error handling strategy
-  parallel?: boolean; // Can run in parallel with siblings
+  parallel?: boolean; // Can run in parallel with siblings (legacy)
+  branch?: BranchDefinition; // Conditional or switch branch
+  parallelGroup?: ParallelGroup; // Advanced parallel execution
 }
 
 export interface WorkflowDefinition {
@@ -18,17 +27,20 @@ export interface WorkflowDefinition {
   description: string;
   steps: WorkflowStep[];
   maxDuration?: number; // Max workflow duration in ms
+  parallelConfig?: WorkerPoolConfig; // Parallel execution configuration
 }
 
 export interface WorkflowContext {
   userId: string;
-  userRequest: string;
+  userRequest?: string;
   results: Map<string, any>; // Step ID -> Result
   errors: Map<string, Error>; // Step ID -> Error
   startTime: number;
 }
 
 export class WorkflowManager {
+  private parallelManager: ParallelExecutionManager | null = null;
+
   /**
    * Execute a workflow
    */
@@ -43,9 +55,15 @@ export class WorkflowManager {
       startTime: Date.now()
     };
 
+    // Initialize parallel manager if parallel config provided
+    if (workflow.parallelConfig) {
+      this.parallelManager = new ParallelExecutionManager(workflow.parallelConfig);
+    }
+
     log.info('[WorkflowManager] Starting workflow', {
       name: workflow.name,
-      steps: workflow.steps.length
+      steps: workflow.steps.length,
+      parallelConfig: !!workflow.parallelConfig,
     });
 
     try {
@@ -140,11 +158,89 @@ export class WorkflowManager {
   ): Promise<void> {
     const step = workflow.steps.find(s => s.id === stepId)!;
 
-    // Check condition
+    // Check condition (legacy support)
     if (step.condition && !step.condition(context)) {
       log.debug('[WorkflowManager] Skipping step due to condition', { stepId });
       return;
     }
+
+    // Handle parallel group steps
+    if (step.parallelGroup && this.parallelManager) {
+      log.debug('[WorkflowManager] Executing parallel group', {
+        stepId,
+        groupId: step.parallelGroup.id,
+        steps: step.parallelGroup.steps.length,
+      });
+
+      const result = await this.parallelManager.executeGroup(
+        step.parallelGroup,
+        (groupStepId) => this.executeStep(groupStepId, workflow, context),
+        context
+      );
+
+      // Store parallel group results
+      context.results.set(stepId, {
+        groupId: result.groupId,
+        completedSteps: result.completedSteps,
+        failedSteps: result.failedSteps,
+        skippedSteps: result.skippedSteps,
+        duration: result.duration,
+        success: result.success,
+      });
+
+      // Merge individual step results and errors
+      result.results.forEach((value, key) => {
+        context.results.set(key, value);
+      });
+
+      result.errors.forEach((value, key) => {
+        context.errors.set(key, value);
+      });
+
+      if (!result.success) {
+        throw new Error(`Parallel group ${result.groupId} failed`);
+      }
+
+      return;
+    }
+
+    // Handle branch steps (if/else, switch/case)
+    if (step.branch) {
+      log.debug('[WorkflowManager] Resolving branch', {
+        stepId,
+        branchType: step.branch.type
+      });
+
+      const branchSteps = branchResolver.resolve(step.branch, context);
+
+      log.info('[WorkflowManager] Branch resolved', {
+        stepId,
+        branchType: step.branch.type,
+        stepsToExecute: branchSteps.length
+      });
+
+      // Execute branch steps
+      for (const branchStepId of branchSteps) {
+        await this.executeStep(branchStepId, workflow, context);
+      }
+
+      // Store branch result (which branch was taken)
+      context.results.set(stepId, {
+        branchType: step.branch.type,
+        executedSteps: branchSteps
+      });
+
+      return;
+    }
+
+    // Regular tool execution
+    if (!step.toolName) {
+      log.warn('[WorkflowManager] Step has no toolName and no branch', { stepId });
+      return;
+    }
+
+    // Type narrowing: toolName is now guaranteed to be string
+    const toolName = step.toolName;
 
     // Resolve input
     const input = typeof step.input === 'function'
@@ -153,17 +249,18 @@ export class WorkflowManager {
 
     log.debug('[WorkflowManager] Executing step', {
       stepId,
-      toolName: step.toolName
+      toolName
     });
 
     try {
       // Execute with retry if configured
+      const userRequest = context.userRequest || 'Workflow execution';
       const result = step.onError === 'retry'
         ? await retryEngine.executeWithRetry(
-            step.toolName,
-            () => toolCompat.execute(step.toolName, input, context.userId, context.userRequest)
+            toolName,
+            () => toolCompat.execute(toolName, input, context.userId, userRequest)
           )
-        : await toolCompat.execute(step.toolName, input, context.userId, context.userRequest);
+        : await toolCompat.execute(toolName, input, context.userId, userRequest);
 
       context.results.set(stepId, result);
 
