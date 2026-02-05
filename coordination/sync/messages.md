@@ -237,3 +237,43 @@ Próximas tarefas disponíveis:
 2026-02-05 11:55:22: Claude #2 (security-specialist) iniciando Task #5: API Rate Limiting Per Endpoint 🔒
 
 Analisando sistema de rate limiting...
+
+2026-02-05 12:05:00: Claude #2 (security-specialist) completou Task #5: API Rate Limiting Per Endpoint ✅
+
+Implementação:
+- src/security/rate-limiter-enhanced.ts (580+ linhas) - EnhancedRateLimiter class
+- examples/rate-limit-config.ts (400+ linhas) - 8 configuração examples
+- tests/security/rate-limiter-enhanced.test.ts (470+ linhas) - 22 testes (todos ✓)
+
+Features:
+✅ Per-endpoint rate limits com wildcard pattern matching
+✅ Per-user rate limits com multipliers (0.5x, 2x, 5x)
+✅ Rate limit headers (X-RateLimit-Limit, Remaining, Reset, Retry-After)
+✅ Admin override (bypass completo)
+✅ Redis-backed distributed rate limiting (usa cache Task #1)
+✅ In-memory fallback automático
+✅ Metrics tracking (by endpoint, by user, block rates)
+✅ Custom key generators (userId, IP, tenant+user, API key)
+✅ Skip functions para whitelisting
+✅ Graceful degradation (fail open on errors)
+
+Configuration Examples:
+1. Basic configuration
+2. Per-endpoint limits (auth: 10/min, write: 30/min, search: 100/min)
+3. User multipliers (premium: 2x, enterprise: 5x, free: 0.5x)
+4. Admin override
+5. Multi-tenant com custom key generator
+6. Whitelist IPs
+7. Production configuration (comprehensive)
+8. Time-based dynamic limits (peak hours)
+
+Impacto:
+- Proteção contra abuse e DDoS
+- Rate limiting distribuído across instances
+- Headers RFC 6585 compliant
+- Flexible configuration por endpoint/usuário
+
+Próximas tarefas disponíveis:
+- Task #6: Prometheus Metrics Endpoint (Média)
+- Task #7: Queue System (Bull/BullMQ) (Média)
+- Task #8: OpenTelemetry Tracing (Baixa)
