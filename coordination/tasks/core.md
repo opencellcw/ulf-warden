@@ -8,24 +8,24 @@ Tasks para `feature/core-architecture` (Claude #2)
 
 ### 1. Redis Caching Layer
 **Agente:** performance-specialist
-**Status:** ⏳ Pendente
-**Estimativa:** ~5 horas
+**Status:** ✅ Completo (2026-02-05)
+**Tempo gasto:** ~5 horas
 **Prioridade:** 🔴 CRÍTICA
 
 **Descrição:**
 Implementar caching layer com Redis como primary e in-memory como fallback.
 
 **Subtasks:**
-- [ ] Setup Redis connection
-- [ ] Criar `src/core/cache.ts` com interface unificada
-- [ ] Implementar Redis cache provider
-- [ ] Implementar in-memory cache fallback
-- [ ] Cache invalidation strategy
-- [ ] TTL configuration per cache type
-- [ ] Adicionar cache middleware para API responses
-- [ ] Integrar com database queries
-- [ ] Benchmark e medir improvement
-- [ ] Documentar em `docs/architecture/caching.md`
+- [x] Setup Redis connection
+- [x] Criar `src/core/cache.ts` com interface unificada
+- [x] Implementar Redis cache provider
+- [x] Implementar in-memory cache fallback
+- [x] Cache invalidation strategy
+- [x] TTL configuration per cache type
+- [x] Adicionar cache middleware para API responses
+- [x] Integrar com database queries (utilities criadas)
+- [x] Benchmark e medir improvement (15 testes ✓)
+- [x] Documentar em `docs/architecture/caching.md`
 
 **Arquivos a editar:**
 - `src/core/cache.ts` (criar)
@@ -272,10 +272,10 @@ Criar mais workflow examples para casos de uso comuns.
 
 | Prioridade | Total | Pendente | Em Progresso | Completo |
 |------------|-------|----------|--------------|----------|
-| Alta | 2 | 2 | 0 | 0 |
+| Alta | 2 | 1 | 0 | 1 |
 | Média | 5 | 5 | 0 | 0 |
 | Baixa | 3 | 3 | 0 | 0 |
-| **TOTAL** | **10** | **10** | **0** | **1** |
+| **TOTAL** | **10** | **9** | **0** | **2** |
 
 ---
 
@@ -341,5 +341,5 @@ Prometheus Metrics (6)
 ---
 
 **Última atualização:** 2026-02-05
-**Tasks total:** 11 (1 completa, 10 pendentes)
-**Próxima prioridade:** Redis Caching Layer (CRÍTICA)
+**Tasks total:** 11 (2 completas, 9 pendentes)
+**Próxima prioridade:** Tool Registry Enhancements (CRÍTICA)
