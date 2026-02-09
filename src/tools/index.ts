@@ -9,6 +9,7 @@ import { executeElevenLabsTool } from './elevenlabs';
 import { executeOpenAITool } from './openai-tools';
 import { executeBraveSearchTool } from './brave-search';
 import { executePlaywrightTool } from './playwright';
+import { executeMemoryTool } from './memory-search';
 import { sendSlackMessage } from './slack-messaging';
 import { scheduleTask, listScheduledTasks, cancelScheduledTask } from './scheduler';
 import {
@@ -291,6 +292,12 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       case 'browser_wait_for':
       case 'browser_close':
         result = await executePlaywrightTool(toolName, toolInput);
+        break;
+
+      // Memory tools
+      case 'memory_search':
+      case 'memory_recall':
+        result = await executeMemoryTool(toolName, toolInput);
         break;
 
       // Web hosting tool

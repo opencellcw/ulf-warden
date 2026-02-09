@@ -44,6 +44,13 @@ const handlers: {
   whatsapp?: any;
 } = {};
 
+// Track proactive systems (Phase 4 - Rex evolution)
+const proactiveSystems: {
+  heartbeat?: any;
+  curator?: any;
+  oldHeartbeat?: any; // Keep legacy heartbeat for backward compatibility
+} = {};
+
 // HTTP server for Render health check
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -315,9 +322,67 @@ async function initialize() {
       process.exit(1);
     }
 
-    // 5. Initialize heartbeat system (if enabled)
-    if (process.env.HEARTBEAT_ENABLED === 'true' && handlers.slack) {
-      log.info('Initializing heartbeat system...');
+    // 5. Initialize proactive systems (Phase 4 - Rex evolution)
+    if (process.env.HEARTBEAT_ENABLED === 'true') {
+      log.info('Initializing proactive systems (Phase 4)...');
+
+      // Setup notification manager (Discord DM)
+      // If Discord fails, heartbeat still runs (just without notifications)
+      try {
+        if (handlers.discord) {
+          const { notificationManager } = await import('./proactive/notification-manager');
+          notificationManager.setDiscordClient(handlers.discord);
+          log.info('Notification manager connected to Discord');
+        } else {
+          log.info('Discord not available, notifications will be logged only');
+        }
+      } catch (error: any) {
+        log.warn('Notification manager init failed, continuing without Discord notifications', {
+          error: error.message
+        });
+      }
+
+      // Start heartbeat system (critical - Phase 4)
+      try {
+        const { heartbeatManager } = await import('./proactive/heartbeat-manager');
+        heartbeatManager.start();
+        proactiveSystems.heartbeat = heartbeatManager;
+        log.info('Heartbeat system started (Phase 4)', {
+          interval: `${process.env.HEARTBEAT_INTERVAL_MINUTES || 30}min`,
+          checks: 'Redis, Disk, Memory, Database, APIs'
+        });
+      } catch (error: any) {
+        log.error('Heartbeat system failed to start', {
+          error: error.message,
+          stack: error.stack
+        });
+      }
+
+      // Start memory auto-curation (configurable interval)
+      try {
+        const { memoryCurator } = await import('./memory/memory-curator');
+        const curationIntervalHours = parseInt(
+          process.env.MEMORY_CURATION_INTERVAL_HOURS || '72'
+        );
+        memoryCurator.startAutoCuration(curationIntervalHours);
+        proactiveSystems.curator = memoryCurator;
+        log.info('Memory auto-curation started', {
+          interval: `${curationIntervalHours}h`,
+          model: 'claude-haiku-4-20250514'
+        });
+      } catch (error: any) {
+        log.warn('Memory auto-curation failed to start', {
+          error: error.message
+        });
+      }
+
+      log.info('Proactive systems initialized (Phase 4 complete)');
+    }
+
+    // 5.5. Initialize legacy heartbeat system (backward compatibility)
+    // TODO: Remove this once Phase 4 heartbeat is fully validated
+    if (process.env.LEGACY_HEARTBEAT_ENABLED === 'true' && handlers.slack) {
+      log.info('Initializing legacy heartbeat system (Slack-only)...');
 
       const claude = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY
@@ -335,7 +400,8 @@ async function initialize() {
       );
 
       heartbeat.start();
-      log.info('Heartbeat system started');
+      proactiveSystems.oldHeartbeat = heartbeat;
+      log.info('Legacy heartbeat system started (Slack-only)');
     }
 
     // 6. Initialize cron scheduler and load jobs
@@ -396,13 +462,25 @@ async function gracefulShutdown(signal: string) {
   log.info(`${signal} received, shutting down gracefully...`);
 
   try {
-    // 1. Stop heartbeat system
+    // 1. Stop proactive systems (Phase 4)
     try {
-      const heartbeat = getHeartbeatManager();
-      heartbeat.stop();
-      log.info('Heartbeat system stopped');
-    } catch {
-      // Heartbeat not initialized, skip
+      if (proactiveSystems.heartbeat) {
+        proactiveSystems.heartbeat.stop();
+        log.info('Heartbeat system stopped (Phase 4)');
+      }
+
+      if (proactiveSystems.curator) {
+        proactiveSystems.curator.stopAutoCuration();
+        log.info('Memory auto-curation stopped');
+      }
+
+      if (proactiveSystems.oldHeartbeat) {
+        proactiveSystems.oldHeartbeat.stop();
+        log.info('Legacy heartbeat system stopped');
+      }
+    } catch (error: any) {
+      log.warn('Error stopping proactive systems', { error: error.message });
+      // Continue with shutdown
     }
 
     // 2. Stop cron scheduler
