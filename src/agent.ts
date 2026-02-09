@@ -8,6 +8,7 @@ import { OutputParser, AgentResponse } from './core/output-parser';
 import { featureFlags, Feature } from './core/feature-flags';
 import { telemetry } from './core/telemetry';
 import { SpanKind } from '@opentelemetry/api';
+import { initializeContextCompactor, checkAndCompactContext } from './core/context-compactor';
 
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
@@ -17,6 +18,14 @@ const client = claudeProvider.getClient();
 
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
 const MAX_ITERATIONS = 30; // Prevent infinite loops
+
+// Initialize context compactor (30k reserve for response + tools)
+initializeContextCompactor(client, {
+  modelMaxTokens: 200_000, // Claude Sonnet 4
+  reservedTokens: 30_000, // Reserve for response + tools
+  compactionThreshold: 150_000, // Trigger at 150k (88% usage)
+  recentMessagesToKeep: 10 // Keep last 10 messages
+});
 
 export interface AgentOptions {
   userId: string;
@@ -174,13 +183,27 @@ When generating images/videos/audio:
 - Provide download link
 - Use Discord embeds for better presentation`;
 
-  const messages: MessageParam[] = [
+  let messages: MessageParam[] = [
     ...history,
     {
       role: 'user',
       content: userMessage,
     },
   ];
+
+  // Check and compact context if needed (30k reserve)
+  const compactionResult = await checkAndCompactContext(messages, systemPrompt);
+  messages = compactionResult.messages;
+
+  if (compactionResult.result.compacted) {
+    log.info('[Agent] Context compacted', {
+      originalMessages: compactionResult.result.originalCount,
+      compactedMessages: compactionResult.result.compactedCount,
+      originalTokens: compactionResult.result.originalTokens,
+      compactedTokens: compactionResult.result.compactedTokens,
+      savedTokens: compactionResult.result.originalTokens - compactionResult.result.compactedTokens
+    });
+  }
 
   let iteration = 0;
   let response = await client.messages.create({
@@ -256,6 +279,19 @@ When generating images/videos/audio:
       content: response.content,
     });
     messages.push(toolResults);
+
+    // Check and compact context before continuing (tool results can be large)
+    const loopCompaction = await checkAndCompactContext(messages, systemPrompt);
+    messages = loopCompaction.messages;
+
+    if (loopCompaction.result.compacted) {
+      log.info('[Agent] Context compacted in loop', {
+        iteration,
+        originalMessages: loopCompaction.result.originalCount,
+        compactedMessages: loopCompaction.result.compactedCount,
+        savedTokens: loopCompaction.result.originalTokens - loopCompaction.result.compactedTokens
+      });
+    }
 
     // Continue conversation with tool results
     response = await client.messages.create({

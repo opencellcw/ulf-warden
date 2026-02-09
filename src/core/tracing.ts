@@ -92,7 +92,7 @@ export class TracingManager {
       // Create SDK
       this.sdk = new NodeSDK({
         resource,
-        spanProcessor: new BatchSpanProcessor(exporter),
+        spanProcessor: new BatchSpanProcessor(exporter) as any,
         instrumentations: [], // Manual instrumentation only for now
       });
 

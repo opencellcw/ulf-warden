@@ -7,6 +7,8 @@ import { executeProcessTool } from './process';
 import { executeReplicateTool } from './replicate';
 import { executeElevenLabsTool } from './elevenlabs';
 import { executeOpenAITool } from './openai-tools';
+import { executeBraveSearchTool } from './brave-search';
+import { executePlaywrightTool } from './playwright';
 import { sendSlackMessage } from './slack-messaging';
 import { scheduleTask, listScheduledTasks, cancelScheduledTask } from './scheduler';
 import {
@@ -271,6 +273,24 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       case 'openai_transcribe_audio':
       case 'openai_analyze_image':
         result = await executeOpenAITool(toolName, toolInput);
+        break;
+
+      // Brave Search tools
+      case 'brave_web_search':
+      case 'brave_news_search':
+        result = await executeBraveSearchTool(toolName, toolInput);
+        break;
+
+      // Playwright browser tools
+      case 'browser_navigate':
+      case 'browser_screenshot':
+      case 'browser_get_content':
+      case 'browser_click':
+      case 'browser_fill_form':
+      case 'browser_execute_js':
+      case 'browser_wait_for':
+      case 'browser_close':
+        result = await executePlaywrightTool(toolName, toolInput);
         break;
 
       // Web hosting tool

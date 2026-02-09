@@ -173,8 +173,8 @@ export async function startDiscordHandler() {
       return true;
     }
 
-    // Speak text
-    if (text.match(/fala|falar|speak|say|diz|dizer/i)) {
+    // Speak text (more specific pattern to avoid false positives)
+    if (text.match(/^(fala|falar|speak|say|diz|dizer)\s/i) || text.match(/\b(fala|falar|speak|say|diz|dizer)\s+(algo|isso|aquilo|[""])/i)) {
       if (!voiceManager.isConnected(guildId)) {
         await message.reply('❌ Preciso estar em um canal de voz! Use "entrar no canal de voz" primeiro.');
         return true;
@@ -330,8 +330,9 @@ export async function startDiscordHandler() {
         return;
       }
 
-      // Handle status command
-      if (text.match(/status|system|servidor|server status|ulf status/i)) {
+      // Handle status command (must be explicit intent, not just containing the word)
+      if (text.match(/^(status|system|servidor|ulf status|server status)$/i) ||
+          text.match(/\b(mostra|show|ver|check)\s+(status|system|servidor)/i)) {
         await sendStatusReport(message);
         return;
       }

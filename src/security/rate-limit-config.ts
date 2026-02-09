@@ -98,6 +98,20 @@ export const TOOL_RATE_LIMITS: EndpointRateLimits = {
   'web_extract': EXTERNAL_API_LIMIT,
   'web_*': EXTERNAL_API_LIMIT,
 
+  'brave_web_search': EXTERNAL_API_LIMIT,
+  'brave_news_search': EXTERNAL_API_LIMIT,
+  'brave_*': EXTERNAL_API_LIMIT,
+
+  'browser_navigate': EXTERNAL_API_LIMIT,
+  'browser_screenshot': EXTERNAL_API_LIMIT,
+  'browser_get_content': EXTERNAL_API_LIMIT,
+  'browser_click': EXTERNAL_API_LIMIT,
+  'browser_fill_form': EXTERNAL_API_LIMIT,
+  'browser_execute_js': EXTERNAL_API_LIMIT,
+  'browser_wait_for': EXTERNAL_API_LIMIT,
+  'browser_close': EXTERNAL_API_LIMIT,
+  'browser_*': EXTERNAL_API_LIMIT,
+
   'github_clone': EXTERNAL_API_LIMIT,
   'github_search': EXTERNAL_API_LIMIT,
   'github_issue': EXTERNAL_API_LIMIT,

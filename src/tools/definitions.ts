@@ -6,6 +6,8 @@ import { PROCESS_TOOLS } from './process';
 import { REPLICATE_TOOLS } from './replicate';
 import { ELEVENLABS_TOOLS } from './elevenlabs';
 import { OPENAI_TOOLS } from './openai-tools';
+import { BRAVE_SEARCH_TOOLS } from './brave-search';
+import { PLAYWRIGHT_TOOLS } from './playwright';
 import { SLACK_MESSAGING_TOOL } from './slack-messaging';
 import { SCHEDULER_TOOLS } from './scheduler';
 import { SELF_IMPROVEMENT_TOOLS } from './self-improvement';
@@ -126,6 +128,8 @@ export const TOOLS: Anthropic.Tool[] = [
   ...BOT_FACTORY_TOOLS,
   ...GITHUB_TOOLS,
   ...WEB_TOOLS,
+  ...BRAVE_SEARCH_TOOLS,
+  ...PLAYWRIGHT_TOOLS,
   ...WEB_HOST_TOOLS as Anthropic.Tool[],
   ...FILE_TOOLS,
   ...PROCESS_TOOLS,

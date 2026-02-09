@@ -13,6 +13,10 @@ export interface Session {
 class SessionManager {
   private sessions: Map<string, Session> = new Map();
   private initialized: boolean = false;
+  private autoFlushInterval: NodeJS.Timeout | null = null;
+  private flushThreshold: number = 10; // Flush after N messages
+  private idleThreshold: number = 5 * 60 * 1000; // 5 minutes idle = flush
+  private gcInterval: NodeJS.Timeout | null = null;
 
   async init(): Promise<void> {
     if (this.initialized) return;
@@ -79,9 +83,9 @@ class SessionManager {
       session.messages = session.messages.slice(-50);
     }
 
-    // Persist to database (async, non-blocking)
-    persistence.saveSession(userId, session).catch(err => {
-      console.error('[Sessions] Failed to persist session:', err);
+    // Smart flush (conditional, based on criteria)
+    this.smartFlush(userId, session).catch(err => {
+      console.error('[Sessions] Smart flush failed:', err);
     });
 
     // Log to daily log (async, non-blocking)
@@ -119,6 +123,130 @@ class SessionManager {
 
     await Promise.all(promises);
     console.log(`[Sessions] ✓ Flushed ${promises.length} sessions`);
+  }
+
+  /**
+   * Start auto-flush: periodically save sessions to persistent storage
+   */
+  startAutoFlush(intervalMs: number = 60000): void {
+    if (this.autoFlushInterval) {
+      clearInterval(this.autoFlushInterval);
+    }
+
+    this.autoFlushInterval = setInterval(async () => {
+      try {
+        await this.flushAll();
+        console.log('[Sessions] Auto-flush completed');
+      } catch (error) {
+        console.error('[Sessions] Auto-flush failed:', error);
+      }
+    }, intervalMs);
+
+    console.log(`[Sessions] ✓ Auto-flush started (interval: ${intervalMs}ms = ${intervalMs / 1000}s)`);
+  }
+
+  /**
+   * Stop auto-flush
+   */
+  stopAutoFlush(): void {
+    if (this.autoFlushInterval) {
+      clearInterval(this.autoFlushInterval);
+      this.autoFlushInterval = null;
+      console.log('[Sessions] Auto-flush stopped');
+    }
+  }
+
+  /**
+   * Smart flush: flush session if it meets criteria
+   */
+  private async smartFlush(userId: string, session: Session): Promise<void> {
+    const messageCount = session.messages.length;
+    const idleTime = Date.now() - session.lastActivity.getTime();
+
+    // Flush if message threshold reached
+    if (messageCount >= this.flushThreshold && messageCount % this.flushThreshold === 0) {
+      console.log(`[Sessions] Smart flush: ${userId} (${messageCount} messages)`);
+      await persistence.saveSession(userId, session);
+    }
+
+    // Flush if idle for too long
+    if (idleTime >= this.idleThreshold) {
+      console.log(`[Sessions] Smart flush: ${userId} (idle ${Math.round(idleTime / 1000)}s)`);
+      await persistence.saveSession(userId, session);
+    }
+  }
+
+  /**
+   * Start garbage collection: clean up old sessions
+   */
+  startGarbageCollection(intervalMs: number = 3600000, maxAgeHours: number = 24): void {
+    if (this.gcInterval) {
+      clearInterval(this.gcInterval);
+    }
+
+    this.gcInterval = setInterval(async () => {
+      try {
+        await this.collectGarbage(maxAgeHours);
+      } catch (error) {
+        console.error('[Sessions] Garbage collection failed:', error);
+      }
+    }, intervalMs);
+
+    console.log(`[Sessions] ✓ Garbage collection started (interval: ${intervalMs / 1000 / 60}min, max age: ${maxAgeHours}h)`);
+  }
+
+  /**
+   * Stop garbage collection
+   */
+  stopGarbageCollection(): void {
+    if (this.gcInterval) {
+      clearInterval(this.gcInterval);
+      this.gcInterval = null;
+      console.log('[Sessions] Garbage collection stopped');
+    }
+  }
+
+  /**
+   * Collect garbage: remove old inactive sessions
+   */
+  private async collectGarbage(maxAgeHours: number): Promise<number> {
+    const now = Date.now();
+    const maxAge = maxAgeHours * 60 * 60 * 1000;
+    let collected = 0;
+
+    for (const [userId, session] of this.sessions.entries()) {
+      const age = now - session.lastActivity.getTime();
+
+      if (age > maxAge) {
+        // Flush before removing
+        await persistence.saveSession(userId, session);
+        this.sessions.delete(userId);
+        collected++;
+        console.log(`[Sessions] GC: Removed old session ${userId} (age: ${Math.round(age / 1000 / 60)}min)`);
+      }
+    }
+
+    if (collected > 0) {
+      console.log(`[Sessions] ✓ Garbage collection: removed ${collected} old sessions`);
+    }
+
+    return collected;
+  }
+
+  /**
+   * Shutdown gracefully: flush all and stop timers
+   */
+  async shutdown(): Promise<void> {
+    console.log('[Sessions] Shutting down...');
+
+    // Stop timers
+    this.stopAutoFlush();
+    this.stopGarbageCollection();
+
+    // Final flush
+    await this.flushAll();
+
+    console.log('[Sessions] ✓ Shutdown complete');
   }
 }
 

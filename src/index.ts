@@ -21,9 +21,8 @@ import { getToolRateLimiter } from './security/rate-limit-instance';
 import { queueService } from './core/queue-types';
 import { telemetry } from './core/telemetry';
 import { initializeMigrations } from './core/migrations';
-// TODO: Re-enable when OpenTelemetry version conflicts are resolved
-// import { initializeTracing, shutdownTracing } from './core/tracing';
-// import { tracingMiddleware, tracingErrorHandler } from './core/tracing-middleware';
+import { initializeTracing, shutdownTracing } from './core/tracing';
+import { tracingMiddleware, tracingErrorHandler } from './core/tracing-middleware';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -52,10 +51,10 @@ const PORT = process.env.PORT || 3000;
 // Prometheus metrics middleware (collect HTTP metrics)
 app.use(prometheusMetrics.httpMiddleware());
 
-// TODO: Distributed Tracing middleware (requires OpenTelemetry version alignment)
-// if (process.env.TRACING_ENABLED === 'true') {
-//   app.use(tracingMiddleware());
-// }
+// Distributed Tracing middleware (if enabled)
+if (process.env.TRACING_ENABLED === 'true') {
+  app.use(tracingMiddleware());
+}
 
 app.get('/', (req, res) => {
   res.json({
@@ -77,10 +76,10 @@ app.get('/health', (req, res) => {
 // Prometheus metrics endpoint
 app.get('/metrics', prometheusMetrics.metricsHandler());
 
-// TODO: Tracing error handler (requires OpenTelemetry version alignment)
-// if (process.env.TRACING_ENABLED === 'true') {
-//   app.use(tracingErrorHandler());
-// }
+// Tracing error handler (must be after routes)
+if (process.env.TRACING_ENABLED === 'true') {
+  app.use(tracingErrorHandler());
+}
 
 // Initialize and start all handlers
 async function initialize() {
@@ -192,28 +191,26 @@ async function initialize() {
     }
 
     // 1.75. Initialize Distributed Tracing (OpenTelemetry)
-    // TODO: Re-enable when OpenTelemetry SDK versions are aligned
-    // Current issue: Version conflicts between @opentelemetry packages
-    // if (process.env.TRACING_ENABLED === 'true') {
-    //   try {
-    //     log.info('Initializing distributed tracing...');
-    //     await initializeTracing({
-    //       serviceName: 'opencell-ai',
-    //       serviceVersion: '1.0.0',
-    //       environment: process.env.NODE_ENV || 'production',
-    //       exporter: (process.env.TRACING_EXPORTER as any) || 'console'
-    //     });
-    //     log.info('Distributed tracing initialized', {
-    //       exporter: process.env.TRACING_EXPORTER || 'console',
-    //       serviceName: 'opencell-ai'
-    //     });
-    //   } catch (error) {
-    //     log.warn('Distributed tracing initialization failed', {
-    //       error: error instanceof Error ? error.message : String(error)
-    //     });
-    //     // Continue without tracing
-    //   }
-    // }
+    if (process.env.TRACING_ENABLED === 'true') {
+      try {
+        log.info('Initializing distributed tracing...');
+        await initializeTracing({
+          serviceName: 'opencell-ai',
+          serviceVersion: '1.0.0',
+          environment: process.env.NODE_ENV || 'production',
+          exporter: (process.env.TRACING_EXPORTER as any) || 'console'
+        });
+        log.info('Distributed tracing initialized', {
+          exporter: process.env.TRACING_EXPORTER || 'console',
+          serviceName: 'opencell-ai'
+        });
+      } catch (error) {
+        log.warn('Distributed tracing initialization failed', {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Continue without tracing
+      }
+    }
 
     // 1.8. Initialize Tool Registry (Phase 2)
     log.info('Initializing Tool Registry...');
@@ -467,15 +464,14 @@ async function gracefulShutdown(signal: string) {
     }
 
     // 8.5. Shutdown distributed tracing
-    // TODO: Re-enable when OpenTelemetry version conflicts are resolved
-    // if (process.env.TRACING_ENABLED === 'true') {
-    //   try {
-    //     log.info('Shutting down distributed tracing...');
-    //     await shutdownTracing();
-    //   } catch {
-    //     // Tracing may not be initialized
-    //   }
-    // }
+    if (process.env.TRACING_ENABLED === 'true') {
+      try {
+        log.info('Shutting down distributed tracing...');
+        await shutdownTracing();
+      } catch {
+        // Tracing may not be initialized
+      }
+    }
 
     // 9. Close database connections
     log.info('Closing database connections...');

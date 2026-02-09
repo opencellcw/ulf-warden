@@ -216,7 +216,7 @@ export function tracingErrorHandler() {
 export async function tracedFetch(
   url: string,
   options: RequestInit = {}
-): Promise<Response> {
+): Promise<globalThis.Response> {
   const tracingManager = getTracingManager();
 
   return await tracingManager.withSpan(
