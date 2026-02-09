@@ -12,6 +12,8 @@ import { getNormalRateLimiter } from '../security/rate-limiter';
 import { voiceManager } from '../voice/discord-voice';
 import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
+import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
+import { contactManager } from '../identity/contacts';
 import axios from 'axios';
 
 export async function startDiscordHandler() {
@@ -248,6 +250,17 @@ export async function startDiscordHandler() {
   client.on('ready', () => {
     console.log(`✓ Discord handler started (${client.user?.tag})`);
 
+    // Log listen channels configuration
+    if (listenChannelIds.size > 0) {
+      console.log(`  • Listen channels: ${Array.from(listenChannelIds).join(', ')}`);
+      log.info('[Discord] Listen channels configured', {
+        channels: Array.from(listenChannelIds),
+        count: listenChannelIds.size
+      });
+    } else {
+      console.log('  • Listen channels: None (only DMs and @mentions)');
+    }
+
     // Initialize approval system
     approvalSystem.setClient(client);
     log.info('[Discord] Approval system initialized');
@@ -274,18 +287,44 @@ export async function startDiscordHandler() {
     }
   });
 
+  // Parse listen channels from env (comma-separated channel IDs)
+  const listenChannelIds = new Set<string>(
+    (process.env.DISCORD_LISTEN_CHANNELS || '')
+      .split(',')
+      .map(id => id.trim())
+      .filter(id => id.length > 0)
+  );
+
   client.on('messageCreate', async (message: Message) => {
     try {
       // Ignore bot messages
       if (message.author.bot) return;
 
-      // Respond to DMs or mentions
+      // Determine if bot should respond
       const isDM = message.channel.isDMBased();
       const isMentioned = message.mentions.has(client.user!);
+      const isListenChannel = !message.channel.isDMBased() && listenChannelIds.has(message.channelId);
 
-      if (!isDM && !isMentioned) return;
+      // Respond if: DM, mentioned, OR in a listen channel
+      if (!isDM && !isMentioned && !isListenChannel) return;
 
       const userId = `discord_${message.author.id}`;
+      const discordId = message.author.id;
+
+      // Get user identity and trust level
+      const trustLevel = contactManager.getTrustLevel(discordId);
+      const identityContext = contactManager.getIdentityContext(discordId);
+
+      log.info('[Discord] Message received', {
+        userId,
+        discordId,
+        trustLevel,
+        isDM,
+        isMentioned,
+        isListenChannel,
+        channelId: message.channelId,
+        username: message.author.username
+      });
 
       // Rate limiting check
       const rateLimiter = getNormalRateLimiter();
@@ -355,26 +394,73 @@ export async function startDiscordHandler() {
       // Choose between agent (with tools) or regular chat
       const useAgent = needsAgent(text);
 
+      // Prepare context with identity info
+      const contextMessage = `${identityContext}\n\n${text}`;
+
       let response: string;
       if (useAgent) {
         console.log(`[Discord] Using AGENT mode for: ${text.substring(0, 30)}...`);
         response = await runAgent({
           userId,
-          userMessage: text,
+          userMessage: contextMessage,
           history,
         });
       } else {
         response = await chat({
           userId,
-          userMessage: text,
+          userMessage: contextMessage,
           history,
         });
       }
 
-      await sessionManager.addMessage(userId, { role: 'user', content: text });
-      await sessionManager.addMessage(userId, { role: 'assistant', content: response });
+      // Parse response to determine action (reply, react, or no_reply)
+      const decision = parseAgentResponse(response);
 
-      await sendResponse(message, response);
+      log.info('[Discord] Response decision', {
+        type: decision.type,
+        reason: decision.reason,
+        hasEmoji: !!decision.emoji
+      });
+
+      // Handle based on decision type
+      if (decision.type === 'no_reply') {
+        // Silent - don't respond, don't add to session history
+        console.log(`[Discord] NO_REPLY decision for ${userId}: ${decision.reason}`);
+        return;
+      }
+
+      if (decision.type === 'react') {
+        // React with emoji
+        if (decision.emoji) {
+          try {
+            await message.react(decision.emoji);
+            console.log(`[Discord] Reacted with ${decision.emoji} to ${userId}`);
+          } catch (error: any) {
+            log.error('[Discord] Failed to react', {
+              emoji: decision.emoji,
+              error: error.message
+            });
+            // Fallback: send thumbs up if emoji fails
+            await message.react('👍').catch(() => {});
+          }
+        }
+
+        // Add minimal context to session (so bot remembers it reacted)
+        await sessionManager.addMessage(userId, { role: 'user', content: text });
+        await sessionManager.addMessage(userId, {
+          role: 'assistant',
+          content: `[Reacted with ${decision.emoji}]`
+        });
+        return;
+      }
+
+      // Default: reply with text
+      const textResponse = decision.content || response;
+
+      await sessionManager.addMessage(userId, { role: 'user', content: text });
+      await sessionManager.addMessage(userId, { role: 'assistant', content: textResponse });
+
+      await sendResponse(message, textResponse);
 
       // If connected to voice channel, speak the response
       const guildId = message.guild?.id;
