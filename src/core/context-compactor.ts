@@ -158,7 +158,7 @@ export class ContextCompactor {
         .join('\n\n');
 
       const response = await this.client.messages.create({
-        model: 'claude-haiku-4-20250514', // Fast and cheap for summarization
+        model: 'claude-opus-4-5-20251101', // Most capable for summarization (Opus 4.5)
         max_tokens: 2000,
         messages: [
           {

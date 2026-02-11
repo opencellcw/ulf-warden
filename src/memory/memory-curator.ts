@@ -91,7 +91,7 @@ Return as JSON:
 }`;
 
       const response = await this.client!.messages.create({
-        model: 'claude-haiku-4-20250514', // Fast and cheap
+        model: 'claude-opus-4-5-20251101', // Most capable (Opus 4.5)
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       });

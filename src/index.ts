@@ -368,7 +368,7 @@ async function initialize() {
         proactiveSystems.curator = memoryCurator;
         log.info('Memory auto-curation started', {
           interval: `${curationIntervalHours}h`,
-          model: 'claude-haiku-4-20250514'
+          model: 'claude-opus-4-5-20251101'
         });
       } catch (error: any) {
         log.warn('Memory auto-curation failed to start', {
