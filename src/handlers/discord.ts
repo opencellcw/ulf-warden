@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel } from 'discord.js';
+import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel, Partials } from 'discord.js';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
@@ -14,6 +14,11 @@ import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
 import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
 import { contactManager } from '../identity/contacts';
+import { rotateKey, checkKeyStatus } from '../commands/rotate-key';
+import { handleImageGenCommand, isImageGenCommand } from '../commands/image-gen';
+import { handleAdminCommand } from '../commands/admin';
+import { handleHelpCommand } from '../commands/help';
+import { initCloudRunClient } from '../cloud-run-client';
 import axios from 'axios';
 
 export async function startDiscordHandler() {
@@ -30,7 +35,30 @@ export async function startDiscordHandler() {
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildVoiceStates,
     ],
+    partials: [
+      Partials.Channel, // Necessário para receber DMs
+      Partials.Message, // Necessário para mensagens parciais
+    ],
   });
+
+  // Initialize Cloud Run agents (if configured)
+  const cloudRunAgents = [];
+  if (process.env.IMAGE_GEN_AGENT_URL) {
+    cloudRunAgents.push({
+      name: 'image-gen',
+      url: process.env.IMAGE_GEN_AGENT_URL,
+      timeout: 120000 // 2 minutes
+    });
+  }
+
+  if (cloudRunAgents.length > 0) {
+    try {
+      initCloudRunClient(cloudRunAgents);
+      console.log(`[Discord] Cloud Run agents initialized: ${cloudRunAgents.map(a => a.name).join(', ')}`);
+    } catch (error: any) {
+      console.error('[Discord] Failed to initialize Cloud Run agents:', error.message);
+    }
+  }
 
   /**
    * Send response with automatic media handling
@@ -376,9 +404,41 @@ export async function startDiscordHandler() {
         return;
       }
 
+      // Handle API key rotation commands
+      if (text.startsWith('/rotate-key')) {
+        const args = text.split(' ').slice(1); // Remove '/rotate-key'
+        await rotateKey(message, args);
+        return;
+      }
+
+      if (text.startsWith('/key-status') || text.startsWith('/chave-status')) {
+        await checkKeyStatus(message);
+        return;
+      }
+
+      // Handle admin commands
+      if (text.startsWith('/admin')) {
+        const args = text.split(' ').slice(1); // Remove '/admin'
+        await handleAdminCommand(message, args);
+        return;
+      }
+
+      // Handle help command
+      if (text.startsWith('/help') || text.startsWith('/ajuda')) {
+        const args = text.split(' ').slice(1); // Remove '/help'
+        await handleHelpCommand(message, args);
+        return;
+      }
+
       // Handle voice commands
       const handledVoice = await handleVoiceCommand(message, text);
       if (handledVoice) {
+        return;
+      }
+
+      // Handle Cloud Run agent commands (image generation)
+      if (isImageGenCommand(text) && cloudRunAgents.length > 0) {
+        await handleImageGenCommand(message);
         return;
       }
 
@@ -404,6 +464,7 @@ export async function startDiscordHandler() {
           userId,
           userMessage: contextMessage,
           history,
+          trustLevel,
         });
       } else {
         response = await chat({

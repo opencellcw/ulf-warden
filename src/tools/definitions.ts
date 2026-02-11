@@ -14,6 +14,7 @@ import { SCHEDULER_TOOLS } from './scheduler';
 import { SELF_IMPROVEMENT_TOOLS } from './self-improvement';
 import { BOT_FACTORY_TOOLS } from '../bot-factory/tools';
 import { WEB_HOST_TOOLS } from './web-host';
+import { EMAIL_TOOLS } from './email';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -137,5 +138,6 @@ export const TOOLS: Anthropic.Tool[] = [
   ...PROCESS_TOOLS,
   ...REPLICATE_TOOLS,
   ...ELEVENLABS_TOOLS,
-  ...OPENAI_TOOLS
+  ...OPENAI_TOOLS,
+  ...EMAIL_TOOLS
 ];

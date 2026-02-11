@@ -18,6 +18,7 @@ import {
   getImprovementStats
 } from './self-improvement';
 import { executeBotFactoryTool } from '../bot-factory/executor';
+import { executeEmailTool } from './email';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 import { vetToolCall, isInDenylist, validateToolArgs } from '../security/vetter';
@@ -26,39 +27,51 @@ import { isToolBlocked, getToolSecurityInfo } from '../config/blocked-tools';
 
 export { TOOLS };
 
-export async function executeTool(toolName: string, toolInput: any, userId?: string, userRequest?: string): Promise<string> {
+export async function executeTool(
+  toolName: string,
+  toolInput: any,
+  userId?: string,
+  userRequest?: string,
+  trustLevel?: string
+): Promise<string> {
   const startTime = Date.now();
 
   try {
-    // 🔒 SECURITY LAYER 1: Check blocklist (OpenClaw-Security inspired)
-    const securityInfo = getToolSecurityInfo(toolName);
-    if (securityInfo.blocked) {
-      log.warn('[BlockedTools] Tool execution blocked', {
-        toolName,
-        userId,
-        reason: securityInfo.reason
-      });
-      return `🚫 Tool "${toolName}" is blocked by security policy.\nReason: ${securityInfo.reason}`;
+    // 🔓 OWNER BYPASS: Owners skip all security checks
+    if (trustLevel === 'owner') {
+      log.info('[Security] Owner bypass - all checks skipped', { toolName, userId });
+      // Skip all security layers for owners
+    } else {
+      // 🔒 SECURITY LAYER 1: Check blocklist (OpenClaw-Security inspired)
+      const securityInfo = getToolSecurityInfo(toolName);
+      if (securityInfo.blocked) {
+        log.warn('[BlockedTools] Tool execution blocked', {
+          toolName,
+          userId,
+          reason: securityInfo.reason
+        });
+        return `🚫 Tool "${toolName}" is blocked by security policy.\nReason: ${securityInfo.reason}`;
+      }
+
+      // 🔒 SECURITY LAYER 2: Auto-block denylist tools (legacy)
+      if (isInDenylist(toolName)) {
+        log.warn('[Vetter] Tool is in denylist', { toolName, userId });
+        return `🚫 Tool "${toolName}" is blocked by security policy`;
+      }
+
+      // 🔒 SECURITY: Validate tool arguments for injection patterns
+      const argsValidation = validateToolArgs(toolName, toolInput);
+      if (!argsValidation.valid) {
+        log.warn('[Vetter] Invalid tool arguments', {
+          toolName,
+          userId,
+          reason: argsValidation.reason
+        });
+        return `🚫 Tool arguments rejected: ${argsValidation.reason}`;
+      }
     }
 
-    // 🔒 SECURITY LAYER 2: Auto-block denylist tools (legacy)
-    if (isInDenylist(toolName)) {
-      log.warn('[Vetter] Tool is in denylist', { toolName, userId });
-      return `🚫 Tool "${toolName}" is blocked by security policy`;
-    }
-
-    // 🔒 SECURITY: Validate tool arguments for injection patterns
-    const argsValidation = validateToolArgs(toolName, toolInput);
-    if (!argsValidation.valid) {
-      log.warn('[Vetter] Invalid tool arguments', {
-        toolName,
-        userId,
-        reason: argsValidation.reason
-      });
-      return `🚫 Tool arguments rejected: ${argsValidation.reason}`;
-    }
-
-    // 🔒 SECURITY: Vet high-risk tools before execution
+    // 🔒 SECURITY: Vet high-risk tools before execution (unless owner)
     const highRiskTools = [
       'execute_shell',
       'write_file',
@@ -68,13 +81,14 @@ export async function executeTool(toolName: string, toolInput: any, userId?: str
       'schedule_task'
     ];
 
-    if (highRiskTools.includes(toolName)) {
+    if (highRiskTools.includes(toolName) && trustLevel !== 'owner') {
       try {
         const vetDecision = await vetToolCall(
           toolName,
           toolInput,
           userRequest || 'Unknown request',
-          true // Use Haiku for speed
+          true, // Use Haiku for speed
+          trustLevel
         );
 
         if (!vetDecision.allowed) {
@@ -186,6 +200,11 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       // Slack messaging tool
       case 'send_slack_message':
         result = await sendSlackMessage(toolInput);
+        break;
+
+      // Email tool
+      case 'send_email':
+        result = await executeEmailTool(toolInput);
         break;
 
       // Scheduler tools

@@ -1,0 +1,102 @@
+---
+# Kubernetes CronJob para verificar expiração de chave API
+# Executa a cada hora e envia alertas no Discord
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: key-expiration-checker
+  namespace: agents
+  labels:
+    app: ulf-warden
+    component: key-rotation
+spec:
+  # Executar a cada hora (0 minutos de cada hora)
+  schedule: "0 * * * *"
+
+  # Manter histórico dos últimos 3 jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  # Permitir execução concorrente (se um job demorar mais de 1h)
+  concurrencyPolicy: Allow
+
+  jobTemplate:
+    metadata:
+      labels:
+        app: ulf-warden
+        component: key-rotation
+    spec:
+      # Job timeout: 5 minutos
+      activeDeadlineSeconds: 300
+
+      template:
+        metadata:
+          labels:
+            app: ulf-warden
+            component: key-rotation
+        spec:
+          restartPolicy: OnFailure
+
+          # Use a mesma service account do ulf-warden-agent
+          serviceAccountName: ulf-warden-ksa
+
+          # Security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+
+          containers:
+          - name: checker
+            image: us-central1-docker.pkg.dev/opencellcw-k8s/ulf-images/ulf-warden:latest
+            imagePullPolicy: Always
+
+            command:
+            - node
+            - dist/scripts/check-key-expiration.js
+
+            env:
+            - name: DATA_DIR
+              value: /data
+
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ulf-warden-agent-secrets
+                  key: discord-bot-token
+
+            - name: NODE_ENV
+              value: production
+
+            # Resources (bem leve, só verifica e envia DM)
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+
+            # Volume para acessar key-rotation.json
+            volumeMounts:
+            - name: data
+              mountPath: /data
+
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: ulf-warden-agent-data
+
+---
+# Alternativa: CronJob mais frequente (a cada 30 minutos)
+# Descomente abaixo e delete o CronJob acima se preferir checks mais frequentes
+
+# apiVersion: batch/v1
+# kind: CronJob
+# metadata:
+#   name: key-expiration-checker
+#   namespace: agents
+# spec:
+#   schedule: "*/30 * * * *"  # A cada 30 minutos
+#   ...resto igual...

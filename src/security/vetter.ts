@@ -93,12 +93,27 @@ export async function vetToolCall(
   toolName: string,
   toolArgs: any,
   userRequest: string,
-  useHaiku: boolean = true
+  useHaiku: boolean = true,
+  trustLevel?: string
 ): Promise<VetDecision> {
   const startTime = Date.now();
 
   const riskLevel = TOOL_RISK_LEVELS[toolName] || 'medium';
   const requiresConfirmation = CONFIRMATION_REQUIRED_TOOLS.includes(toolName);
+
+  // 🔓 OWNER BYPASS: Owners have full access, no restrictions
+  if (trustLevel === 'owner') {
+    log.info('[Vetter] Owner bypass - auto-permit', { toolName });
+
+    return {
+      allowed: true,
+      reason: 'Owner has unrestricted access',
+      toolName,
+      riskLevel,
+      requiresConfirmation: false,
+      vettedAt: new Date()
+    };
+  }
 
   // Auto-permit low-risk read-only tools (fail-open for safety)
   if (riskLevel === 'low' && !requiresConfirmation) {

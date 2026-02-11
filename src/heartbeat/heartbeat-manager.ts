@@ -107,7 +107,7 @@ export class HeartbeatManager {
 
       // Call Claude with context
       const response = await this.claude.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-5-20251101', // Opus 4.5 (most capable)
         max_tokens: 500,
         system: systemPrompt,
         messages: [

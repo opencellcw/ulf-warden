@@ -98,6 +98,30 @@ async function initialize() {
     initializeBlocklist();
     initializeToolExecutor();
 
+    // 0.5. Configure Git/GitHub credentials (if available)
+    if (process.env.GITHUB_TOKEN) {
+      try {
+        const { execSync } = require('child_process');
+        const username = process.env.GITHUB_USERNAME || 'opencellcw';
+
+        // Configure git global user
+        execSync('git config --global user.name "Ulf Bot"', { stdio: 'pipe' });
+        execSync('git config --global user.email "bot@ulfberht.dev"', { stdio: 'pipe' });
+
+        // Configure git credential helper for HTTPS (for git clone/push)
+        execSync('git config --global credential.helper store', { stdio: 'pipe' });
+        const credentialContent = `https://${username}:${process.env.GITHUB_TOKEN}@github.com`;
+        execSync(`bash -c 'mkdir -p ~/.config/git && echo "${credentialContent}" > ~/.git-credentials'`, { stdio: 'pipe' });
+
+        log.info('[Git] GitHub credentials configured', {
+          username,
+          ghCliAuth: 'GITHUB_TOKEN env var (automatic)'
+        });
+      } catch (error: any) {
+        log.warn('[Git] Failed to configure GitHub credentials', { error: error.message });
+      }
+    }
+
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();

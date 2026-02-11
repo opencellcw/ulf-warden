@@ -31,10 +31,11 @@ export interface AgentOptions {
   userId: string;
   userMessage: string;
   history: MessageParam[];
+  trustLevel?: string;
 }
 
 export async function runAgent(options: AgentOptions): Promise<string> {
-  const { userId, userMessage, history } = options;
+  const { userId, userMessage, history, trustLevel } = options;
 
   return telemetry.trace(
     'agent.run',
@@ -65,7 +66,7 @@ export async function runAgent(options: AgentOptions): Promise<string> {
 }
 
 async function runAgentInternal(options: AgentOptions, parentSpan: any): Promise<string> {
-  const { userId, userMessage, history } = options;
+  const { userId, userMessage, history, trustLevel } = options;
 
   const systemPrompt = workspace.getSystemPrompt() + `
 
@@ -263,8 +264,8 @@ When generating images/videos/audio:
 
       console.log(`[Agent] Executing tool: ${toolName}`);
 
-      // Pass userMessage as context for security vetter
-      const result = await executeTool(toolName, toolInput, userId, userMessage);
+      // Pass userMessage as context for security vetter, and trustLevel for access control
+      const result = await executeTool(toolName, toolInput, userId, userMessage, trustLevel);
 
       (toolResults.content as any[]).push({
         type: 'tool_result',
@@ -278,7 +279,11 @@ When generating images/videos/audio:
       role: 'assistant',
       content: response.content,
     });
-    messages.push(toolResults);
+
+    // Only add tool results if there are any (avoid empty user messages)
+    if ((toolResults.content as any[]).length > 0) {
+      messages.push(toolResults);
+    }
 
     // Check and compact context before continuing (tool results can be large)
     const loopCompaction = await checkAndCompactContext(messages, systemPrompt);
