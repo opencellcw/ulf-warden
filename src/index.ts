@@ -24,6 +24,7 @@ import { initializeMigrations } from './core/migrations';
 import { initializeTracing, shutdownTracing } from './core/tracing';
 import { tracingMiddleware, tracingErrorHandler } from './core/tracing-middleware';
 import { trustManager } from './identity/trust-manager';
+import { setupGitRepo, isSelfImprovementAvailable } from './self-deploy/git-setup';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -135,6 +136,21 @@ async function initialize() {
       totalUsers: trustStats.totalUsers,
       byLevel: trustStats.byLevel
     });
+
+    // 1.15. Setup self-improvement repository
+    log.info('Setting up self-improvement repository...');
+    const gitSetupResult = await setupGitRepo();
+    if (gitSetupResult.success) {
+      log.info('Self-improvement repository ready', {
+        path: gitSetupResult.repoPath,
+        canSelfImprove: true
+      });
+    } else {
+      log.warn('Self-improvement not available', {
+        reason: gitSetupResult.error,
+        canSelfImprove: false
+      });
+    }
 
     // 1.2. Run database migrations (if enabled)
     if (process.env.AUTO_MIGRATE !== 'false') {
