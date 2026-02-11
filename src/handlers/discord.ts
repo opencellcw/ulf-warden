@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel, Partial
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
-import { extractMediaMetadata, cleanResponseText } from '../media-handler';
+import { extractMediaMetadata, cleanResponseText, sanitizeResponse } from '../media-handler';
 import { uploadMediaToDiscord } from '../media-handler-discord';
 import { log } from '../logger';
 import { approvalSystem } from '../approval-system';
@@ -20,7 +20,9 @@ import { handleImageGenCommand, isImageGenCommand } from '../commands/image-gen'
 import { handleAdminCommand } from '../commands/admin';
 import { handleHelpCommand } from '../commands/help';
 import { handleTrustCommand, isTrustCommand } from '../commands/trust';
+import { handleSecretCommand, isSecretCommand } from '../commands/secrets';
 import { initCloudRunClient } from '../cloud-run-client';
+import { activityTracker } from '../activity/activity-tracker';
 import axios from 'axios';
 
 export async function startDiscordHandler() {
@@ -66,8 +68,11 @@ export async function startDiscordHandler() {
    * Send response with automatic media handling
    */
   async function sendResponse(message: Message, response: string): Promise<void> {
+    // Sanitize response to remove any XML-style function calls that shouldn't appear
+    const sanitizedResponse = sanitizeResponse(response);
+
     // Check if response contains media
-    const media = extractMediaMetadata(response);
+    const media = extractMediaMetadata(sanitizedResponse);
 
     if (media) {
       log.info('[Discord] Media detected in response', {
@@ -76,8 +81,8 @@ export async function startDiscordHandler() {
         hasFilePath: !!media.filePath
       });
 
-      // Clean text (remove URLs/paths)
-      const cleanText = cleanResponseText(response, media);
+      // Clean text (remove URLs/paths) - sanitizedResponse already cleaned of XML
+      const cleanText = cleanResponseText(sanitizedResponse, media);
 
       try {
         // Upload media to Discord
@@ -98,10 +103,10 @@ export async function startDiscordHandler() {
     } else {
       // No media, send normal text response
       // Split long messages (Discord limit: 2000 chars)
-      if (response.length <= 2000) {
-        await message.reply(response);
+      if (sanitizedResponse.length <= 2000) {
+        await message.reply(sanitizedResponse);
       } else {
-        const chunks = response.match(/[\s\S]{1,2000}/g) || [];
+        const chunks = sanitizedResponse.match(/[\s\S]{1,2000}/g) || [];
         for (const chunk of chunks) {
           if ('send' in message.channel) {
             await message.channel.send(chunk);
@@ -165,8 +170,8 @@ export async function startDiscordHandler() {
   async function handleVoiceCommand(message: Message, text: string): Promise<boolean> {
     const guildId = message.guild?.id;
     if (!guildId) {
-      await message.reply('❌ Comandos de voz só funcionam em servidores!');
-      return true;
+      // In DMs, skip voice handling entirely (don't block other flows)
+      return false;
     }
 
     // Join voice channel
@@ -449,6 +454,12 @@ export async function startDiscordHandler() {
         return;
       }
 
+      // Handle secret command
+      if (isSecretCommand(text)) {
+        await handleSecretCommand(message);
+        return;
+      }
+
       // Handle voice commands
       const handledVoice = await handleVoiceCommand(message, text);
       if (handledVoice) {
@@ -462,6 +473,10 @@ export async function startDiscordHandler() {
       }
 
       console.log(`[Discord] Message from ${userId}: ${text.substring(0, 50)}...`);
+
+      // Emit activity tracking event
+      const channelName = isDM ? 'DM' : (message.channel as any).name || message.channelId;
+      activityTracker.emitProcessing(message.author.username, channelName, text);
 
       // Show typing indicator
       if ('sendTyping' in message.channel) {
@@ -558,6 +573,7 @@ export async function startDiscordHandler() {
       }
     } catch (error) {
       console.error('[Discord] Error handling message:', error);
+      activityTracker.emitError(error instanceof Error ? error.message : String(error));
       await message.reply('Desculpa, tive um problema. Tenta de novo?');
     }
   });

@@ -25,6 +25,8 @@ import { initializeTracing, shutdownTracing } from './core/tracing';
 import { tracingMiddleware, tracingErrorHandler } from './core/tracing-middleware';
 import { trustManager } from './identity/trust-manager';
 import { setupGitRepo, isSelfImprovementAvailable } from './self-deploy/git-setup';
+import { activityTracker } from './activity/activity-tracker';
+import { secretManager } from './secrets/secret-manager';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -127,6 +129,9 @@ async function initialize() {
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();
+
+    // 1.0.1. Load secrets from DB into process.env (before any module that reads env vars)
+    secretManager.loadAllSecrets();
 
     // 1.1. Initialize dynamic trust manager
     log.info('Initializing trust manager...');
@@ -342,6 +347,11 @@ async function initialize() {
       // Continue without Telegram
     }
 
+    // Initialize activity tracker (after Discord handler)
+    if (handlers.discord && process.env.DISCORD_ACTIVITY_CHANNEL) {
+      await activityTracker.init(handlers.discord);
+    }
+
     // Start WhatsApp (AFTER Discord so we can send QR there)
     try {
       // Set Discord client for QR code notifications
@@ -531,6 +541,14 @@ async function gracefulShutdown(signal: string) {
     } catch (error: any) {
       log.warn('Error stopping proactive systems', { error: error.message });
       // Continue with shutdown
+    }
+
+    // 1.5. Stop activity tracker
+    try {
+      await activityTracker.shutdown();
+      log.info('Activity tracker stopped');
+    } catch (error: any) {
+      log.warn('Error stopping activity tracker', { error: error.message });
     }
 
     // 2. Stop cron scheduler

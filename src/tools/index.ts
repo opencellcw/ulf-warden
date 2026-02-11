@@ -26,6 +26,7 @@ import { vetToolCall, isInDenylist, validateToolArgs } from '../security/vetter'
 import { executeToolSecurely } from '../security/tool-executor';
 import { isToolBlocked, getToolSecurityInfo } from '../config/blocked-tools';
 import { trustManager } from '../identity/trust-manager';
+import { activityTracker } from '../activity/activity-tracker';
 
 export { TOOLS };
 
@@ -52,6 +53,7 @@ export async function executeTool(
           userId,
           reason: securityInfo.reason
         });
+        activityTracker.emitSecurity(toolName, securityInfo.reason || 'Blocked by security policy', userId);
         return `🚫 Tool "${toolName}" is blocked by security policy.\nReason: ${securityInfo.reason}`;
       }
 
@@ -99,6 +101,7 @@ export async function executeTool(
             userId,
             reason: vetDecision.reason
           });
+          activityTracker.emitSecurity(toolName, vetDecision.reason || 'Blocked by vetter', userId);
 
           // Record blocked interaction (penalizes trust score)
           if (userId) {
@@ -130,6 +133,12 @@ export async function executeTool(
         log.error('[Vetter] Vetting failed, blocking for safety', { toolName, error: error.message });
         return `🚫 Tool blocked: Security vetting failed`;
       }
+    }
+
+    // Emit activity tracking for high-risk tools
+    if (highRiskTools.includes(toolName)) {
+      const inputPreview = typeof toolInput === 'string' ? toolInput : JSON.stringify(toolInput).substring(0, 300);
+      activityTracker.emitToolUse(toolName, inputPreview);
     }
 
     // Log tool execution start

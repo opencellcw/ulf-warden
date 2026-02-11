@@ -9,6 +9,7 @@ import { featureFlags, Feature } from './core/feature-flags';
 import { telemetry } from './core/telemetry';
 import { SpanKind } from '@opentelemetry/api';
 import { initializeContextCompactor, checkAndCompactContext } from './core/context-compactor';
+import { activityTracker } from './activity/activity-tracker';
 
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
@@ -67,6 +68,7 @@ export async function runAgent(options: AgentOptions): Promise<string> {
 
 async function runAgentInternal(options: AgentOptions, parentSpan: any): Promise<string> {
   const { userId, userMessage, history, trustLevel } = options;
+  const agentStartTime = Date.now();
 
   const systemPrompt = workspace.getSystemPrompt() + `
 
@@ -90,8 +92,15 @@ You have access to tools that let you execute commands, read/write files, and ma
 - github_pr: Manage pull requests
 
 ### Web Tools
-- web_fetch: Fetch webpage content
+- web_fetch: Fetch webpage content (NOT for GitHub - use execute_shell with gh CLI)
 - web_extract: Extract data with CSS selectors
+- brave_web_search: Search the web (Brave API)
+
+**IMPORTANT:** For GitHub repos, NEVER use web_fetch. Use execute_shell with gh CLI:
+- \`gh repo view owner/repo\` - Get repo info
+- \`gh api repos/owner/repo\` - Get repo JSON
+- \`gh api repos/owner/repo/readme\` - Get README
+- \`gh search repos "query"\` - Search repos
 
 ### File Tools
 - file_search: Search files by pattern (glob)
@@ -147,9 +156,16 @@ When user asks you to:
 - ❌ "Let me run this command..." (just run it!)
 - ❌ Fake command outputs (use real tool execution!)
 - ❌ Made-up links or commit hashes (only real ones from tool outputs!)
+- ❌ Raw JSON from tool outputs (summarize the results!)
+- ❌ Entire file contents dumped in response (summarize or show relevant parts only!)
+- ❌ Long code dumps (show only the important parts, max 20 lines)
 
 **ALWAYS**:
 - ✅ Use tools immediately when action is needed
+- ✅ SUMMARIZE tool outputs - don't dump raw content
+- ✅ When showing code, show only relevant snippets (max 20 lines)
+- ✅ Present information in a clean, readable format for Discord
+- ✅ Use bullet points and short paragraphs
 - ✅ Show REAL output from tools
 - ✅ Verify results with additional tool calls if needed
 - ✅ Report actual errors if tools fail
@@ -212,7 +228,6 @@ IMPORTANT: Only OWNER trust level can request self-modifications!
 ## Response Formatting for Discord
 When providing code examples or command outputs:
 - Use Discord markdown: \`\`\`bash (triple backticks with language)
-- NEVER use XML-style tags like <bash>, <python>, etc. in your TEXT responses
 - Keep responses clean and readable
 - Example:
   \`\`\`bash
@@ -220,7 +235,13 @@ When providing code examples or command outputs:
   uvicorn main:app
   \`\`\`
 
-**Note:** Tool calls use the Anthropic API format automatically - you don't write XML tags in your response text. Just call the tools using the API's native format and they will execute.
+## CRITICAL: Tool Call Format
+- NEVER output XML-style tags in your text responses
+- DO NOT write <function_calls>, <invoke>, <parameter>, or similar XML tags
+- The Anthropic API handles tool calls as structured objects automatically
+- You just call tools using the API's native format - they execute in the background
+- Your TEXT response should only contain human-readable content for Discord
+- If you need to use a tool, use it via the API, don't write XML in your response
 
 ## Media/Image Response Format
 When generating images/videos/audio:
@@ -378,6 +399,7 @@ When generating images/videos/audio:
   }
 
   console.log(`[Agent] Completed after ${iteration} iterations`);
+  activityTracker.emitCompleted(iteration, Date.now() - agentStartTime);
 
   return finalMessage || 'Task completed.';
 }

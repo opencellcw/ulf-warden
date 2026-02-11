@@ -82,8 +82,97 @@ export function extractMediaMetadata(response: string): MediaMetadata | null {
 /**
  * Clean response text by removing file paths and URLs
  */
-export function cleanResponseText(response: string, media: MediaMetadata): string {
+/**
+ * Sanitize response to remove unwanted content that shouldn't appear in Discord output
+ * - XML-style function calls (Claude Code format)
+ * - Raw HTML from web fetches
+ * - Raw JSON dumps
+ * - Escaped newlines
+ */
+export function sanitizeResponse(response: string): string {
   let cleaned = response;
+
+  // === Raw JSON objects (tool outputs dumped as text) ===
+
+  // If the response contains {"stdout": or {"id": patterns, it's a JSON dump
+  // Remove everything from the JSON start to the end (greedy but safe)
+  if (/\{\s*"(?:stdout|stderr|id|node_id|content|output|result|data|name|full_name|owner|login|private|fork|url|html_url)"\s*:/.test(cleaned)) {
+    // Find where the JSON starts
+    const jsonStartMatch = cleaned.match(/\{\s*"(?:stdout|stderr|id|node_id|content|output|result|data|name|full_name|owner|login|private|fork|url|html_url)"\s*:/);
+    if (jsonStartMatch && jsonStartMatch.index !== undefined) {
+      // Keep text before the JSON, discard the rest
+      const beforeJson = cleaned.substring(0, jsonStartMatch.index).trim();
+      cleaned = beforeJson || '✅ Ação executada com sucesso.';
+    }
+  }
+
+  // Remove any remaining JSON-like patterns (smaller fragments)
+  cleaned = cleaned.replace(/\{[^{}]*"[a-z_]+":\s*(?:"[^"]*"|[0-9]+|true|false|null)[^{}]*\}/gi, '');
+
+  // Remove escaped JSON patterns like \"key\":\"value\"
+  cleaned = cleaned.replace(/\\?"[a-z_]+\\?"\s*:\s*\\?"[^"]*\\?"/gi, ' ');
+
+  // === Escaped newlines in raw strings ===
+  const escapedNewlineCount = (cleaned.match(/\\n/g) || []).length;
+  if (escapedNewlineCount > 5) {
+    cleaned = cleaned.replace(/\\n/g, '\n');
+    cleaned = cleaned.replace(/\\t/g, '  ');
+    cleaned = cleaned.replace(/\\"/g, '"');
+  }
+
+  // === XML-style function calls (Claude Code format) ===
+  cleaned = cleaned.replace(/<function_calls>[\s\S]*?<\/function_calls>/gi, '');
+  cleaned = cleaned.replace(/<function_calls>[\s\S]*?<\/antml:function_calls>/gi, '');
+  cleaned = cleaned.replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/invoke>/gi, '');
+  cleaned = cleaned.replace(/<invoke\s+name="[^"]*">[\s\S]*?<\/antml:invoke>/gi, '');
+  cleaned = cleaned.replace(/<function_result>[\s\S]*?<\/function_result>/gi, '');
+  cleaned = cleaned.replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/parameter>/gi, '');
+  cleaned = cleaned.replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/antml:parameter>/gi, '');
+  cleaned = cleaned.replace(/<\/?(?:function_calls|invoke|parameter|function_result|antml:[a-z_]+)[^>]*>/gi, '');
+
+  // === Raw HTML cleanup ===
+  cleaned = cleaned.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+  cleaned = cleaned.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  cleaned = cleaned.replace(/<link\b[^>]*\/?>/gi, '');
+  cleaned = cleaned.replace(/<meta\b[^>]*\/?>/gi, '');
+  cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<\/?(?:html|head|body)[^>]*>/gi, '');
+
+  // If response looks like it's mostly HTML (lots of < tags), truncate it
+  const htmlTagCount = (cleaned.match(/<[a-z][^>]*>/gi) || []).length;
+  if (htmlTagCount > 20) {
+    cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+  }
+
+  // === Code dump detection ===
+  // If response has too many code patterns (def, class, import, function), truncate
+  const codePatterns = (cleaned.match(/\b(?:def |class |import |from |async def |function |const |let |var )\b/g) || []).length;
+  if (codePatterns > 5 && cleaned.length > 1000) {
+    // This is a code dump, truncate and warn
+    const firstLines = cleaned.split('\n').slice(0, 10).join('\n');
+    cleaned = `${firstLines}\n\n... [código truncado - ${codePatterns} funções/classes detectadas]`;
+  }
+
+  // === Length limit ===
+  if (cleaned.length > 1800) {
+    cleaned = cleaned.substring(0, 1800) + '\n\n... [resposta truncada]';
+  }
+
+  // Clean up excessive whitespace
+  cleaned = cleaned.replace(/\s{3,}/g, '  ');
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.trim();
+
+  // If response is now empty or too short, provide fallback
+  if (cleaned.length < 10) {
+    cleaned = '✅ Ação executada.';
+  }
+
+  return cleaned;
+}
+
+export function cleanResponseText(response: string, media: MediaMetadata): string {
+  let cleaned = sanitizeResponse(response);
 
   // Remove URL lines (multiple patterns)
   if (media.url) {
