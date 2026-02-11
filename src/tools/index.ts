@@ -19,11 +19,13 @@ import {
 } from './self-improvement';
 import { executeBotFactoryTool } from '../bot-factory/executor';
 import { executeEmailTool } from './email';
+import { executeCryptoPriceTool } from './crypto-prices';
 import { log } from '../logger';
 import { persistence } from '../persistence';
 import { vetToolCall, isInDenylist, validateToolArgs } from '../security/vetter';
 import { executeToolSecurely } from '../security/tool-executor';
 import { isToolBlocked, getToolSecurityInfo } from '../config/blocked-tools';
+import { trustManager } from '../identity/trust-manager';
 
 export { TOOLS };
 
@@ -97,6 +99,16 @@ export async function executeTool(
             userId,
             reason: vetDecision.reason
           });
+
+          // Record blocked interaction (penalizes trust score)
+          if (userId) {
+            const discordId = userId.replace('discord_', '');
+            await trustManager.recordInteraction(discordId, 'discord', {
+              wasBlocked: true,
+              toolUsed: toolName
+            });
+          }
+
           return `🚫 Tool blocked by security vetter: ${vetDecision.reason}`;
         }
 
@@ -105,6 +117,15 @@ export async function executeTool(
           userId,
           riskLevel: vetDecision.riskLevel
         });
+
+        // Record permitted tool use (positive for trust)
+        if (userId) {
+          const discordId = userId.replace('discord_', '');
+          await trustManager.recordInteraction(discordId, 'discord', {
+            wasBlocked: false,
+            toolUsed: toolName
+          });
+        }
       } catch (error: any) {
         log.error('[Vetter] Vetting failed, blocking for safety', { toolName, error: error.message });
         return `🚫 Tool blocked: Security vetting failed`;
@@ -129,7 +150,8 @@ export async function executeTool(
       userId || 'unknown',
       async () => {
         return await executeToolInternal(toolName, toolInput, userId);
-      }
+      },
+      trustLevel
     );
 
     const duration = Date.now() - startTime;
@@ -205,6 +227,11 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       // Email tool
       case 'send_email':
         result = await executeEmailTool(toolInput);
+        break;
+
+      // Crypto price tool
+      case 'get_crypto_price':
+        result = await executeCryptoPriceTool(toolName, toolInput);
         break;
 
       // Scheduler tools

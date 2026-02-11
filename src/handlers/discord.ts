@@ -14,10 +14,12 @@ import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
 import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
 import { contactManager } from '../identity/contacts';
+import { trustManager } from '../identity/trust-manager';
 import { rotateKey, checkKeyStatus } from '../commands/rotate-key';
 import { handleImageGenCommand, isImageGenCommand } from '../commands/image-gen';
 import { handleAdminCommand } from '../commands/admin';
 import { handleHelpCommand } from '../commands/help';
+import { handleTrustCommand, isTrustCommand } from '../commands/trust';
 import { initCloudRunClient } from '../cloud-run-client';
 import axios from 'axios';
 
@@ -339,9 +341,20 @@ export async function startDiscordHandler() {
       const userId = `discord_${message.author.id}`;
       const discordId = message.author.id;
 
-      // Get user identity and trust level
-      const trustLevel = contactManager.getTrustLevel(discordId);
+      // Get user identity and trust level (combines static contacts.md + dynamic database)
+      const trustLevel = await trustManager.getTrustLevel(discordId);
       const identityContext = contactManager.getIdentityContext(discordId);
+
+      // Record interaction for dynamic trust progression
+      // Check if user introduced themselves (simple heuristic)
+      const lowerText = message.content.toLowerCase();
+      const nameMatch = lowerText.match(/(?:meu nome é|me chamo|sou o|sou a|i'm|my name is)\s+(\w+)/i);
+      const introducedAs = nameMatch ? nameMatch[1] : undefined;
+
+      await trustManager.recordInteraction(discordId, 'discord', {
+        username: message.author.username,
+        introducedAs
+      });
 
       log.info('[Discord] Message received', {
         userId,
@@ -427,6 +440,12 @@ export async function startDiscordHandler() {
       if (text.startsWith('/help') || text.startsWith('/ajuda')) {
         const args = text.split(' ').slice(1); // Remove '/help'
         await handleHelpCommand(message, args);
+        return;
+      }
+
+      // Handle trust command
+      if (isTrustCommand(text)) {
+        await handleTrustCommand(message);
         return;
       }
 

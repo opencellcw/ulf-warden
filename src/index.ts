@@ -23,6 +23,7 @@ import { telemetry } from './core/telemetry';
 import { initializeMigrations } from './core/migrations';
 import { initializeTracing, shutdownTracing } from './core/tracing';
 import { tracingMiddleware, tracingErrorHandler } from './core/tracing-middleware';
+import { trustManager } from './identity/trust-manager';
 import path from 'path';
 
 // Validate Anthropic API key
@@ -125,6 +126,15 @@ async function initialize() {
     // 1. Initialize persistence layer
     log.info('Initializing persistence layer...');
     await persistence.init();
+
+    // 1.1. Initialize dynamic trust manager
+    log.info('Initializing trust manager...');
+    await trustManager.init();
+    const trustStats = await trustManager.getStats();
+    log.info('Trust manager initialized', {
+      totalUsers: trustStats.totalUsers,
+      byLevel: trustStats.byLevel
+    });
 
     // 1.2. Run database migrations (if enabled)
     if (process.env.AUTO_MIGRATE !== 'false') {

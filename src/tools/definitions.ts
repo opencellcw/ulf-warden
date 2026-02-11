@@ -15,6 +15,7 @@ import { SELF_IMPROVEMENT_TOOLS } from './self-improvement';
 import { BOT_FACTORY_TOOLS } from '../bot-factory/tools';
 import { WEB_HOST_TOOLS } from './web-host';
 import { EMAIL_TOOLS } from './email';
+import { CRYPTO_PRICE_TOOLS } from './crypto-prices';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -139,5 +140,6 @@ export const TOOLS: Anthropic.Tool[] = [
   ...REPLICATE_TOOLS,
   ...ELEVENLABS_TOOLS,
   ...OPENAI_TOOLS,
-  ...EMAIL_TOOLS
+  ...EMAIL_TOOLS,
+  ...CRYPTO_PRICE_TOOLS
 ];

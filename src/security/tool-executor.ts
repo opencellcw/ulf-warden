@@ -33,17 +33,23 @@ const activeTools = new Map<string, NodeJS.Timeout>();
 export async function executeToolSecurely<T>(
   toolName: string,
   userId: string,
-  executor: () => Promise<T>
+  executor: () => Promise<T>,
+  trustLevel?: string
 ): Promise<T> {
-  // 1. Check if tool is blocked
-  const securityInfo = getToolSecurityInfo(toolName);
-  if (securityInfo.blocked) {
-    logBlockedToolAttempt(toolName, userId, securityInfo.reason || 'Security policy');
-    throw new Error(
-      `Tool "${toolName}" is blocked by security policy.\n` +
-      `Reason: ${securityInfo.reason}\n` +
-      `Contact admin if you need access to this tool.`
-    );
+  // 🔓 OWNER BYPASS: Owners skip blocklist check
+  if (trustLevel === 'owner') {
+    log.info('[ToolExecutor] Owner bypass - blocklist check skipped', { toolName, userId: userId.substring(0, 12) + '...' });
+  } else {
+    // 1. Check if tool is blocked
+    const securityInfo = getToolSecurityInfo(toolName);
+    if (securityInfo.blocked) {
+      logBlockedToolAttempt(toolName, userId, securityInfo.reason || 'Security policy');
+      throw new Error(
+        `Tool "${toolName}" is blocked by security policy.\n` +
+        `Reason: ${securityInfo.reason}\n` +
+        `Contact admin if you need access to this tool.`
+      );
+    }
   }
 
   // 2. Check rate limit
