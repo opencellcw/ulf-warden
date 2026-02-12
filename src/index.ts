@@ -232,10 +232,15 @@ async function initialize() {
       try {
         log.info('Initializing queue system...');
         await queueService.initialize();
+        const redisInfo = process.env.REDIS_URL 
+          ? process.env.REDIS_URL 
+          : process.env.REDIS_HOST 
+            ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || '6379'}`
+            : 'localhost';
         log.info('Queue system initialized', {
           queues: 9,
           workers: 'active',
-          redis: process.env.REDIS_URL ? 'connected' : 'localhost'
+          redis: redisInfo
         });
       } catch (error) {
         log.warn('Queue system initialization failed (Redis may not be available)', {

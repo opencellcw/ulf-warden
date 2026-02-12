@@ -33,7 +33,22 @@ export class RedisCache {
       return;
     }
 
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    // Build Redis URL from REDIS_HOST or use REDIS_URL
+    let redisUrl: string;
+    if (process.env.REDIS_URL) {
+      redisUrl = process.env.REDIS_URL;
+    } else if (process.env.REDIS_HOST) {
+      const host = process.env.REDIS_HOST;
+      const port = process.env.REDIS_PORT || '6379';
+      const password = process.env.REDIS_PASSWORD;
+      redisUrl = password 
+        ? `redis://:${password}@${host}:${port}`
+        : `redis://${host}:${port}`;
+    } else {
+      // Fallback to localhost only if no env vars set
+      redisUrl = 'redis://localhost:6379';
+      log.warn('[RedisCache] No REDIS_HOST or REDIS_URL set, using localhost');
+    }
     
     try {
       this.client = new Redis(redisUrl, {
