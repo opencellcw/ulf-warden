@@ -27,11 +27,16 @@ import { trustManager } from './identity/trust-manager';
 import { setupGitRepo, isSelfImprovementAvailable } from './self-deploy/git-setup';
 import { activityTracker } from './activity/activity-tracker';
 import { secretManager } from './secrets/secret-manager';
+import { getEnv, getEnvBoolean, getEnvNumber, requireEnv, validateEnv } from './utils/env-helper';
+import { intervalManager } from './utils/interval-manager';
 import path from 'path';
 
-// Validate Anthropic API key
-if (!process.env.ANTHROPIC_API_KEY) {
-  log.error('Missing required environment variable: ANTHROPIC_API_KEY');
+// Validate environment variables on startup
+try {
+  validateEnv();
+  requireEnv('ANTHROPIC_API_KEY');
+} catch (error: any) {
+  log.error('Environment validation failed', { error: error.message });
   process.exit(1);
 }
 
@@ -57,13 +62,13 @@ const proactiveSystems: {
 
 // HTTP server for Render health check
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = getEnvNumber('PORT', 3000);
 
 // Prometheus metrics middleware (collect HTTP metrics)
 app.use(prometheusMetrics.httpMiddleware());
 
 // Distributed Tracing middleware (if enabled)
-if (process.env.TRACING_ENABLED === 'true') {
+if (getEnvBoolean('TRACING_ENABLED', false)) {
   app.use(tracingMiddleware());
 }
 

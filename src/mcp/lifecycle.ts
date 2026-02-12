@@ -1,6 +1,7 @@
 import { getMCPClientManager } from './client';
 import { loadMCPConfig, validateServerConfig } from './config-loader';
 import { log } from '../logger';
+import { intervalManager } from '../utils/interval-manager';
 
 /**
  * MCP Lifecycle Management
@@ -85,7 +86,7 @@ function startHealthCheck(): void {
 
   log.info('[MCP] Starting health check (every 30 seconds)');
 
-  healthCheckInterval = setInterval(async () => {
+  healthCheckInterval = intervalManager.register('mcp-health-check', async () => {
     const mcpClient = getMCPClientManager();
     const servers = mcpClient.getConnectedServers();
 

@@ -6,6 +6,7 @@
  */
 
 import { log } from '../logger';
+import { intervalManager } from '../utils/interval-manager';
 
 interface RateLimitConfig {
   maxRequests: number;  // Max requests per window
@@ -34,8 +35,8 @@ class RateLimiter {
       blockDurationMs: config.blockDurationMs || 60000, // Default: 1 minute
     };
 
-    // Cleanup expired buckets every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    // Cleanup expired buckets every 5 minutes (managed interval)
+    intervalManager.register('rate-limiter-cleanup', () => this.cleanup(), 5 * 60 * 1000);
   }
 
   /**

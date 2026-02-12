@@ -5,6 +5,7 @@
 import * as os from 'os';
 import { execSync, spawn } from 'child_process';
 import { log } from '../logger';
+import { intervalManager } from '../utils/interval-manager';
 
 export interface ThreatDetection {
   timestamp: Date;
@@ -60,12 +61,16 @@ export class SelfDefenseSystem {
    * Start continuous monitoring for threats
    */
   private startMonitoring(): void {
-    this.monitoringInterval = setInterval(() => {
-      this.checkResourceAttacks();
-      this.checkProcessHealth();
-    }, 5000); // Every 5 seconds
+    this.monitoringInterval = intervalManager.register(
+      'self-defense-monitor',
+      () => {
+        this.checkResourceAttacks();
+        this.checkProcessHealth();
+      },
+      5000 // Every 5 seconds
+    );
 
-    log.info('[SelfDefense] ✅ Monitoring started');
+    log.info('[SelfDefense] ✅ Monitoring started (managed interval)');
   }
 
   /**
@@ -320,9 +325,8 @@ export class SelfDefenseSystem {
   public shutdown(): void {
     this.isActive = false;
 
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-    }
+    // Clear interval using manager (will be cleared automatically on exit too)
+    intervalManager.clear('self-defense-monitor');
 
     log.info('[SelfDefense] Shutdown complete');
   }

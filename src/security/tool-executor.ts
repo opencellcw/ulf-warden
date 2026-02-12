@@ -10,6 +10,7 @@
  */
 
 import { log } from '../logger';
+import { intervalManager } from '../utils/interval-manager';
 import { isToolBlocked, getToolSecurityInfo, logBlockedToolAttempt } from '../config/blocked-tools';
 import { retryEngine } from '../core/retry-engine';
 import { featureFlags, Feature } from '../core/feature-flags';
@@ -244,7 +245,7 @@ export function initializeToolExecutor(): void {
   });
 
   // Periodic cleanup of stale entries (every 5 minutes)
-  setInterval(() => {
+  intervalManager.register('tool-executor-cleanup', () => {
     // Cleanup users with 0 tools (shouldn't happen but just in case)
     for (const [userId, count] of userToolCounts.entries()) {
       if (count <= 0) {
