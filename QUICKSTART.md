@@ -1,6 +1,14 @@
-# ⚡ OpenCell - Quick Start (3 Minutes)
+# ⚡ OpenCell - Quick Start (30 Seconds!)
 
-Get your AI bot running in 3 minutes with our interactive setup wizard!
+Get your AI bot running in **30 SECONDS** with our ultra-UX setup wizard!
+
+**NEW in v2:**
+- 🚀 Quick Start Templates (choose & done!)
+- 🔍 Auto-Detection (remembers your config)
+- ✅ Smart Validation (real-time API key checks)
+- 📋 Interactive Preview (see before you commit)
+- 💰 Cost Calculator (know your expenses)
+- 🎉 Beautiful UX (colors, progress bars, celebration!)
 
 ---
 
