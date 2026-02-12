@@ -5,6 +5,7 @@ import { BotConfig, BotTool } from './types';
 import { log } from '../logger';
 import { formatPersonaResponse, getPersonaTag, getPersonaHeader } from './persona-formatter';
 import { getAgentOps } from '../observability';
+import { getURLManager } from '../utils/url-manager';
 
 /**
  * Bot Runtime Manager
@@ -15,9 +16,17 @@ export class BotRuntime {
   private config: BotConfig;
   private agentOps = getAgentOps();
   private currentSessionId: string = '';
+  private urlManager = getURLManager();
 
   constructor(config: BotConfig) {
     this.config = config;
+    
+    // Log firewall awareness on initialization
+    log.info('[BotRuntime] Initializing with firewall awareness', {
+      publicUrl: this.urlManager.getPublicUrl(),
+      webhookUrl: this.urlManager.getWebhookUrl(),
+      environment: this.urlManager.getEnvironmentInfo()
+    });
 
     // Choose provider based on bot type
     if (config.type === 'agent') {
@@ -217,6 +226,20 @@ export class BotRuntime {
    */
   getProviderType(): 'claude' | 'pi' {
     return this.config.type === 'agent' ? 'pi' : 'claude';
+  }
+
+  /**
+   * Get URL Manager (for firewall-aware URL generation)
+   * 
+   * Use este manager para QUALQUER link externo que o bot enviar.
+   * NUNCA use localhost ou IPs internos - o firewall GCP vai bloquear!
+   * 
+   * Exemplos:
+   *   const webhookUrl = runtime.getURLManager().getWebhookUrl();
+   *   const dashboardUrl = runtime.getURLManager().getDashboardUrl();
+   */
+  getURLManager() {
+    return this.urlManager;
   }
 
   /**

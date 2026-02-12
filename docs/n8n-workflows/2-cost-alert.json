@@ -1,0 +1,280 @@
+{
+  "name": "OpenCell - Cost Alert System",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "id": "schedule-trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/costs/daily",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {}
+      },
+      "name": "Get Current Daily Cost",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300],
+      "id": "get-cost"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.cost }}",
+              "operation": "larger",
+              "value2": 50
+            }
+          ]
+        }
+      },
+      "name": "Cost > $50?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "id": "check-cost-50"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.cost }}",
+              "operation": "larger",
+              "value2": 80
+            }
+          ]
+        }
+      },
+      "name": "Cost > $80?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "id": "check-cost-80"
+    },
+    {
+      "parameters": {
+        "channel": "#alerts",
+        "text": "=⚠️ Daily cost warning: ${{ $json.cost }}\n\nBudget: $50/day\nCurrent: ${{ $json.cost }}\nUsage: {{ Math.round(($json.cost / 50) * 100) }}%",
+        "attachments": [],
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "name": "Warning Alert (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [850, 400],
+      "id": "warning-slack"
+    },
+    {
+      "parameters": {
+        "channel": "#critical-alerts",
+        "text": "=🚨 URGENT: Daily cost exceeded!\n\n*Budget:* $50/day\n*Current:* ${{ $json.cost }}\n*Overage:* ${{ $json.cost - 50 }}\n*Usage:* {{ Math.round(($json.cost / 50) * 100) }}%\n\n*Automatic actions taken:*\n- ✅ Aggressive caching enabled\n- ✅ Switched to Moonshot provider\n- ✅ Non-critical bots paused",
+        "attachments": [],
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "name": "Urgent Alert (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1050, 100],
+      "id": "urgent-slack"
+    },
+    {
+      "parameters": {
+        "to": "admin@opencell.io",
+        "subject": "=🚨 OpenCell Cost Alert: ${{ $json.cost }}",
+        "emailType": "html",
+        "message": "=<h2>Daily Cost Exceeded!</h2>\n<p><strong>Budget:</strong> $50/day</p>\n<p><strong>Current:</strong> ${{ $json.cost }}</p>\n<p><strong>Overage:</strong> ${{ $json.cost - 50 }}</p>\n<p><strong>Automatic actions taken:</strong></p>\n<ul>\n<li>Aggressive caching enabled</li>\n<li>Switched to Moonshot provider</li>\n<li>Non-critical bots paused</li>\n</ul>",
+        "options": {}
+      },
+      "name": "Urgent Alert (Email)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1050, 200],
+      "id": "urgent-email"
+    },
+    {
+      "parameters": {
+        "accountSid": "={{ $credentials.twilioAccountSid }}",
+        "fromPhoneNumber": "+1234567890",
+        "toPhoneNumber": "+5511999999999",
+        "message": "=🚨 OpenCell cost alert: ${{ $json.cost }} (budget: $50). Automatic optimizations applied.",
+        "options": {}
+      },
+      "name": "Urgent Alert (SMS)",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "id": "urgent-sms"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/cache/aggressive",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"enabled\": true }",
+        "options": {}
+      },
+      "name": "Enable Aggressive Caching",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 100],
+      "id": "enable-cache"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/router/switch-provider",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"provider\": \"moonshot\" }",
+        "options": {}
+      },
+      "name": "Switch to Moonshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 200],
+      "id": "switch-provider"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/bots/pause-non-critical",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {}
+      },
+      "name": "Pause Non-Critical Bots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 300],
+      "id": "pause-bots"
+    }
+  ],
+  "connections": {
+    "Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Current Daily Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Daily Cost": {
+      "main": [
+        [
+          {
+            "node": "Cost > $50?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cost > $50?": {
+      "main": [
+        [
+          {
+            "node": "Cost > $80?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cost > $80?": {
+      "main": [
+        [
+          {
+            "node": "Urgent Alert (Slack)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Urgent Alert (Email)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Urgent Alert (SMS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Warning Alert (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent Alert (Slack)": {
+      "main": [
+        [
+          {
+            "node": "Enable Aggressive Caching",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Switch to Moonshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pause Non-Critical Bots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-02-12T00:00:00.000Z",
+  "versionId": "1"
+}

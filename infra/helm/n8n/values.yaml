@@ -1,0 +1,141 @@
+# n8n Helm Chart Values for GKE Production
+# Based on official n8n Helm chart: https://github.com/8gears/n8n-helm-chart
+
+# Deployment configuration
+replicaCount: 1
+
+image:
+  repository: n8nio/n8n
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5678
+
+# Ingress configuration (optional, enable for external access)
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: n8n.opencell.io  # Change to your domain
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: n8n-tls
+      hosts:
+        - n8n.opencell.io
+
+# Persistence (important for production!)
+persistence:
+  enabled: true
+  storageClass: "standard-rwo"  # GKE standard persistent disk
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# Environment variables
+env:
+  N8N_HOST: "n8n.opencell.io"
+  N8N_PORT: "5678"
+  N8N_PROTOCOL: "https"
+  WEBHOOK_URL: "https://n8n.opencell.io/"
+  GENERIC_TIMEZONE: "America/Sao_Paulo"
+  N8N_EDITOR_BASE_URL: "https://n8n.opencell.io/"
+  
+  # Security
+  N8N_BASIC_AUTH_ACTIVE: "true"
+  N8N_BASIC_AUTH_USER: "admin"  # Change this!
+  # N8N_BASIC_AUTH_PASSWORD: Set via secret
+  
+  # Execution
+  EXECUTIONS_PROCESS: "main"
+  EXECUTIONS_MODE: "regular"
+  EXECUTIONS_TIMEOUT: "300"
+  EXECUTIONS_TIMEOUT_MAX: "600"
+  
+  # Logs
+  N8N_LOG_LEVEL: "info"
+  N8N_LOG_OUTPUT: "console"
+  
+  # OpenCell integration
+  OPENCELL_API_URL: "http://ulf-warden.ulf.svc.cluster.local:3000"
+
+# Secrets (create separately)
+# kubectl create secret generic n8n-secrets \
+#   --from-literal=N8N_BASIC_AUTH_PASSWORD='your-password' \
+#   --from-literal=N8N_ENCRYPTION_KEY='your-encryption-key' \
+#   -n n8n
+
+existingSecret: "n8n-secrets"
+
+# Autoscaling (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Node selector (optional, for specific node pools)
+nodeSelector: {}
+
+# Tolerations (optional)
+tolerations: []
+
+# Affinity (optional)
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  name: n8n
+  annotations: {}
+
+# Pod security context
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+# Liveness probe
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 5678
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 5678
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3

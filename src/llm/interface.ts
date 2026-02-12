@@ -29,6 +29,11 @@ export interface LLMOptions {
   maxCost?: number; // Budget constraint for smart router
   minQuality?: 'basic' | 'good' | 'excellent'; // Quality requirement
   preferredProvider?: string; // User override (claude, gemini, openai, moonshot)
+  // Cache options
+  skipCache?: boolean; // Skip Redis cache (for non-deterministic or real-time queries)
+  // Observability (Langfuse)
+  userId?: string; // User ID for tracking
+  botName?: string; // Bot name for tracking
 }
 
 export interface LLMProvider {

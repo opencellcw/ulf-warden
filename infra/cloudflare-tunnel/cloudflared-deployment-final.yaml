@@ -1,0 +1,88 @@
+# Cloudflare Tunnel - Deployment Completo e Funcional
+# URL Pública: https://9733ce54-43c9-4bd7-a103-a825aca9c24c.cfargotunnel.com
+# 100% configurado via arquivo - ZERO dashboard necessário
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: agents
+data:
+  config.yaml: |
+    tunnel: 9733ce54-43c9-4bd7-a103-a825aca9c24c
+    credentials-file: /etc/cloudflared/credentials.json
+    
+    ingress:
+      # Aceita qualquer hostname e roteia para o bot
+      - service: http://ulf-warden-agent.agents.svc.cluster.local:3000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: agents
+  labels:
+    app: cloudflared
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        args:
+        - tunnel
+        - --config
+        - /etc/cloudflared/config.yaml
+        - run
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared/config.yaml
+          subPath: config.yaml
+          readOnly: true
+        - name: creds
+          mountPath: /etc/cloudflared/credentials.json
+          subPath: credentials.json
+          readOnly: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 20241
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: cloudflared-config
+      - name: creds
+        secret:
+          secretName: cloudflared-config
+          items:
+          - key: credentials.json
+            path: credentials.json
+
+---
+# Nota: O secret 'cloudflared-config' com credentials.json
+# é criado automaticamente pelo script de setup
+# Nunca commitar este secret no git!

@@ -87,6 +87,10 @@ app.get('/health', (req, res) => {
 // Prometheus metrics endpoint
 app.get('/metrics', prometheusMetrics.metricsHandler());
 
+// Cache monitoring endpoints
+import { registerCacheRoutes } from './api/cache-monitor';
+registerCacheRoutes(app);
+
 // Tracing error handler (must be after routes)
 if (process.env.TRACING_ENABLED === 'true') {
   app.use(tracingErrorHandler());

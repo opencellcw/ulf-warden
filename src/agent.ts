@@ -10,6 +10,8 @@ import { telemetry } from './core/telemetry';
 import { SpanKind } from '@opentelemetry/api';
 import { initializeContextCompactor, checkAndCompactContext } from './core/context-compactor';
 import { activityTracker } from './activity/activity-tracker';
+import { langfuse } from './observability/langfuse';
+import { memory } from './memory/vector-memory';
 
 // Agent always uses Claude API because tools require advanced capabilities
 // Local models don't support function calling yet
@@ -33,6 +35,75 @@ export interface AgentOptions {
   userMessage: string;
   history: MessageParam[];
   trustLevel?: string;
+  botName?: string; // Optional bot name for tracking
+}
+
+// Helper function to calculate Claude API cost
+function calculateClaudeCost(inputTokens: number, outputTokens: number, model: string): number {
+  let inputCostPerMtok = 3; // Sonnet default
+  let outputCostPerMtok = 15;
+
+  if (model.includes('opus')) {
+    inputCostPerMtok = 15;
+    outputCostPerMtok = 75;
+  } else if (model.includes('haiku')) {
+    inputCostPerMtok = 0.25;
+    outputCostPerMtok = 1.25;
+  }
+
+  const inputCost = (inputTokens / 1_000_000) * inputCostPerMtok;
+  const outputCost = (outputTokens / 1_000_000) * outputCostPerMtok;
+
+  return inputCost + outputCost;
+}
+
+// Helper function to track LLM call with Langfuse
+async function trackLLMCall(
+  userId: string,
+  botName: string | undefined,
+  messages: any[],
+  response: Anthropic.Message,
+  latency: number
+): Promise<void> {
+  if (!langfuse.isEnabled()) return;
+
+  try {
+    const cost = calculateClaudeCost(
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+      response.model
+    );
+
+    // Convert Anthropic messages to LLMMessage format
+    const llmMessages = messages.map(msg => ({
+      role: msg.role as 'user' | 'assistant' | 'system',
+      content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+    }));
+
+    await langfuse.trackGeneration({
+      userId,
+      botName: botName || 'main-agent',
+      provider: 'claude',
+      model: response.model,
+      messages: llmMessages,
+      response: {
+        content: JSON.stringify(response.content),
+        model: response.model,
+        usage: {
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+        },
+      },
+      latency,
+      cost,
+      metadata: {
+        stopReason: response.stop_reason,
+        toolsUsed: response.content.filter(c => c.type === 'tool_use').length,
+      },
+    });
+  } catch (error: any) {
+    log.error('[Agent] Langfuse tracking failed', { error: error.message });
+  }
 }
 
 export async function runAgent(options: AgentOptions): Promise<string> {
@@ -67,10 +138,41 @@ export async function runAgent(options: AgentOptions): Promise<string> {
 }
 
 async function runAgentInternal(options: AgentOptions, parentSpan: any): Promise<string> {
-  const { userId, userMessage, history, trustLevel } = options;
+  const { userId, userMessage, history, trustLevel, botName } = options;
   const agentStartTime = Date.now();
 
-  const systemPrompt = workspace.getSystemPrompt() + `
+  // Retrieve vector memory context (if enabled)
+  let memoryContext = '';
+  if (memory.isEnabled() && botName) {
+    try {
+      const context = await memory.getContext(
+        botName,
+        userId,
+        userMessage,
+        3, // recent messages
+        5  // relevant memories
+      );
+
+      if (context.summary) {
+        memoryContext = `\n\n# MEMORY CONTEXT\n\nThe following context was retrieved from long-term memory:\n\n${context.summary}\n\nUse this context to provide more personalized and contextually relevant responses.\n`;
+        
+        log.info('[Agent] Memory context retrieved', {
+          botName,
+          userId,
+          recentCount: context.recent.length,
+          relevantCount: context.relevant.length,
+        });
+      }
+    } catch (error: any) {
+      log.error('[Agent] Memory retrieval failed', {
+        error: error.message,
+        botName,
+        userId,
+      });
+    }
+  }
+
+  const systemPrompt = workspace.getSystemPrompt() + memoryContext + `
 
 # EXECUTION CAPABILITIES
 
@@ -280,6 +382,10 @@ When generating images/videos/audio:
   }
 
   let iteration = 0;
+  
+  // Measure latency for Langfuse
+  const startTime = Date.now();
+  
   let response = await client.messages.create({
     model: MODEL,
     max_tokens: 4096,
@@ -287,6 +393,11 @@ When generating images/videos/audio:
     messages,
     tools: TOOLS,
   });
+
+  const latency = Date.now() - startTime;
+
+  // Track with Langfuse (observability)
+  await trackLLMCall(userId, options.botName, messages, response, latency);
 
   // Track cost for initial LLM call
   if (response.usage && telemetry.isEnabled()) {
@@ -372,6 +483,8 @@ When generating images/videos/audio:
     }
 
     // Continue conversation with tool results
+    const iterationStartTime = Date.now();
+    
     response = await client.messages.create({
       model: MODEL,
       max_tokens: 4096,
@@ -379,6 +492,11 @@ When generating images/videos/audio:
       messages,
       tools: TOOLS,
     });
+
+    const iterationLatency = Date.now() - iterationStartTime;
+    
+    // Track with Langfuse (observability)
+    await trackLLMCall(userId, options.botName, messages, response, iterationLatency);
   }
 
   if (iteration >= MAX_ITERATIONS) {
@@ -408,6 +526,28 @@ When generating images/videos/audio:
 
   console.log(`[Agent] Completed after ${iteration} iterations`);
   activityTracker.emitCompleted(iteration, Date.now() - agentStartTime);
+
+  // Store interaction in vector memory (if enabled)
+  if (memory.isEnabled() && botName) {
+    try {
+      // Store user message
+      await memory.storeMessage(botName, userId, 'user', userMessage);
+      
+      // Store assistant response
+      await memory.storeMessage(botName, userId, 'assistant', finalMessage);
+      
+      log.info('[Agent] Interaction stored in memory', {
+        botName,
+        userId,
+      });
+    } catch (error: any) {
+      log.error('[Agent] Memory storage failed', {
+        error: error.message,
+        botName,
+        userId,
+      });
+    }
+  }
 
   return finalMessage || 'Task completed.';
 }

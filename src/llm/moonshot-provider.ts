@@ -1,5 +1,7 @@
 import { LLMProvider, LLMMessage, LLMResponse, LLMOptions } from './interface';
 import { log } from '../logger';
+import { redisCache } from '../core/redis-cache';
+import { langfuse } from '../observability/langfuse';
 
 /**
  * Moonshot AI (Kimi) Provider
@@ -95,6 +97,26 @@ export class MoonshotProvider implements LLMProvider {
     const startTime = Date.now();
 
     try {
+      // Check cache first (unless explicitly disabled)
+      if (options?.skipCache !== true) {
+        const cached = await redisCache.getCachedLLMResponse(
+          'moonshot',
+          this.model,
+          messages,
+          undefined
+        );
+
+        if (cached) {
+          const cacheTime = Date.now() - startTime;
+          log.info('[Moonshot] ⚡ Cache hit!', {
+            model: this.model,
+            cacheTime: `${cacheTime}ms`,
+            savings: 'API call saved'
+          });
+          return cached;
+        }
+      }
+
       // Convert messages to Moonshot format
       const moonshotMessages = this.convertMessages(messages, options?.systemPrompt);
 
@@ -136,7 +158,7 @@ export class MoonshotProvider implements LLMProvider {
         outputTokens: data.usage?.completion_tokens || 0
       });
 
-      return {
+      const llmResponse: LLMResponse = {
         content,
         model: this.model,
         processingTime,
@@ -145,6 +167,44 @@ export class MoonshotProvider implements LLMProvider {
           outputTokens: data.usage?.completion_tokens || 0
         }
       };
+
+      // Cache the response (unless disabled or temperature > 0.3)
+      if (options?.skipCache !== true && (options?.temperature || 0) <= 0.3) {
+        await redisCache.cacheLLMResponse(
+          'moonshot',
+          this.model,
+          messages,
+          undefined,
+          llmResponse,
+          86400 // 24 hours
+        );
+      }
+
+      // Track with Langfuse (observability)
+      if (langfuse.isEnabled()) {
+        const cost = this.calculateCost(
+          data.usage?.prompt_tokens || 0,
+          data.usage?.completion_tokens || 0
+        );
+
+        langfuse.trackGeneration({
+          userId: (options as any)?.userId || 'unknown',
+          botName: (options as any)?.botName,
+          provider: 'moonshot',
+          model: this.model,
+          messages,
+          response: llmResponse,
+          latency: processingTime,
+          cost,
+          metadata: {
+            cached: false,
+          },
+        }).catch(err => {
+          log.error('[Moonshot] Langfuse tracking failed', { error: err.message });
+        });
+      }
+
+      return llmResponse;
     } catch (error: any) {
       log.error('[Moonshot] Generation failed', {
         error: error.message
@@ -383,6 +443,22 @@ export class MoonshotProvider implements LLMProvider {
         }
       };
     });
+  }
+
+  /**
+   * Calculate cost based on token usage
+   * Moonshot pricing (as of Feb 2025):
+   * - Input: $0.50/Mtok
+   * - Output: $0.50/Mtok
+   */
+  private calculateCost(inputTokens: number, outputTokens: number): number {
+    const inputCostPerMtok = 0.50;
+    const outputCostPerMtok = 0.50;
+
+    const inputCost = (inputTokens / 1_000_000) * inputCostPerMtok;
+    const outputCost = (outputTokens / 1_000_000) * outputCostPerMtok;
+
+    return inputCost + outputCost;
   }
 
   /**

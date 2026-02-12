@@ -1,0 +1,257 @@
+{
+  "name": "OpenCell - CRM Sync (Salesforce)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-user",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook: New User",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "new-user-webhook",
+      "id": "webhook-trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.user.email }}",
+              "operation": "contains",
+              "value2": "@"
+            }
+          ]
+        }
+      },
+      "name": "Valid Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "id": "validate-email"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/users/{{ $json.body.user.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {}
+      },
+      "name": "Get User Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 300],
+      "id": "get-user"
+    },
+    {
+      "parameters": {
+        "resource": "lead",
+        "operation": "upsert",
+        "externalId": "Email",
+        "email": "={{ $json.email }}",
+        "additionalFields": {
+          "firstName": "={{ $json.firstName }}",
+          "lastName": "={{ $json.lastName }}",
+          "company": "={{ $json.company || 'Unknown' }}",
+          "leadSource": "OpenCell Bot",
+          "description": "=User created via OpenCell\n\nBot created: {{ $json.botsCreated || 0 }}\nMessages sent: {{ $json.messagesSent || 0 }}\nPlatform: {{ $json.platform }}"
+        }
+      },
+      "name": "Create/Update Salesforce Lead",
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "id": "salesforce-upsert"
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "create",
+        "subject": "=Follow up with {{ $json.firstName }} {{ $json.lastName }}",
+        "whoId": "={{ $('Create/Update Salesforce Lead').item.json.id }}",
+        "status": "Not Started",
+        "priority": "Normal",
+        "activityDate": "={{ $now.plus({ days: 1 }).toISO() }}",
+        "additionalFields": {
+          "description": "=New OpenCell user. Follow up to ensure onboarding is smooth.\n\nUser email: {{ $json.email }}\nPlatform: {{ $json.platform }}"
+        }
+      },
+      "name": "Create Follow-up Task",
+      "type": "n8n-nodes-base.salesforce",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "id": "salesforce-task"
+    },
+    {
+      "parameters": {
+        "channel": "#sales",
+        "text": "=🎉 New lead from OpenCell!\n\n*Name:* {{ $json.firstName }} {{ $json.lastName }}\n*Email:* {{ $json.email }}\n*Company:* {{ $json.company || 'Unknown' }}\n*Platform:* {{ $json.platform }}\n*Bots Created:* {{ $json.botsCreated || 0 }}\n\n<{{ $('Create/Update Salesforce Lead').item.json.salesforceLink }}|View in Salesforce>",
+        "attachments": [],
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "name": "Notify Sales Team (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1250, 300],
+      "id": "notify-slack"
+    },
+    {
+      "parameters": {
+        "to": "={{ $json.email }}",
+        "subject": "Welcome to OpenCell! 🎉",
+        "emailType": "html",
+        "message": "=<h1>Welcome, {{ $json.firstName }}!</h1>\n<p>Thank you for signing up for OpenCell. We're excited to have you on board!</p>\n<h2>Next Steps:</h2>\n<ul>\n<li>Create your first bot (takes 30 seconds!)</li>\n<li>Explore Bot Factory and RoundTable</li>\n<li>Join our community Discord</li>\n</ul>\n<p>Need help? Reply to this email or check our <a href=\"https://docs.opencell.io\">documentation</a>.</p>\n<p>Happy building! 🚀</p>",
+        "options": {}
+      },
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1250, 450],
+      "id": "welcome-email"
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/bot-factory/create-sample",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"userId\": \"{{ $json.id }}\", \"botName\": \"my-first-bot\" }",
+        "options": {}
+      },
+      "name": "Create Sample Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 600],
+      "id": "create-sample-bot"
+    },
+    {
+      "parameters": {
+        "message": "={\n  \"status\": \"success\",\n  \"message\": \"User created and synced to CRM\",\n  \"salesforceId\": \"{{ $('Create/Update Salesforce Lead').item.json.id }}\"\n}",
+        "options": {}
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "id": "webhook-response"
+    },
+    {
+      "parameters": {
+        "message": "={\n  \"status\": \"error\",\n  \"message\": \"Invalid email address\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 450],
+      "id": "error-response"
+    }
+  ],
+  "connections": {
+    "Webhook: New User": {
+      "main": [
+        [
+          {
+            "node": "Valid Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Email?": {
+      "main": [
+        [
+          {
+            "node": "Get User Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details": {
+      "main": [
+        [
+          {
+            "node": "Create/Update Salesforce Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create/Update Salesforce Lead": {
+      "main": [
+        [
+          {
+            "node": "Create Follow-up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Follow-up Task": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales Team (Slack)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Sample Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Sales Team (Slack)": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-02-12T00:00:00.000Z",
+  "versionId": "1"
+}
