@@ -303,3 +303,64 @@ git push origin main
 
 **Última atualização:** 2026-02-09
 **Mantenha este arquivo atualizado** conforme adicionar novos IDs, configs, ou descobrir novas convenções.
+
+---
+
+## 🚀 Advanced Tools
+
+Para documentação completa de 29 ferramentas avançadas, consulte:
+
+📄 **[TOOLS-ADVANCED.md](./TOOLS-ADVANCED.md)** (21 KB)
+
+### Categorias Disponíveis:
+
+#### 📅 Scheduler (4 tools)
+- `schedule_task` - Agendar tarefas com cron/tempo relativo
+- `cancel_scheduled_task` - Cancelar tasks
+- `list_scheduled_tasks` - Listar tasks ativas
+- Multi-plataforma: Discord, Slack, Telegram
+
+#### 🤖 Bot Factory (4 tools)  
+- `create_bot` - Criar bots dinamicamente no K8s
+- `delete_bot` - Remover bots
+- `list_bots` - Listar bots ativos
+- `get_bot_status` - Status detalhado
+- Tipos: Conversational ou Agent
+
+#### 🎨 Replicate Registry (4 tools)
+- `search_replicate_models` - Busca semântica de models
+- `get_replicate_model_info` - Info detalhada
+- `list_top_replicate_models` - Top por popularidade
+- `sync_replicate_models` - Sync manual
+- Auto-learning com usage tracking
+
+#### ⚙️ Process Management (5 tools)
+- `process_start` - Iniciar processo em background
+- `process_stop` - Parar processo
+- `process_restart` - Reiniciar processo
+- `process_list` - Listar processos
+- `process_logs` - Ver logs
+- Auto-restart e monitoring
+
+#### 🧠 Memory (2 tools)
+- `memory_search` - Busca vetorial de memórias
+- `memory_recall` - Recuperar memória específica
+- Semantic search com OpenAI embeddings
+
+#### 🛠️ Utilities (7 tools)
+- `send_email` - Gmail integration
+- `send_slack_message` - Slack direto
+- `youtube_video_clone` - Download YouTube
+- `scan_repo_secrets` - Security scan
+- `secure_repo` - Repo hardening
+- `deploy_public_app` - Deploy to Vercel/CF Pages
+- `delete_public_app`, `list_public_apps`
+
+**Total:** 66 tools implementados  
+**Documentados:** 37 (este arquivo) + 29 (TOOLS-ADVANCED.md)
+
+---
+
+**Última atualização:** 2026-02-12  
+**Versão:** 2.5  
+**Mantenha ambos os arquivos atualizados** conforme adicionar novos tools ou descobrir novas convenções.

@@ -31,7 +31,7 @@ Estou ativo em 4 plataformas simultaneamente:
 
 ---
 
-## 🛠️ Minhas Capacidades (57+ Tools)
+## 🛠️ Minhas Capacidades (66 Tools)
 
 ### 📁 File Operations (6 tools)
 - `read_file` - Ler arquivos
@@ -548,7 +548,14 @@ Níveis de confiança por usuário:
 **Custo:** ~$110-190/mês total  
 **Repositório:** https://github.com/opencellcw/ulf-warden
 
-**Pergunte qualquer coisa e usarei minhas 55+ ferramentas para ajudar! 🚀**
+**Pergunte qualquer coisa e usarei minhas 66 ferramentas para ajudar! 🚀**
+
+### 📚 Documentação de Ferramentas
+
+- **[TOOLS.md](TOOLS.md)** - 37 ferramentas principais documentadas
+- **[TOOLS-ADVANCED.md](TOOLS-ADVANCED.md)** - 29 ferramentas avançadas (Scheduler, Bot Factory, Replicate Registry, Process Management, Memory, Utilities)
+
+**Total:** 66 tools implementados e funcionais ✅
 
 ---
 
