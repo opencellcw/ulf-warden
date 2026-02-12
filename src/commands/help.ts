@@ -22,18 +22,18 @@ const COMMANDS: CommandDoc[] = [
   // General Commands
   {
     name: 'help',
-    description: 'Show this help message',
-    usage: '/help [command]',
+    description: 'Show this comprehensive help guide',
+    usage: '/help [command|category]',
     examples: [
       '/help',
-      '/help admin',
-      '/help rotate-key'
+      '/help create',
+      '/help admin'
     ],
     category: 'general'
   },
   {
     name: 'status',
-    description: 'Show system status with metrics',
+    description: 'Show detailed system status and health metrics',
     usage: '/status',
     category: 'general'
   },
@@ -136,6 +136,29 @@ const COMMANDS: CommandDoc[] = [
     category: 'general'
   },
 
+  // Content Creation
+  {
+    name: 'clone',
+    description: '🎬 Clone ANY YouTube video - AI analyzes style, creates recreation script',
+    usage: '@ulf clone <youtube-url>',
+    examples: [
+      '@ulf clone https://youtube.com/watch?v=xxx',
+      '@ulf analyze this video https://youtu.be/abc123'
+    ],
+    category: 'general'
+  },
+  {
+    name: 'generate',
+    description: '🎨 Generate images with AI (with interactive studio buttons!)',
+    usage: '@ulf gera <description> [com <model>]',
+    examples: [
+      '@ulf gera um gato pirata',
+      '@ulf gera cyberpunk city com nanobanana pro',
+      '@ulf gera landscape ultra realistic com flux dev'
+    ],
+    category: 'general'
+  },
+
   // Key Management
   {
     name: 'key-status',
@@ -233,26 +256,73 @@ async function showGeneralHelp(message: Message): Promise<void> {
   const isAdmin = isAuthorized(message.author.id);
 
   const embed = new EmbedBuilder()
-    .setTitle('📚 Bot Help')
-    .setDescription('Available commands and features')
+    .setTitle('🤖 ULF - Advanced AI Assistant')
+    .setDescription('**The most powerful Discord AI bot with unique features**\n\n' +
+      '✨ **NEW:** YouTube Video Clone + Interactive Content Studio!')
     .setColor(0x5865F2);
 
-  // General Commands
-  const generalCommands = COMMANDS.filter(c => c.category === 'general');
-  if (generalCommands.length > 0) {
-    embed.addFields({
-      name: '📖 General Commands',
-      value: generalCommands.map(c => `\`${c.name}\` - ${c.description}`).join('\n'),
-      inline: false
-    });
-  }
+  // Highlight Features
+  embed.addFields({
+    name: '🌟 Unique Features',
+    value: 
+      '🎬 **Video Clone** - Analyze ANY YouTube video, get recreation scripts\n' +
+      '🎨 **Content Studio** - Interactive buttons: Remix, Upscale, Create Videos\n' +
+      '🎭 **Copy Style** - AI learns YOUR writing style\n' +
+      '🌙 **Dream Mode** - 24/7 background analysis\n' +
+      '🤖 **Self-Improving** - Gets better every day with AI',
+    inline: false
+  });
+
+  // Essential Commands
+  embed.addFields({
+    name: '📖 Essential Commands',
+    value:
+      '`/help` - Show this guide\n' +
+      '`/status` - System health & metrics\n' +
+      '`/search` - Search everything\n' +
+      '`/mood` - Your sentiment analysis',
+    inline: true
+  });
+
+  // Content Creation
+  embed.addFields({
+    name: '🎨 Content Creation',
+    value:
+      '`@ulf clone <url>` - Clone YouTube videos\n' +
+      '`@ulf gera <prompt>` - Generate images\n' +
+      '`/copystyle` - Write like you\n' +
+      '`/theme` - Visual customization',
+    inline: true
+  });
+
+  // Productivity
+  embed.addFields({
+    name: '⚡ Productivity',
+    value:
+      '`/remind` - Smart reminders\n' +
+      '`/reminders` - List pending\n' +
+      '`/learn` - Auto-learned skills\n' +
+      '`/dream` - AI insights',
+    inline: true
+  });
+
+  // Customization
+  embed.addFields({
+    name: '🎭 Customization',
+    value:
+      '`/personality` - Bot behavior\n' +
+      '`/theme` - Visual style\n' +
+      '`/mood` - Your mood report\n' +
+      '`/teammood` - Team dashboard',
+    inline: true
+  });
 
   // Key Management
   const keyCommands = COMMANDS.filter(c => c.category === 'key');
   if (keyCommands.length > 0) {
     embed.addFields({
-      name: '🔑 Key Management',
-      value: keyCommands.map(c => `\`${c.name}\` - ${c.description}${c.dmOnly ? ' (DM only)' : ''}`).join('\n'),
+      name: '🔑 Security',
+      value: keyCommands.map(c => `\`${c.name}\` - ${c.description}`).join('\n'),
       inline: false
     });
   }
@@ -262,24 +332,46 @@ async function showGeneralHelp(message: Message): Promise<void> {
     const adminCommands = COMMANDS.filter(c => c.category === 'admin' && !c.name.includes(' '));
     if (adminCommands.length > 0) {
       embed.addFields({
-        name: '⚙️ Admin Commands',
-        value: adminCommands.map(c => `\`${c.name}\` - ${c.description}`).join('\n'),
+        name: '⚙️ Admin Control',
+        value: '`/admin` - Full system control\n' +
+               '`/admin status` - Detailed metrics\n' +
+               '`/admin logs` - System logs\n' +
+               '`/admin health` - Health check',
         inline: false
       });
     }
   }
 
+  // Interactive Features
+  embed.addFields({
+    name: '🎮 Interactive Features',
+    value:
+      '**After generating images, you get 6 buttons:**\n' +
+      '🔄 Regenerate - New variations\n' +
+      '🎨 Remix - 10 artistic styles\n' +
+      '📐 Change Ratio - 6 aspect ratios\n' +
+      '🎬 Create Video - Animate images\n' +
+      '⬆️ Upscale 4x - High resolution\n' +
+      '⬇️ Download HD - Direct links',
+    inline: false
+  });
+
   embed.addFields(
     {
-      name: '💡 Tips',
-      value: '• Use `/help <command>` for detailed help on a specific command\n' +
-             '• Commands marked (DM only) must be used in private messages\n' +
-             (isAdmin ? '• You have admin access to advanced commands' : ''),
+      name: '💡 Pro Tips',
+      value: 
+        '• Use `@ulf` for natural conversation\n' +
+        '• Use `/help <command>` for detailed info\n' +
+        '• Commands marked (DM only) are for security\n' +
+        '• Image generation has interactive buttons!' +
+        (isAdmin ? '\n• You have full admin access ⚡' : ''),
       inline: false
     }
   );
 
-  embed.setFooter({ text: 'Use /help <command> for more details' });
+  embed.setFooter({ 
+    text: 'OpenCell v2.5 • The Most Advanced Discord AI • Use /help <command> for details' 
+  });
   embed.setTimestamp();
 
   await message.reply({ embeds: [embed] });
