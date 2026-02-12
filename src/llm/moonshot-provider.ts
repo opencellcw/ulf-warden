@@ -80,7 +80,7 @@ export class MoonshotProvider implements LLMProvider {
   constructor(config?: MoonshotConfig) {
     this.apiKey = config?.apiKey || process.env.MOONSHOT_API_KEY || '';
     this.model = config?.model || process.env.MOONSHOT_MODEL || 'kimi-k2.5';
-    this.baseURL = config?.baseURL || process.env.MOONSHOT_BASE_URL || 'https://api.moonshot.cn/v1';
+    this.baseURL = config?.baseURL || process.env.MOONSHOT_BASE_URL || 'https://api.moonshot.ai/v1';
 
     if (!this.apiKey) {
       log.warn('[Moonshot] API key not configured');
