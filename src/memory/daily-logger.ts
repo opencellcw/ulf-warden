@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { intervalManager } from '../../utils/interval-manager';
+import { intervalManager } from '../utils/interval-manager';
 import path from 'path';
 import { log } from '../logger';
 

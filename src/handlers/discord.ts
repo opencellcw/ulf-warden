@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel, Partials } from 'discord.js';
-import { intervalManager } from '../../utils/interval-manager';
+import { intervalManager } from '../utils/interval-manager';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';

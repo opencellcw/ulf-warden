@@ -1,5 +1,5 @@
 import { persistence } from './index';
-import { intervalManager } from '../../utils/interval-manager';
+import { intervalManager } from '../utils/interval-manager';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 
 export class DailyLogManager {

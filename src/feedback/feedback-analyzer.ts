@@ -20,7 +20,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { intervalManager } from '../../utils/interval-manager';
+import { intervalManager } from '../utils/interval-manager';
 import Database from 'better-sqlite3';
 import path from 'path';
 import { log } from '../logger';

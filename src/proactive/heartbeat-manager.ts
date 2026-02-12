@@ -1,5 +1,5 @@
 import { log } from '../logger';
-import { intervalManager } from '../../utils/interval-manager';
+import { intervalManager } from '../utils/interval-manager';
 import { cache } from '../core/cache';
 import { sessionManager } from '../sessions';
 import { memoryCurator } from '../memory/memory-curator';
