@@ -1,15 +1,26 @@
 import Anthropic from '@anthropic-ai/sdk';
 import Replicate from 'replicate';
 import { log } from '../logger';
+import { 
+  isAdminUser, 
+  canUseExpensiveAPI, 
+  detectModelFromPrompt,
+  smartGenerateImage,
+  REPLICATE_MODELS 
+} from './replicate-enhanced';
 
 /**
  * Replicate Tools - Image, Video, and Model Generation
  *
+ * 🔐 PERMISSION SYSTEM:
+ * - Admin users: Can use ALL models (including expensive ones)
+ * - Unknown users: BLOCKED from image/video/audio generation
+ * 
  * Popular models:
- * - SDXL: stability-ai/sdxl
- * - Stable Video: stability-ai/stable-video-diffusion
- * - Flux: black-forest-labs/flux-schnell
- * - Llama 3: meta/llama-3-70b-instruct
+ * - Flux Schnell (fast, cheap)
+ * - Nanobanana Pro (artistic, expensive) 
+ * - SDXL (reliable, cheap)
+ * - Flux Pro/Dev (best quality, expensive)
  * - And hundreds more...
  */
 
@@ -31,29 +42,46 @@ export const REPLICATE_TOOLS: Anthropic.Tool[] = [
     name: 'replicate_generate_image',
     description: `Generate images using AI models via Replicate.
 
-Supports multiple models:
-- SDXL (high quality, realistic)
-- Flux Schnell (very fast)
-- Stable Diffusion (classic)
-- And more...
+🔐 PERMISSION: Admin users only! Unknown users are blocked.
+
+📚 SMART MODEL DETECTION:
+The system automatically detects which model to use based on keywords in the prompt:
+- "nanobanana", "nano banana" → Nanobanana Pro (artistic, expensive)
+- "flux schnell", "fast" → Flux Schnell (fast, cheap)
+- "flux dev", "best quality" → Flux Dev (highest quality)
+- "flux pro", "professional" → Flux Pro (production-grade)
+- "sdxl", "stable diffusion xl" → SDXL (reliable)
+- "sd3", "stable diffusion 3" → SD3 (latest)
+- "playground", "aesthetic" → Playground v2.5 (aesthetic)
+- "realvisxl", "realistic", "photo" → RealVisXL (photorealistic)
+- "epicrealism", "ultra realistic" → EpicRealism (portraits)
+
+💰 COST:
+- Cheap models: $0.002/image (flux-schnell, sdxl, playground, realvisxl, epicrealism)
+- Expensive models: $0.02/image (nanobanana-pro, flux-pro, flux-dev, sd3)
 
 Examples:
-- "Generate: a cat wearing sunglasses"
-- "Create an image of a futuristic city"
-- "Draw a landscape with mountains"
+- "Generate a cat pirate with nanobanana pro" → Uses Nanobanana Pro
+- "Fast image of a sunset with flux schnell" → Uses Flux Schnell
+- "Ultra realistic portrait with epicrealism" → Uses EpicRealism
 
-The tool will return a URL to the generated image.`,
+If no model keyword is detected, defaults to flux-schnell for speed.`,
     input_schema: {
       type: 'object',
       properties: {
         prompt: {
           type: 'string',
-          description: 'Description of the image to generate'
+          description: 'Description of the image to generate. Can include model name (e.g., "with nanobanana pro").'
         },
         model: {
           type: 'string',
-          description: 'Model to use (default: flux-schnell for speed)',
-          enum: ['flux-schnell', 'sdxl', 'stable-diffusion']
+          description: 'Model to use (optional, auto-detected from prompt)',
+          enum: [
+            'flux-schnell', 'flux-dev', 'flux-pro',
+            'sdxl', 'sd3', 'stable-diffusion',
+            'nanobanana-pro', 'playground-v2.5',
+            'realvisxl', 'epicrealism'
+          ]
         },
         aspect_ratio: {
           type: 'string',
@@ -63,6 +91,10 @@ The tool will return a URL to the generated image.`,
         negative_prompt: {
           type: 'string',
           description: 'What to avoid in the image'
+        },
+        user_id: {
+          type: 'string',
+          description: 'Discord user ID (for permission check)'
         }
       },
       required: ['prompt']
@@ -180,13 +212,20 @@ Returns URL to image with transparent background.`,
   }
 ];
 
-export async function executeReplicateTool(toolName: string, input: any): Promise<string> {
+export async function executeReplicateTool(
+  toolName: string, 
+  input: any, 
+  userId?: string
+): Promise<string> {
   try {
     const client = getReplicateClient();
 
+    // Inject user_id into input for permission checks
+    const enrichedInput = { ...input, user_id: userId || input.user_id };
+
     switch (toolName) {
       case 'replicate_generate_image':
-        return await generateImage(client, input);
+        return await generateImage(client, enrichedInput);
       case 'replicate_generate_video':
         return await generateVideo(client, input);
       case 'replicate_run_model':
@@ -205,45 +244,55 @@ export async function executeReplicateTool(toolName: string, input: any): Promis
 }
 
 async function generateImage(client: Replicate, input: any): Promise<string> {
-  const { prompt, model = 'flux-schnell', aspect_ratio = '1:1', negative_prompt } = input;
+  const { prompt, model, aspect_ratio = '1:1', negative_prompt, user_id } = input;
 
-  log.info('[Replicate] Generating image', { model, prompt: prompt.substring(0, 50) });
+  // Permission check
+  if (!user_id) {
+    throw new Error('user_id is required for permission check');
+  }
+
+  if (!canUseExpensiveAPI(user_id, 'image')) {
+    return `⛔ **Image generation is admin-only!**
+
+Only administrators can generate images due to API costs.
+
+If you're an admin, make sure your Discord User ID is in DISCORD_ADMIN_USER_IDS.
+
+Contact an administrator for access.`;
+  }
+
+  log.info('[Replicate] Generating image (enhanced)', {
+    userId: user_id,
+    isAdmin: isAdminUser(user_id),
+    prompt: prompt.substring(0, 50)
+  });
 
   try {
-    let modelId: string;
-    let modelInput: any = {
-      prompt,
-      aspect_ratio
-    };
+    // Use smart generation with auto model detection
+    const result = await smartGenerateImage(prompt, user_id, {
+      model,
+      aspect_ratio,
+      negative_prompt
+    });
 
-    // Select model
-    switch (model) {
-      case 'flux-schnell':
-        modelId = 'black-forest-labs/flux-schnell';
-        break;
-      case 'sdxl':
-        modelId = 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
-        modelInput = { ...modelInput, width: 1024, height: 1024 };
-        if (negative_prompt) modelInput.negative_prompt = negative_prompt;
-        break;
-      case 'stable-diffusion':
-        modelId = 'stability-ai/stable-diffusion:db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf';
-        if (negative_prompt) modelInput.negative_prompt = negative_prompt;
-        break;
-      default:
-        modelId = 'black-forest-labs/flux-schnell';
-    }
+    return `✅ **Image generated successfully!**
 
-    const output = await client.run(modelId as any, { input: modelInput });
+URL: ${result.url}
 
-    // Output can be array or single URL
-    const imageUrl = Array.isArray(output) ? output[0] : output;
+📊 **Details:**
+- Model: ${result.model}
+- Cost: $${result.cost.toFixed(4)}
+- Prompt: ${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}
 
-    log.info('[Replicate] Image generated successfully', { url: imageUrl });
-
-    return `✅ Image generated successfully!\n\nURL: ${imageUrl}\n\nPrompt: ${prompt}\nModel: ${model}`;
+${result.model.includes('Nanobanana') || result.model.includes('Flux Pro') || result.model.includes('Flux Dev') ? '💎 **Premium model used!**' : '⚡ **Fast model used!**'}`;
+    
   } catch (error: any) {
     log.error('[Replicate] Image generation failed', { error: error.message });
+    
+    if (error.message.includes('admin-only') || error.message.includes('⛔')) {
+      return error.message;
+    }
+    
     throw error;
   }
 }

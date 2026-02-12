@@ -320,7 +320,7 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       case 'replicate_run_model':
       case 'replicate_upscale_image':
       case 'replicate_remove_background':
-        result = await executeReplicateTool(toolName, toolInput);
+        result = await executeReplicateTool(toolName, toolInput, userId);
         break;
 
       // ElevenLabs tools
