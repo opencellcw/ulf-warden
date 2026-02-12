@@ -26,6 +26,13 @@ import { activityTracker } from '../activity/activity-tracker';
 import { handleDecisionCommand, isDecisionCommand } from '../decision-intelligence';
 import axios from 'axios';
 
+// 🚀 NEW FEATURES
+import { formatter } from '../rich-media/response-formatter';
+import { quickActions } from '../actions/quick-actions';
+import { unifiedSearch } from '../search/unified-search';
+import { skillDetector } from '../learning/skill-detector';
+import { dreamMode } from '../viral-features/dream-mode';
+
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
     console.log('[Discord] Token not configured, skipping Discord handler');
@@ -102,15 +109,78 @@ export async function startDiscordHandler() {
         );
       }
     } else {
-      // No media, send normal text response
-      // Split long messages (Discord limit: 2000 chars)
-      if (sanitizedResponse.length <= 2000) {
-        await message.reply(sanitizedResponse);
-      } else {
-        const chunks = sanitizedResponse.match(/[\s\S]{1,2000}/g) || [];
-        for (const chunk of chunks) {
-          if ('send' in message.channel) {
-            await message.channel.send(chunk);
+      // 🚀 NEW: Rich Media & Quick Actions Integration
+      try {
+        // Format response with rich media
+        const richResponse = formatter.formatResponse(sanitizedResponse);
+        
+        // Suggest quick actions based on context
+        const actions = quickActions.suggestActions({
+          messageContent: sanitizedResponse,
+          userId: message.author.id,
+          botId: message.client.user?.id || 'discord-bot',
+          channelType: message.channel.type === 0 ? 'channel' : 'dm',
+        });
+
+        // Build Discord message
+        const discordFormat = formatter.toDiscordFormat(richResponse);
+        
+        // Add quick action buttons
+        const messageOptions: any = {
+          content: discordFormat.content || sanitizedResponse,
+        };
+
+        // Add embeds if present
+        if (discordFormat.embeds && discordFormat.embeds.length > 0) {
+          messageOptions.embeds = discordFormat.embeds;
+        }
+
+        // Add action buttons if present
+        if (actions.length > 0) {
+          messageOptions.components = [quickActions.toDiscordComponents(actions)];
+        }
+
+        // Send enhanced message
+        if (messageOptions.content.length <= 2000) {
+          await message.reply(messageOptions);
+        } else {
+          // Split long messages but keep first chunk with buttons
+          const chunks = messageOptions.content.match(/[\s\S]{1,2000}/g) || [];
+          
+          // First chunk with all the bells and whistles
+          await message.reply({
+            content: chunks[0],
+            embeds: messageOptions.embeds,
+            components: messageOptions.components,
+          });
+          
+          // Remaining chunks as plain text
+          for (let i = 1; i < chunks.length; i++) {
+            if ('send' in message.channel) {
+              await message.channel.send(chunks[i]);
+            }
+          }
+        }
+
+        log.info('[Discord] Enhanced response sent', {
+          hasEmbeds: !!discordFormat.embeds?.length,
+          hasActions: actions.length > 0,
+          elementsCount: richResponse.elements.length,
+        });
+      } catch (error: any) {
+        log.error('[Discord] Rich media formatting failed, falling back to plain text', {
+          error: error.message,
+        });
+        
+        // Fallback to plain text
+        if (sanitizedResponse.length <= 2000) {
+          await message.reply(sanitizedResponse);
+        } else {
+          const chunks = sanitizedResponse.match(/[\s\S]{1,2000}/g) || [];
+          for (const chunk of chunks) {
+            if ('send' in message.channel) {
+              await message.channel.send(chunk);
+            }
           }
         }
       }
@@ -312,6 +382,30 @@ export async function startDiscordHandler() {
         await handleStatusButtons(interaction);
         return;
       }
+
+      // 🚀 NEW: Handle quick action buttons
+      if (interaction.customId && !interaction.customId.startsWith('status_')) {
+        await interaction.deferReply({ ephemeral: true });
+        
+        const userId = `discord_${interaction.user.id}`;
+        const result = await quickActions.executeAction(
+          interaction.customId,
+          {
+            messageContent: interaction.message.content || '',
+            userId,
+            botId: interaction.client.user?.id || 'discord-bot',
+            channelType: interaction.channel?.type === 0 ? 'channel' : 'dm',
+          }
+        );
+
+        await interaction.editReply({
+          content: result.success 
+            ? `✅ ${result.message}` 
+            : `❌ Failed: ${result.message}`,
+        });
+        
+        return;
+      }
     } catch (error) {
       console.error('[Discord] Error handling button interaction:', error);
       if (!interaction.replied && !interaction.deferred) {
@@ -467,6 +561,118 @@ export async function startDiscordHandler() {
         return;
       }
 
+      // 🚀 NEW: Search command
+      if (text.startsWith('/search ')) {
+        const query = text.replace('/search ', '').trim();
+        
+        if (!query) {
+          await message.reply('❌ Usage: `/search <query>`\n\nExample: `/search kubernetes error`');
+          return;
+        }
+
+        if ('sendTyping' in message.channel) {
+          await message.channel.sendTyping();
+        }
+        
+        try {
+          const results = await unifiedSearch.search(
+            query,
+            userId,
+            message.client.user?.id || 'discord-bot',
+            {
+              sources: ['memory', 'conversation'],
+              limit: 5,
+            }
+          );
+
+          const formattedResults = unifiedSearch.formatResults(results);
+          await message.reply(formattedResults);
+        } catch (error: any) {
+          await message.reply(`❌ Search failed: ${error.message}`);
+        }
+        
+        return;
+      }
+
+      // 🚀 NEW: Learn command (skill detector)
+      if (text.startsWith('/learn') || text === '/skills') {
+        if ('sendTyping' in message.channel) {
+          await message.channel.sendTyping();
+        }
+        
+        const report = skillDetector.formatSkillReport();
+        await message.reply(report);
+        
+        return;
+      }
+
+      // 🚀 NEW: Dream command
+      if (text.startsWith('/dream')) {
+        const subcommand = text.split(' ')[1];
+        
+        if (subcommand === 'start') {
+          if ('sendTyping' in message.channel) {
+            await message.channel.sendTyping();
+          }
+          
+          const dreamId = await dreamMode.startDreaming(
+            userId,
+            message.client.user?.id || 'discord-bot'
+          );
+          
+          await message.reply(
+            `🌙 **Dream Mode Started**\n\n` +
+            `I'll analyze your activity in the background and find insights.\n` +
+            `Dream ID: \`${dreamId}\`\n\n` +
+            `Use \`/dream status\` to check progress.`
+          );
+          
+          return;
+        }
+        
+        if (subcommand === 'status' || !subcommand) {
+          if ('sendTyping' in message.channel) {
+            await message.channel.sendTyping();
+          }
+          
+          const latestDream = dreamMode.getLatestDream(
+            userId,
+            message.client.user?.id || 'discord-bot'
+          );
+          
+          if (!latestDream) {
+            await message.reply(
+              `🌙 **No dreams yet**\n\n` +
+              `Start one with: \`/dream start\``
+            );
+            return;
+          }
+          
+          if (latestDream.status === 'completed') {
+            const report = dreamMode.formatDreamReport(latestDream);
+            await message.reply(report);
+          } else {
+            await message.reply(
+              `🌙 **Dream in progress...**\n\n` +
+              `Status: ${latestDream.status}\n` +
+              `Started: ${latestDream.startTime.toLocaleString()}\n` +
+              `Items analyzed: ${latestDream.processingStats.itemsAnalyzed}`
+            );
+          }
+          
+          return;
+        }
+        
+        await message.reply(
+          `❌ Unknown subcommand: \`${subcommand}\`\n\n` +
+          `**Available commands:**\n` +
+          `• \`/dream start\` - Start background analysis\n` +
+          `• \`/dream status\` - Check dream status`
+        );
+        
+        return;
+      }
+
       // Handle voice commands
       const handledVoice = await handleVoiceCommand(message, text);
       if (handledVoice) {
@@ -563,6 +769,20 @@ export async function startDiscordHandler() {
       await sessionManager.addMessage(userId, { role: 'assistant', content: textResponse });
 
       await sendResponse(message, textResponse);
+
+      // 🚀 NEW: Track task for skill learning (async, non-blocking)
+      const executionTime = Date.now();
+      skillDetector.recordTask(
+        userId,
+        message.client.user?.id || 'discord-bot',
+        text,
+        executionTime,
+        true // success (we got a response)
+      ).catch(error => {
+        log.error('[Discord] Failed to record task for skill learning', {
+          error: error.message,
+        });
+      });
 
       // If connected to voice channel, speak the response
       const guildId = message.guild?.id;

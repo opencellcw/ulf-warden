@@ -37,6 +37,33 @@ const COMMANDS: CommandDoc[] = [
     usage: '/status',
     category: 'general'
   },
+  {
+    name: 'search',
+    description: '🔍 Search across all data sources (memory, conversations, etc)',
+    usage: '/search <query>',
+    examples: [
+      '/search kubernetes error',
+      '/search deployment issues'
+    ],
+    category: 'general'
+  },
+  {
+    name: 'learn',
+    description: '🎓 View auto-learned skills and patterns',
+    usage: '/learn',
+    examples: ['/learn'],
+    category: 'general'
+  },
+  {
+    name: 'dream',
+    description: '🌙 Background AI analysis and insights',
+    usage: '/dream <start|status>',
+    examples: [
+      '/dream start',
+      '/dream status'
+    ],
+    category: 'general'
+  },
 
   // Key Management
   {
