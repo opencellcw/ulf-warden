@@ -15,7 +15,7 @@ import { pipeline } from 'stream';
 import { createWriteStream } from 'fs';
 import { promisify } from 'util';
 import path from 'path';
-// import prism from 'prism-media'; // TODO: Add prism-media to package.json
+import prism from 'prism-media';
 
 const pipelineAsync = promisify(pipeline);
 

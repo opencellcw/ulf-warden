@@ -479,6 +479,33 @@ async function initialize() {
     await cronManager.loadJobs();
     log.info('Cron scheduler initialized');
 
+    // 7. Setup Replicate Model Registry auto-sync
+    if (process.env.REPLICATE_API_TOKEN) {
+      try {
+        log.info('Setting up Replicate Model Registry...');
+        const { setupReplicateAutoSync } = await import('./replicate/auto-sync');
+        const { getReplicateRegistry } = await import('./replicate/model-registry');
+        
+        await setupReplicateAutoSync();
+        
+        // Check if registry is empty, do initial sync
+        const registry = getReplicateRegistry();
+        const stats = registry.getStats();
+        
+        if (stats.totalModels === 0) {
+          log.info('Registry empty, performing initial sync...');
+          await registry.syncModels();
+          const newStats = registry.getStats();
+          log.info('Initial sync complete', { totalModels: newStats.totalModels });
+        } else {
+          log.info('Replicate Model Registry ready', { totalModels: stats.totalModels });
+        }
+      } catch (error: any) {
+        log.warn('Failed to setup Replicate Registry', { error: error.message });
+        // Continue startup even if registry fails
+      }
+    }
+
     console.log('='.repeat(60));
     console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
     console.log('Model: claude-opus-4-20250514');

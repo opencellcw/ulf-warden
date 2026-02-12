@@ -217,30 +217,100 @@ export async function executeReplicateTool(
   input: any, 
   userId?: string
 ): Promise<string> {
+  const startTime = Date.now();
+  let modelName = '';
+  let success = false;
+  
   try {
     const client = getReplicateClient();
 
     // Inject user_id into input for permission checks
     const enrichedInput = { ...input, user_id: userId || input.user_id };
 
+    let result: string;
+    
     switch (toolName) {
       case 'replicate_generate_image':
-        return await generateImage(client, enrichedInput);
+        modelName = input.model || 'auto-detected';
+        result = await generateImage(client, enrichedInput);
+        success = result.includes('✅') || result.includes('URL:');
+        break;
       case 'replicate_generate_video':
-        return await generateVideo(client, input);
+        modelName = 'video-generator';
+        result = await generateVideo(client, input);
+        success = result.includes('✅') || result.includes('URL:');
+        break;
       case 'replicate_run_model':
-        return await runModel(client, input);
+        modelName = input.model || 'custom';
+        result = await runModel(client, input);
+        success = !result.includes('❌') && !result.includes('Error:');
+        break;
       case 'replicate_upscale_image':
-        return await upscaleImage(client, input);
+        modelName = 'image-upscaler';
+        result = await upscaleImage(client, input);
+        success = result.includes('✅') || result.includes('URL:');
+        break;
       case 'replicate_remove_background':
-        return await removeBackground(client, input);
+        modelName = 'background-remover';
+        result = await removeBackground(client, input);
+        success = result.includes('✅') || result.includes('URL:');
+        break;
       default:
         return `Unknown Replicate tool: ${toolName}`;
     }
+
+    // Track usage in registry
+    if (userId && modelName) {
+      trackReplicateUsage(
+        modelName,
+        userId,
+        input.prompt || JSON.stringify(input),
+        success,
+        (Date.now() - startTime) / 1000
+      );
+    }
+
+    return result;
   } catch (error: any) {
+    // Track failed usage
+    if (userId && modelName) {
+      trackReplicateUsage(
+        modelName,
+        userId,
+        input.prompt || JSON.stringify(input),
+        false,
+        (Date.now() - startTime) / 1000,
+        error.message
+      );
+    }
+    
     log.error(`[Replicate] Tool execution failed: ${toolName}`, { error: error.message });
     return `Error: ${error.message}`;
   }
+}
+
+/**
+ * Track usage in registry (async, non-blocking)
+ */
+function trackReplicateUsage(
+  modelName: string,
+  userId: string,
+  prompt: string,
+  success: boolean,
+  runTime: number,
+  errorMessage?: string
+): void {
+  // Import and call registry asynchronously
+  import('../replicate/model-registry').then(({ getReplicateRegistry }) => {
+    try {
+      const registry = getReplicateRegistry();
+      registry.recordUsage(modelName, userId, prompt, success, runTime, errorMessage);
+    } catch (error: any) {
+      log.warn('[Replicate] Failed to track usage', { error: error.message });
+    }
+  }).catch(() => {
+    // Silently fail tracking, don't affect main operation
+  });
 }
 
 async function generateImage(client: Replicate, input: any): Promise<string> {
@@ -275,16 +345,9 @@ Contact an administrator for access.`;
       negative_prompt
     });
 
-    return `✅ **Image generated successfully!**
+    return `✅ Image generated! | ${result.model} | $${result.cost.toFixed(4)}
 
-URL: ${result.url}
-
-📊 **Details:**
-- Model: ${result.model}
-- Cost: $${result.cost.toFixed(4)}
-- Prompt: ${prompt.substring(0, 200)}${prompt.length > 200 ? '...' : ''}
-
-${result.model.includes('Nanobanana') || result.model.includes('Flux Pro') || result.model.includes('Flux Dev') ? '💎 **Premium model used!**' : '⚡ **Fast model used!**'}`;
+${result.url}`;
     
   } catch (error: any) {
     log.error('[Replicate] Image generation failed', { error: error.message });

@@ -29,7 +29,7 @@ import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
-// import prism from 'prism-media'; // TODO: Add prism-media to package.json
+import prism from 'prism-media';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -163,8 +163,6 @@ export class FluentVoiceConversation {
 
       console.log('[FluentVoice] 📼 Recording audio...');
 
-      // TODO: Re-enable once prism-media is added to package.json
-      /*
       // Decode opus to PCM
       const opusDecoder = new prism.opus.Decoder({
         rate: 48000,
@@ -174,10 +172,8 @@ export class FluentVoiceConversation {
 
       // Save to PCM file
       await pipelineAsync(audioStream, opusDecoder, fs.createWriteStream(pcmPath));
-      */
       
-      console.warn('[FluentVoice] ⚠️ Recording disabled (prism-media not installed)');
-      console.log('[FluentVoice] ✅ Audio recorded (simulated)');
+      console.log('[FluentVoice] ✅ Audio recorded');
 
       // Convert PCM to WAV (for Whisper)
       await this.convertPCMtoWAV(pcmPath, wavPath);

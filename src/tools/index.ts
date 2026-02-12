@@ -11,6 +11,7 @@ import { executeBraveSearchTool } from './brave-search';
 import { executePlaywrightTool } from './playwright';
 import { executeMemoryTool } from './memory-search';
 import { sendSlackMessage } from './slack-messaging';
+import { executeVideoCloneTool } from './video-clone-tool';
 import { scheduleTask, listScheduledTasks, cancelScheduledTask } from './scheduler';
 import {
   proposeSelfImprovement,
@@ -323,6 +324,27 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
         result = await executeReplicateTool(toolName, toolInput, userId);
         break;
 
+      // Replicate Registry tools
+      case 'search_replicate_models':
+        const { searchReplicateModels } = await import('./replicate-registry');
+        result = await searchReplicateModels(toolInput);
+        break;
+      
+      case 'get_replicate_model_info':
+        const { getReplicateModelInfo } = await import('./replicate-registry');
+        result = await getReplicateModelInfo(toolInput);
+        break;
+      
+      case 'list_top_replicate_models':
+        const { listTopReplicateModels } = await import('./replicate-registry');
+        result = await listTopReplicateModels(toolInput);
+        break;
+      
+      case 'sync_replicate_models':
+        const { syncReplicateModelsNow } = await import('./replicate-registry');
+        result = await syncReplicateModelsNow();
+        break;
+
       // ElevenLabs tools
       case 'elevenlabs_text_to_speech':
       case 'elevenlabs_list_voices':
@@ -342,6 +364,11 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       case 'brave_web_search':
       case 'brave_news_search':
         result = await executeBraveSearchTool(toolName, toolInput);
+        break;
+
+      // YouTube Video Clone
+      case 'youtube_video_clone':
+        result = await executeVideoCloneTool(toolInput);
         break;
 
       // Playwright browser tools

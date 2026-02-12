@@ -4,6 +4,7 @@ import { WEB_TOOLS } from './web';
 import { FILE_TOOLS } from './files';
 import { PROCESS_TOOLS } from './process';
 import { REPLICATE_TOOLS } from './replicate';
+import { REPLICATE_REGISTRY_TOOLS } from './replicate-registry';
 import { ELEVENLABS_TOOLS } from './elevenlabs';
 import { OPENAI_TOOLS } from './openai-tools';
 import { BRAVE_SEARCH_TOOLS } from './brave-search';
@@ -17,6 +18,7 @@ import { WEB_HOST_TOOLS } from './web-host';
 import { EMAIL_TOOLS } from './email';
 import { CRYPTO_PRICE_TOOLS } from './crypto-prices';
 import { REPO_SECURITY_TOOLS } from './repo-security';
+import { VIDEO_CLONE_TOOL } from './video-clone-tool';
 
 const BASE_TOOLS: Anthropic.Tool[] = [
   {
@@ -127,6 +129,7 @@ Shows top 20 processes sorted by memory usage.`,
 export const TOOLS: Anthropic.Tool[] = [
   ...BASE_TOOLS,
   SLACK_MESSAGING_TOOL as Anthropic.Tool,
+  VIDEO_CLONE_TOOL as Anthropic.Tool,
   ...SCHEDULER_TOOLS,
   ...SELF_IMPROVEMENT_TOOLS,
   ...BOT_FACTORY_TOOLS,
@@ -139,6 +142,7 @@ export const TOOLS: Anthropic.Tool[] = [
   ...FILE_TOOLS,
   ...PROCESS_TOOLS,
   ...REPLICATE_TOOLS,
+  ...REPLICATE_REGISTRY_TOOLS,
   ...ELEVENLABS_TOOLS,
   ...OPENAI_TOOLS,
   ...EMAIL_TOOLS,

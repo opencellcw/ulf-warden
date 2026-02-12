@@ -12,6 +12,8 @@ import { getNormalRateLimiter } from '../security/rate-limiter';
 import { voiceManager } from '../voice/discord-voice';
 import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
+import { handleReplicateUIButtons } from './replicate-ui-handler';
+import { enhanceReplicateMessage } from './replicate-message-enhancer';
 import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
 import {
   analyzeMessage,
@@ -154,9 +156,16 @@ export async function startDiscordHandler() {
         // Build Discord message
         const discordFormat = formatter.toDiscordFormat(richResponse);
         
+        // 🎨 Check if message contains Replicate image and enhance with UI buttons
+        const replicateEnhancement = await enhanceReplicateMessage(
+          discordFormat.content || sanitizedResponse,
+          message.author.id,
+          message.id
+        );
+        
         // Add quick action buttons
         const messageOptions: any = {
-          content: discordFormat.content || sanitizedResponse,
+          content: replicateEnhancement.content,
         };
 
         // Add embeds if present
@@ -164,8 +173,10 @@ export async function startDiscordHandler() {
           messageOptions.embeds = discordFormat.embeds;
         }
 
-        // Add action buttons if present
-        if (actions.length > 0) {
+        // Priority: Replicate UI buttons > Quick actions
+        if (replicateEnhancement.components) {
+          messageOptions.components = replicateEnhancement.components;
+        } else if (actions.length > 0) {
           messageOptions.components = [quickActions.toDiscordComponents(actions)];
         }
 
@@ -440,14 +451,20 @@ export async function startDiscordHandler() {
     log.info('[Discord] Reminder checker started');
   });
 
-  // Handle button interactions
+  // Handle button and select menu interactions
   client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton()) return;
+    if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
     try {
       // Handle status buttons
       if (interaction.customId.startsWith('status_')) {
-        await handleStatusButtons(interaction);
+        await handleStatusButtons(interaction as any);
+        return;
+      }
+
+      // 🎨 Handle Replicate UI buttons and menus
+      if (interaction.customId.startsWith('replicate:')) {
+        await handleReplicateUIButtons(interaction as any);
         return;
       }
 
