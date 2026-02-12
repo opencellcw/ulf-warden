@@ -433,7 +433,8 @@ async function initialize() {
         const curationIntervalHours = parseInt(
           process.env.MEMORY_CURATION_INTERVAL_HOURS || '72'
         );
-        memoryCurator.startAutoCuration(curationIntervalHours);
+        const curationIntervalMs = curationIntervalHours * 60 * 60 * 1000; // Convert hours to ms
+        memoryCurator.startAutoCuration(curationIntervalMs);
         proactiveSystems.curator = memoryCurator;
         log.info('Memory auto-curation started', {
           interval: `${curationIntervalHours}h`,
