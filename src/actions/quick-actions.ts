@@ -114,8 +114,16 @@ export class QuickActionsSystem {
       });
     }
 
-    // Code review
-    if (content.includes('review') || content.includes('pr') || content.includes('pull request')) {
+    // Code review (more specific matching to avoid false positives)
+    const isCodeReview = (
+      (content.includes('review') || content.includes(' pr') || content.includes('pull request')) &&
+      (content.includes('approve') || content.includes('merge') || 
+       content.includes('lgtm') || content.includes('changes') ||
+       content.match(/\bpr\s*#?\d+/i) || // PR with number
+       content.includes('diff') || content.includes('commit'))
+    );
+    
+    if (isCodeReview) {
       actions.push({
         id: 'approve',
         label: 'Approve',
@@ -236,8 +244,17 @@ export class QuickActionsSystem {
       });
     }
 
-    // Always offer common actions
-    if (actions.length > 0) {
+    // Only add "Explain More" for complex topics (not automatically)
+    const isComplexTopic = (
+      content.length > 500 ||  // Long response
+      (content.match(/\n/g) || []).length > 10 ||  // Many lines
+      content.includes('documentation') ||
+      content.includes('explanation') ||
+      content.includes('details') ||
+      content.includes('summary')
+    );
+    
+    if (isComplexTopic && actions.length > 0 && actions.length < 4) {
       actions.push({
         id: 'explain_more',
         label: 'Explain More',

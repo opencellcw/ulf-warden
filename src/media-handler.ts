@@ -130,6 +130,18 @@ export function sanitizeResponse(response: string): string {
   cleaned = cleaned.replace(/<parameter\s+name="[^"]*">[\s\S]*?<\/antml:parameter>/gi, '');
   cleaned = cleaned.replace(/<\/?(?:function_calls|invoke|parameter|function_result|antml:[a-z_]+)[^>]*>/gi, '');
 
+  // === Tool calls XML (Brave Search, etc) ===
+  // Remove tool call XML blocks that appear as raw text
+  cleaned = cleaned.replace(/<brave_web_search>[\s\S]*?<\/brave_web_search>/gi, '');
+  cleaned = cleaned.replace(/<brave_news_search>[\s\S]*?<\/brave_news_search>/gi, '');
+  cleaned = cleaned.replace(/<query>[\s\S]*?<\/query>/gi, '');
+  
+  // Generic: any <*_search>, <*_tool>, <*_call> patterns
+  cleaned = cleaned.replace(/<[a-z_]+(search|tool|call)>[\s\S]*?<\/[a-z_]+(search|tool|call)>/gi, '');
+  
+  // Remove internal tool call tags
+  cleaned = cleaned.replace(/<(url|result|output|response|data|content|payload)>[\s\S]*?<\/\1>/gi, '');
+
   // === Raw HTML cleanup ===
   cleaned = cleaned.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
   cleaned = cleaned.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
