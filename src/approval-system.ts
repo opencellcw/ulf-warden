@@ -96,10 +96,45 @@ class ApprovalSystem {
     });
   }
 
+  /**
+   * Get self-improvement channel (or fallback to provided channel)
+   */
+  private async getSelfImprovementChannel(fallbackChannel: any): Promise<any> {
+    const channelId = process.env.DISCORD_SELF_IMPROVEMENT_CHANNEL_ID;
+    
+    if (!channelId) {
+      log.warn('[Approval] No DISCORD_SELF_IMPROVEMENT_CHANNEL_ID configured, using fallback');
+      return fallbackChannel;
+    }
+
+    if (!this.client) {
+      log.warn('[Approval] Discord client not set, using fallback');
+      return fallbackChannel;
+    }
+
+    try {
+      const channel = await this.client.channels.fetch(channelId);
+      if (channel && 'send' in channel) {
+        log.info('[Approval] Using configured #self-improvement channel', { channelId });
+        return channel;
+      }
+    } catch (error: any) {
+      log.error('[Approval] Failed to fetch #self-improvement channel', {
+        error: error.message,
+        channelId
+      });
+    }
+
+    return fallbackChannel;
+  }
+
   async requestApproval(
     channel: any,
     request: ApprovalRequest
   ): Promise<void> {
+    // Get target channel (preferably #self-improvement)
+    const targetChannel = await this.getSelfImprovementChannel(channel);
+    
     // Create embed
     const embed = new EmbedBuilder()
       .setTitle(`🔧 ${request.title}`)
@@ -144,8 +179,9 @@ class ApprovalSystem {
         .setStyle(ButtonStyle.Danger)
     );
 
-    // Send message
-    await channel.send({
+    // Send message to #self-improvement channel
+    await targetChannel.send({
+      content: `📢 **New Self-Improvement Proposal**\n<@${request.authorizedUsers.join('> <@')}>`,
       embeds: [embed],
       components: [row],
     });

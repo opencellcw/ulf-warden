@@ -295,3 +295,16 @@ export class EnhancedSelfImprover extends SelfImprover {
     log.info('[EnhancedSelfImprover] 👋 Resources closed');
   }
 }
+
+// Singleton instance
+let enhancedSelfImproverInstance: EnhancedSelfImprover | null = null;
+
+export function getSelfImprover(): EnhancedSelfImprover {
+  if (!enhancedSelfImproverInstance) {
+    const claude = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || '',
+    });
+    enhancedSelfImproverInstance = new EnhancedSelfImprover(claude);
+  }
+  return enhancedSelfImproverInstance;
+}
