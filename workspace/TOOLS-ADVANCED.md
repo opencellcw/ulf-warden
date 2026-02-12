@@ -8,6 +8,39 @@ Este documento detalha ferramentas avançadas que não estão no TOOLS.md princi
 
 ---
 
+## 📋 Prerequisites
+
+Antes de usar os tools, você precisará de alguns IDs e tokens:
+
+### Como Obter Channel ID
+
+**Discord:**
+1. Ativar Developer Mode: Settings → Advanced → Developer Mode
+2. Right-click no canal → Copy ID
+3. Resultado: 17-19 dígitos (ex: `1234567890123456789`)
+
+**Slack:**
+1. Right-click no canal → Copy Link
+2. URL format: `https://workspace.slack.com/archives/C1234567890`
+3. Channel ID: `C1234567890` (parte após `/archives/`)
+
+**Telegram:**
+1. Usar bot `@userinfobot`
+2. Forward mensagem do canal para o bot
+3. Bot retorna `chat_id` (pode ser negativo)
+
+### Como Obter Discord Bot Token
+
+1. Acesse [Discord Developer Portal](https://discord.com/developers/applications)
+2. Selecione sua aplicação → Bot → Token
+3. Click "Reset Token" se necessário
+4. **⚠️ IMPORTANTE:** Nunca exponha o token em código! Use variáveis de ambiente:
+   ```bash
+   export DISCORD_BOT_TOKEN="seu-token-aqui"
+   ```
+
+---
+
 ## 📅 Scheduler Tools (4 tools)
 
 Sistema de agendamento multi-plataforma com suporte a cron e tempo relativo.
@@ -48,30 +81,30 @@ schedule_task({
 - Slack: IDs string (ex: `C1234567890`)
 
 **Exemplos:**
-```
-# Lembrete simples
-schedule_task(
+```typescript
+// Lembrete simples
+schedule_task({
   schedule: "in 30 minutes",
   channel_id: "1234567890123456789",
   task_name: "PR Review Reminder",
   message: "@lucas lembra de revisar o PR #123"
-)
+})
 
-# Standup diário
-schedule_task(
+// Standup diário
+schedule_task({
   schedule: "0 9 * * 1-5",
   channel_id: "1234567890123456789",
   task_name: "Daily Standup",
   message: "🎯 Bom dia! Standup em 10 minutos!"
-)
+})
 
-# Relatório semanal
-schedule_task(
+// Relatório semanal
+schedule_task({
   schedule: "0 18 * * 5",
   channel_id: "C1234567890",
   task_name: "Weekly Report",
   message: "📊 Relatório semanal pronto!"
-)
+})
 ```
 
 **Use Cases:**
@@ -84,7 +117,10 @@ schedule_task(
 **Limitações:**
 - Requer Discord/Slack/Telegram configurado
 - Mensagens enviadas via bot (não pode ser DM direto)
-- Cron expressions usam timezone do servidor
+- **Timezone:** UTC (Coordinated Universal Time)
+  - Para 9h BRT: use `"0 12 * * *"` (9h BRT = 12h UTC)
+  - Para 18h BRT: use `"0 21 * * *"` (18h BRT = 21h UTC)
+  - Verificar timezone: logs do bot mostram horários em UTC
 
 ---
 
@@ -100,8 +136,8 @@ cancel_scheduled_task({
 ```
 
 **Exemplo:**
-```
-cancel_scheduled_task(task_id: "reminder_20260212_1234")
+```typescript
+cancel_scheduled_task({ task_id: "reminder_20260212_1234" })
 ```
 
 **Efeitos:**
@@ -157,7 +193,7 @@ Criar e deployar novo bot AI no cluster GKE.
 **Sintaxe:**
 ```typescript
 create_bot({
-  name: string,              // Nome único (DNS-safe)
+  name: string,              // Nome único (DNS-safe - ver abaixo)
   type: "conversational" | "agent",
   personality: string,       // Prompt de personalidade
   discord_token?: string,    // Token Discord (opcional)
@@ -165,6 +201,14 @@ create_bot({
   admin?: boolean            // Admin privileges (default: false)
 })
 ```
+
+**DNS-safe Name Rules:**
+- Apenas lowercase: `a-z`
+- Números permitidos: `0-9`
+- Hyphens permitidos: `-` (mas não no início/fim)
+- Tamanho: 1-63 caracteres
+- ✅ Válidos: `support`, `devops-bot`, `guardian2`
+- ❌ INVÁLIDOS: `Support` (maiúscula), `dev_ops` (underscore), `-bot` (começa com hyphen)
 
 **Tipos de Bot:**
 
@@ -190,7 +234,7 @@ create_bot({
   personality: `You are a helpful customer support agent for CloudWalk. 
   Be friendly, professional, and always try to help.
   If you don't know something, escalate to a human.`,
-  discord_token: "MTIzNDU2Nzg5..."
+  discord_token: process.env.DISCORD_BOT_TOKEN_SUPPORT  // Use env var, never hardcode!
 })
 ```
 
@@ -203,7 +247,7 @@ create_bot({
   Help with deployments, debugging, and infrastructure.
   Always explain what you're doing before executing commands.`,
   allowed_tools: ["bash", "kubectl", "read", "write"],
-  discord_token: "MTIzNDU2Nzg5...",
+  discord_token: process.env.DISCORD_BOT_TOKEN_DEVOPS,  // Use env var!
   admin: true
 })
 ```
@@ -217,7 +261,7 @@ create_bot({
   Watch for suspicious activity and report issues.
   Never execute destructive commands without approval.`,
   allowed_tools: ["read", "bash", "scan_repo_secrets"],
-  discord_token: "MTIzNDU2Nzg5..."
+  discord_token: process.env.DISCORD_BOT_TOKEN_GUARDIAN  // Use env var!
 })
 ```
 
@@ -568,6 +612,13 @@ sync_replicate_models()  // Sem parâmetros
 
 **Custo:** ~$0.02 por sync (OpenAI embeddings)
 
+**⚠️ Custos do Replicate:**
+- Replicate models são **PAGOS** (não grátis)
+- Custos variam por model: $0.001 - $0.10 por geração
+- Models populares (Flux Pro, SDXL): ~$0.03/imagem
+- Verificar preços: https://replicate.com/pricing
+- Billing: Replicate cobra diretamente (API token necessário)
+
 ---
 
 ## ⚙️ Process Management Tools (5 tools)
@@ -584,9 +635,15 @@ process_start({
   name: string,          // Nome único
   command: string,       // Comando a executar
   auto_restart?: boolean, // Auto-restart on crash (default: false)
-  cwd?: string          // Working directory
+  cwd?: string          // Working directory (default: /app no container)
 })
 ```
+
+**Working Directory:**
+- **Default:** `/app` (diretório atual do bot no container)
+- **Aceita:** Path absoluto ou relativo
+- **Relativo:** A partir de `/app`
+- **Exemplo:** `cwd: "./scripts"` → `/app/scripts`
 
 **Exemplos:**
 
@@ -624,6 +681,19 @@ process_start({
 - ✅ Exit code tracking
 - ✅ Resource monitoring
 - ✅ Log rotation
+
+**Auto-Restart Behavior:**
+
+Com `auto_restart: true`:
+- ✅ Exit code 0: Restart
+- ✅ Exit code != 0: Restart
+- ✅ Max attempts: Ilimitado (restart forever)
+- ✅ Delay: 5 segundos entre restarts
+- ❌ Exponential backoff: Não (sempre 5s)
+
+Com `auto_restart: false`:
+- ❌ Processo termina e para (não restart)
+- ✅ Útil para: Builds, migrations, one-time scripts
 
 ---
 
@@ -756,6 +826,17 @@ memory_search({
   min_score?: number  // Min similarity (0-1, default: 0.7)
 })
 ```
+
+**Similarity Score Guide:**
+- **Range:** 0.0 (totalmente diferente) a 1.0 (idêntico)
+- **0.9+:** Altamente relevante (match quase exato)
+- **0.7-0.9:** Relevante (match semântico bom) ← Default threshold
+- **0.5-0.7:** Parcialmente relevante
+- **<0.5:** Pouco relevante (não retornado por default)
+
+**Ajustes:**
+- Muitos falsos positivos? Aumente para `0.8+`
+- Poucos resultados? Diminua para `0.6`
 
 **Exemplos:**
 ```typescript
