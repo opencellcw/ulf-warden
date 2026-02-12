@@ -20,6 +20,25 @@
 
 **OpenCell** (Ulfberht-Warden) is a production-ready multi-agent AI platform that runs on YOUR infrastructure. Deploy unlimited specialized AI agents across Slack, Discord, Telegram, and WhatsApp.
 
+## ⚡ Quick Start (3 Minutes)
+
+```bash
+git clone https://github.com/cloudwalk/opencell.git
+cd opencell
+npm install
+npm run setup  # Interactive wizard - answers all questions!
+npm start      # Bot is live! 🚀
+```
+
+**That's it!** The setup wizard handles everything:
+- ✅ Platform selection (Discord/Slack/Telegram)
+- ✅ AI provider (Claude/Moonshot/OpenAI/Gemini)
+- ✅ Optional features (image gen, search, voice, Pi)
+- ✅ Deployment (10+ options: Render, Railway, Fly.io, Docker, GKE...)
+
+**[📖 Full Quick Start Guide →](QUICKSTART.md)**  
+**[🚀 Deployment Options →](docs/DEPLOY_GUIDE.md)**
+
 ---
 
 ## ✨ LATEST - v3.0 (February 12, 2026)
