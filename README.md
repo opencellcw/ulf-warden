@@ -9,7 +9,9 @@
 [![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![GKE](https://img.shields.io/badge/deploy-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
-[![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
+[![Claude](https://img.shields.io/badge/Claude-Sonnet_4-8B5CF6)](https://anthropic.com)
+[![Moonshot](https://img.shields.io/badge/Moonshot-Kimi_K2.5-00D9FF)](https://moonshot.cn)
+[![Multi-Provider](https://img.shields.io/badge/Multi--Provider-LLM-orange)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
 
 </div>
