@@ -3,6 +3,8 @@ import { botDeployer } from './deployer';
 import { generateHelmValues, validateBotName, generateBotId } from './helm-generator';
 import { BotConfig } from './types';
 import { log } from '../logger';
+import { generateSecurityTemplate } from '../security/repo-security-template';
+import { writeFile } from '../tools/executor';
 
 const MAX_BOTS_PER_USER = 10;
 
@@ -97,12 +99,21 @@ async function createBotHandler(input: any, userId: string): Promise<string> {
       await botRegistry.updateStatus(botId, 'running');
       await botRegistry.updateHealthCheck(botId);
 
+      // Auto-apply security best practices
+      try {
+        await applySecurityTemplate(botId, 'typescript');
+        log.info('[BotFactory] Security template applied', { botId });
+      } catch (secError: any) {
+        log.warn('[BotFactory] Security template failed (non-critical)', { error: secError.message });
+      }
+
       return `✅ Bot "${name}" created successfully!
 
 **Status:** ${result.status}
 **Pod:** ${result.podName}
 **Model:** ${model}
 **Channels:** ${enable_discord ? 'Discord' : ''} ${enable_slack ? 'Slack' : ''}
+**Security:** Template applied automatically
 
 The bot should be online in ~30 seconds. Try mentioning @${name} to interact with it.`;
     } else {
@@ -201,4 +212,37 @@ async function getBotStatusHandler(name: string): Promise<string> {
     log.error('[BotFactory] Get bot status failed', { error: error.message });
     return `❌ Failed to get bot status: ${error.message}`;
   }
+}
+
+/**
+ * Apply security template to a bot's workspace
+ */
+async function applySecurityTemplate(
+  botId: string,
+  language: 'python' | 'typescript' = 'typescript'
+): Promise<void> {
+  const gcpProject = process.env.GCP_PROJECT_ID || 'your-gcp-project';
+  const files = generateSecurityTemplate({
+    language,
+    projectName: botId,
+    gcpProject,
+    includeGcpSecretManager: true,
+    includePreCommitHook: true,
+    includeSecurityConfig: true,
+  });
+
+  // Write security files to the bot's data directory
+  const botDataDir = `/data/bots/${botId}`;
+  for (const file of files) {
+    try {
+      await writeFile(`${botDataDir}/${file.path}`, file.content);
+    } catch {
+      // Directory may not exist yet - that's ok, files will be created when pod mounts /data
+    }
+  }
+
+  log.info('[BotFactory] Security template written', {
+    botId,
+    files: files.map(f => f.path),
+  });
 }

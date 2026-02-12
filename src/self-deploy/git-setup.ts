@@ -13,6 +13,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { log } from '../logger';
+import { generateSecurityTemplate } from '../security/repo-security-template';
 
 const REPO_URL = 'https://github.com/opencellcw/ulf-warden.git';
 const REPO_DIR = '/data/repo';
@@ -88,6 +89,9 @@ export async function setupGitRepo(): Promise<GitSetupResult> {
       lastCommit,
       status: gitStatus.trim() || 'clean'
     });
+
+    // Ensure security template is present (idempotent)
+    ensureSecurityFiles(REPO_DIR);
 
     return { success: true, repoPath: REPO_DIR };
 
@@ -187,5 +191,46 @@ export async function pullLatest(): Promise<{ success: boolean; error?: string }
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Ensure security files exist in a repo (idempotent)
+ * Writes .githooks/pre-commit if missing, configures git hooks path
+ */
+function ensureSecurityFiles(repoDir: string): void {
+  try {
+    const hookDir = path.join(repoDir, '.githooks');
+    const hookPath = path.join(hookDir, 'pre-commit');
+
+    // Only write if pre-commit hook doesn't exist
+    if (!fs.existsSync(hookPath)) {
+      const files = generateSecurityTemplate({
+        language: 'typescript',
+        projectName: 'ulf-warden',
+        gcpProject: process.env.GCP_PROJECT_ID || 'your-gcp-project',
+        includeGcpSecretManager: false, // Main repo already has its own
+        includePreCommitHook: true,
+        includeSecurityConfig: false,
+      });
+
+      // Write only the pre-commit hook
+      const hookFile = files.find(f => f.path.includes('pre-commit'));
+      if (hookFile) {
+        fs.mkdirSync(hookDir, { recursive: true });
+        fs.writeFileSync(hookPath, hookFile.content, { mode: 0o755 });
+
+        // Configure git to use .githooks
+        try {
+          execSync('git config core.hooksPath .githooks', { cwd: repoDir, stdio: 'pipe' });
+        } catch {
+          // Not critical
+        }
+
+        log.info('[GitSetup] Security pre-commit hook installed');
+      }
+    }
+  } catch (error: any) {
+    log.warn('[GitSetup] Failed to ensure security files (non-critical)', { error: error.message });
   }
 }
