@@ -141,7 +141,7 @@ export async function vetToolCall(
 
     const model = useHaiku
       ? 'claude-haiku-3-5-20241022'
-      : 'claude-sonnet-4-20250514';
+      : 'claude-opus-4-20250514';
 
     const response = await claude.messages.create({
       model,

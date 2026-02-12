@@ -134,7 +134,7 @@ export class ConfigManager {
       modelCacheDir: this.get('MODEL_CACHE_DIR', './.cache/models'),
 
       // Claude settings
-      claudeModel: this.get('CLAUDE_MODEL', 'claude-sonnet-4-20250514'),
+      claudeModel: this.get('CLAUDE_MODEL', 'claude-opus-4-20250514'),
       anthropicApiKey: this.get('ANTHROPIC_API_KEY', '')
     };
   }

@@ -147,7 +147,7 @@ export class BotRuntime {
    */
   private getModelName(model: 'sonnet' | 'opus' | 'haiku'): string {
     const modelMap = {
-      sonnet: 'claude-sonnet-4-20250514',
+      sonnet: 'claude-opus-4-20250514',
       opus: 'claude-opus-4-20250514',
       haiku: 'claude-3-5-haiku-20241022'
     };

@@ -98,7 +98,7 @@ Return ONLY a JSON object (no markdown, no explanation):
 }`;
 
     const response = await this.claude.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-20250514',
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -181,7 +181,7 @@ Generate complete TypeScript code. Return ONLY JSON:
 }`;
 
       const response = await this.claude.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-20250514',
         max_tokens: 4000,
         messages: [{
           role: 'user',

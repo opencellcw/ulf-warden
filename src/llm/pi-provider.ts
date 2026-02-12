@@ -20,7 +20,7 @@ export class PiProvider implements LLMProvider {
     allowedTools: BotTool[] = [],
     workspaceDir: string = '/tmp/bot-workspace'
   ) {
-    this.model = model || 'claude-sonnet-4-20250514';
+    this.model = model || 'claude-opus-4-20250514';
     this.allowedTools = allowedTools;
     this.workspaceDir = workspaceDir;
   }
@@ -217,7 +217,7 @@ export class PiProvider implements LLMProvider {
  * Create Pi provider instance for a bot
  */
 export function createPiProvider(
-  model: string = 'claude-sonnet-4-20250514',
+  model: string = 'claude-opus-4-20250514',
   allowedTools: BotTool[] = [],
   botId?: string
 ): PiProvider {

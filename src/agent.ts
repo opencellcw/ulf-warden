@@ -17,7 +17,7 @@ const router = getRouter();
 const claudeProvider = router.getClaudeProvider() as any;
 const client = claudeProvider.getClient();
 
-const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-20250514';
 const MAX_ITERATIONS = 30; // Prevent infinite loops
 
 // Initialize context compactor (30k reserve for response + tools)

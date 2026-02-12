@@ -38,7 +38,7 @@ export class ClaudeProvider implements LLMProvider {
       });
     }
 
-    this.model = model || process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+    this.model = model || process.env.CLAUDE_MODEL || 'claude-opus-4-20250514';
   }
 
   async isAvailable(): Promise<boolean> {

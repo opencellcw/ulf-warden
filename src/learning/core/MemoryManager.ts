@@ -88,7 +88,7 @@ Instructions:
 Return the compressed memory maintaining the same markdown format.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-20250514',
         max_tokens: 4000,
         messages: [{
           role: 'user',
@@ -151,7 +151,7 @@ Instructions:
 Return the updated MEMORY.md content.`;
 
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-20250514',
       max_tokens: 4000,
       messages: [{
         role: 'user',

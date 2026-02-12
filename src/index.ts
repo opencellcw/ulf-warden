@@ -472,7 +472,7 @@ async function initialize() {
 
     console.log('='.repeat(60));
     console.log(`Status: ONLINE (${activeHandlers} platform${activeHandlers > 1 ? 's' : ''})`);
-    console.log('Model: claude-sonnet-4-20250514');
+    console.log('Model: claude-opus-4-20250514');
 
     // Show Tool Registry stats
     const registryStats = toolRegistry.getStats();
