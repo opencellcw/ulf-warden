@@ -4,6 +4,7 @@ import { PiProvider, createPiProvider } from '../llm/pi-provider';
 import { BotConfig, BotTool } from './types';
 import { log } from '../logger';
 import { formatPersonaResponse, getPersonaTag, getPersonaHeader } from './persona-formatter';
+import { getAgentOps } from '../observability';
 
 /**
  * Bot Runtime Manager
@@ -12,6 +13,8 @@ import { formatPersonaResponse, getPersonaTag, getPersonaHeader } from './person
 export class BotRuntime {
   private provider: LLMProvider;
   private config: BotConfig;
+  private agentOps = getAgentOps();
+  private currentSessionId: string = '';
 
   constructor(config: BotConfig) {
     this.config = config;
@@ -38,6 +41,30 @@ export class BotRuntime {
         undefined,
         this.getModelName(config.model)
       );
+    }
+  }
+
+  /**
+   * Start AgentOps session
+   */
+  async startSession(userId?: string, platform?: 'discord' | 'slack' | 'telegram' | 'whatsapp'): Promise<void> {
+    if (this.agentOps.isEnabled()) {
+      this.currentSessionId = await this.agentOps.startSession({
+        botName: this.config.name,
+        botType: this.config.type,
+        userId,
+        platform
+      });
+    }
+  }
+
+  /**
+   * End AgentOps session
+   */
+  async endSession(success: boolean = true): Promise<void> {
+    if (this.agentOps.isEnabled() && this.currentSessionId) {
+      await this.agentOps.endSession(this.currentSessionId, { success });
+      this.currentSessionId = '';
     }
   }
 
@@ -76,6 +103,34 @@ export class BotRuntime {
 
       const processingTime = Date.now() - startTime;
 
+      // Track with AgentOps
+      if (this.agentOps.isEnabled() && this.currentSessionId) {
+        await this.agentOps.trackToolExecution(this.currentSessionId, {
+          tool: 'message_processing',
+          args: { messageLength: userMessage.length },
+          result: { responseLength: response.content.length },
+          duration: processingTime,
+          timestamp: Date.now()
+        });
+
+        // Track cost if available
+        if (response.usage) {
+          const cost = this.estimateCost(
+            response.usage.inputTokens || 0,
+            response.usage.outputTokens || 0
+          );
+          
+          await this.agentOps.trackCost(this.currentSessionId, {
+            provider: this.config.type === 'agent' ? 'claude' : 'claude',
+            model: this.getModelName(this.config.model),
+            inputTokens: response.usage.inputTokens || 0,
+            outputTokens: response.usage.outputTokens || 0,
+            cost,
+            timestamp: Date.now()
+          });
+        }
+      }
+
       log.info('[BotRuntime] Message processed', {
         botId: this.config.name,
         type: this.config.type,
@@ -96,6 +151,16 @@ export class BotRuntime {
         error: error.message
       });
 
+      // Track error with AgentOps
+      if (this.agentOps.isEnabled() && this.currentSessionId) {
+        await this.agentOps.trackError(this.currentSessionId, {
+          error: error.message,
+          stack: error.stack,
+          context: { botId: this.config.name, type: this.config.type },
+          timestamp: Date.now()
+        });
+      }
+
       // Return user-friendly error with persona tag
       const botName = this.config.name.replace('bot-', '');
       const personaTag = getPersonaTag(botName, this.config);
@@ -106,6 +171,27 @@ export class BotRuntime {
         return `${personaTag}\n━━━━━━━━━━━━━━━━━━━━━━\n⚠️ Error: ${error.message}\n\nPlease try again later.`;
       }
     }
+  }
+
+  /**
+   * Estimate cost based on token usage and model
+   */
+  private estimateCost(inputTokens: number, outputTokens: number): number {
+    const model = this.getModelName(this.config.model);
+    
+    // Cost per million tokens (USD)
+    const costs: Record<string, { input: number; output: number }> = {
+      'claude-opus-4-20250514': { input: 15, output: 75 },
+      'claude-sonnet-4-20250514': { input: 3, output: 15 },
+      'claude-haiku-4-20250514': { input: 0.25, output: 1.25 }
+    };
+
+    const modelCost = costs[model] || costs['claude-sonnet-4-20250514'];
+    
+    return (
+      (inputTokens / 1_000_000) * modelCost.input +
+      (outputTokens / 1_000_000) * modelCost.output
+    );
   }
 
   /**
