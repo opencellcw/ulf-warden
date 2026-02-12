@@ -534,9 +534,10 @@ When generating images/videos/audio:
   if (lastToolResults && Array.isArray(lastToolResults.content)) {
     for (const block of lastToolResults.content) {
       if (block.type === 'tool_result' && typeof block.content === 'string') {
-        // Check if tool result contains media URLs (image/video/audio)
+        // Check if tool result contains media URLs or file paths (image/video/audio)
         const hasMediaURL = 
           block.content.includes('URL:') || 
+          block.content.includes('File:') || // 🔧 FIX: Also detect file paths (e.g., TTS audio)
           block.content.includes('replicate.delivery') ||
           block.content.includes('oaidalleapiprodscus') ||
           block.content.includes('https://') && (
