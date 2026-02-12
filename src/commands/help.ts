@@ -75,6 +75,55 @@ const COMMANDS: CommandDoc[] = [
     ],
     category: 'general'
   },
+  {
+    name: 'remind',
+    description: '⏰ Smart reminders that never let you forget',
+    usage: '/remind <what> <when>',
+    examples: [
+      '/remind review PR tomorrow at 2pm',
+      '/remind standup in 30 min',
+      '/remind deploy Friday'
+    ],
+    category: 'general'
+  },
+  {
+    name: 'reminders',
+    description: '📋 List your pending reminders',
+    usage: '/reminders',
+    category: 'general'
+  },
+  {
+    name: 'theme',
+    description: '🎨 Customize bot visual theme',
+    usage: '/theme <cyberpunk|minimal|neon|retro|professional>',
+    examples: [
+      '/theme cyberpunk',
+      '/theme list'
+    ],
+    category: 'general'
+  },
+  {
+    name: 'personality',
+    description: '🎭 Change bot personality',
+    usage: '/personality <professional|casual|sarcastic|motivational|zen>',
+    examples: [
+      '/personality casual',
+      '/personality list'
+    ],
+    category: 'general'
+  },
+  {
+    name: 'mood',
+    description: '🧠 View your mood report and sentiment analysis',
+    usage: '/mood',
+    category: 'general'
+  },
+  {
+    name: 'teammood',
+    description: '👥 Team mood dashboard and burnout detection',
+    usage: '/teammood',
+    category: 'general'
+  },
 
   // Key Management
   {

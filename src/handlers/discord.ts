@@ -24,6 +24,7 @@ import { handleSecretCommand, isSecretCommand } from '../commands/secrets';
 import { initCloudRunClient } from '../cloud-run-client';
 import { activityTracker } from '../activity/activity-tracker';
 import { handleDecisionCommand, isDecisionCommand } from '../decision-intelligence';
+import { setDiscordClient } from './discord-client';
 import axios from 'axios';
 
 // 🚀 NEW FEATURES
@@ -33,6 +34,9 @@ import { unifiedSearch } from '../search/unified-search';
 import { skillDetector } from '../learning/skill-detector';
 import { dreamMode } from '../viral-features/dream-mode';
 import { copyStyle } from '../viral-features/copy-style';
+import { smartReminders } from '../reminders/smart-reminders';
+import { botThemes } from '../themes/bot-themes';
+import { sentimentTracker } from '../sentiment/sentiment-tracker';
 
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -357,6 +361,9 @@ export async function startDiscordHandler() {
   client.on('ready', () => {
     console.log(`✓ Discord handler started (${client.user?.tag})`);
 
+    // Register client for scheduled tasks
+    setDiscordClient(client);
+
     // Log listen channels configuration
     if (listenChannelIds.size > 0) {
       console.log(`  • Listen channels: ${Array.from(listenChannelIds).join(', ')}`);
@@ -371,6 +378,42 @@ export async function startDiscordHandler() {
     // Initialize approval system
     approvalSystem.setClient(client);
     log.info('[Discord] Approval system initialized');
+
+    // 🚀 NEW: Start reminder checker
+    setInterval(async () => {
+      const dueReminders = smartReminders.getDueReminders();
+
+      for (const reminder of dueReminders) {
+        try {
+          // Extract Discord user ID from internal user ID
+          const discordUserId = reminder.userId.replace('discord_', '');
+          const user = await client.users.fetch(discordUserId);
+
+          if (user) {
+            await user.send(
+              `⏰ **Reminder!**\n\n` +
+              `${reminder.text}\n\n` +
+              `_Set ${new Date(reminder.created).toLocaleString()}_`
+            );
+
+            // Mark as done automatically
+            smartReminders.markDone(reminder.id);
+
+            log.info('[Discord] Reminder sent', {
+              reminderId: reminder.id,
+              userId: reminder.userId,
+            });
+          }
+        } catch (error: any) {
+          log.error('[Discord] Failed to send reminder', {
+            error: error.message,
+            reminderId: reminder.id,
+          });
+        }
+      }
+    }, 60000); // Check every minute
+
+    log.info('[Discord] Reminder checker started');
   });
 
   // Handle button interactions
@@ -604,6 +647,189 @@ export async function startDiscordHandler() {
         const report = skillDetector.formatSkillReport();
         await message.reply(report);
         
+        return;
+      }
+
+      // 🚀 NEW: Reminder command
+      if (text.startsWith('/remind')) {
+        const reminderText = text.replace('/remind', '').trim();
+
+        if (!reminderText) {
+          await message.reply(
+            `❌ Usage: \`/remind <what> <when>\`\n\n` +
+            `Examples:\n` +
+            `• \`/remind review PR tomorrow at 2pm\`\n` +
+            `• \`/remind standup meeting in 30 min\`\n` +
+            `• \`/remind deploy Friday 10am\`\n` +
+            `• \`/remind check logs in 2 hours\``
+          );
+          return;
+        }
+
+        try {
+          const reminder = await smartReminders.createReminder(
+            userId,
+            message.client.user?.id || 'discord-bot',
+            reminderText
+          );
+
+          const timeStr = reminder.dueDate.toLocaleString();
+          await message.reply(
+            `✅ **Reminder set!**\n\n` +
+            `${reminder.text}\n` +
+            `Due: ${timeStr}\n` +
+            `Priority: ${reminder.priority}\n\n` +
+            `I'll remind you when it's time! ⏰`
+          );
+        } catch (error: any) {
+          await message.reply(`❌ Failed to create reminder: ${error.message}`);
+        }
+
+        return;
+      }
+
+      // 🚀 NEW: List reminders
+      if (text === '/reminders' || text === '/myreminders') {
+        const pending = smartReminders.getPendingReminders(userId);
+
+        if (pending.length === 0) {
+          await message.reply(`📋 No pending reminders.\n\nCreate one with: \`/remind <what> <when>\``);
+          return;
+        }
+
+        let list = `📋 **Your Reminders** (${pending.length})\n\n`;
+
+        for (const reminder of pending.slice(0, 10)) {
+          list += smartReminders.formatReminder(reminder) + `\n`;
+          list += `ID: \`${reminder.id.slice(-8)}\`\n\n`;
+        }
+
+        if (pending.length > 10) {
+          list += `_...and ${pending.length - 10} more_`;
+        }
+
+        await message.reply(list);
+        return;
+      }
+
+      // 🚀 NEW: Theme command
+      if (text.startsWith('/theme')) {
+        const args = text.split(' ').slice(1);
+        const subcommand = args[0];
+
+        if (!subcommand || subcommand === 'list') {
+          const themes = botThemes.listThemes();
+
+          let list = `🎨 **Available Themes:**\n\n`;
+
+          for (const theme of themes) {
+            list += botThemes.formatThemePreview(theme.id) + `\n\n`;
+          }
+
+          list += `\n**Change theme:** \`/theme <name>\``;
+
+          await message.reply(list);
+          return;
+        }
+
+        // Set theme
+        const success = botThemes.setTheme(userId, subcommand.toLowerCase());
+
+        if (success) {
+          const theme = botThemes.getTheme(userId);
+          const greeting = botThemes.getGreeting(userId);
+
+          await message.reply(
+            `✨ **Theme changed!**\n\n` +
+            `${theme.name} theme activated.\n` +
+            `${greeting}`
+          );
+        } else {
+          await message.reply(
+            `❌ Theme not found: \`${subcommand}\`\n\n` +
+            `Use \`/theme list\` to see available themes.`
+          );
+        }
+
+        return;
+      }
+
+      // 🚀 NEW: Personality command
+      if (text.startsWith('/personality')) {
+        const args = text.split(' ').slice(1);
+        const subcommand = args[0];
+
+        if (!subcommand || subcommand === 'list') {
+          const personalities = botThemes.listPersonalities();
+
+          let list = `🎭 **Available Personalities:**\n\n`;
+
+          for (const personality of personalities) {
+            list += botThemes.formatPersonalityPreview(personality.id) + `\n\n`;
+          }
+
+          list += `\n**Change personality:** \`/personality <name>\``;
+
+          await message.reply(list);
+          return;
+        }
+
+        // Set personality
+        const success = botThemes.setPersonality(userId, subcommand.toLowerCase());
+
+        if (success) {
+          const personality = botThemes.getPersonality(userId);
+          const greeting = botThemes.getGreeting(userId);
+
+          await message.reply(
+            `🎭 **Personality changed!**\n\n` +
+            `${personality.name} personality activated.\n\n` +
+            `${greeting}`
+          );
+        } else {
+          await message.reply(
+            `❌ Personality not found: \`${subcommand}\`\n\n` +
+            `Use \`/personality list\` to see available personalities.`
+          );
+        }
+
+        return;
+      }
+
+      // 🚀 NEW: Mood command
+      if (text === '/mood' || text === '/mymood') {
+        const report = sentimentTracker.formatMoodReport(userId);
+        await message.reply(report);
+        return;
+      }
+
+      // 🚀 NEW: Team mood command
+      if (text === '/teammood') {
+        const teamMood = sentimentTracker.getTeamMood();
+
+        const emoji = {
+          happy: '😊',
+          excited: '🎉',
+          neutral: '😐',
+          confused: '🤔',
+          frustrated: '😤',
+          angry: '😡',
+          sad: '😢',
+          tired: '😴',
+          stressed: '😰',
+        }[teamMood.dominantMood];
+
+        let report = `👥 **Team Mood Dashboard**\n\n`;
+        report += `Dominant: ${emoji} ${teamMood.dominantMood}\n`;
+        report += `Average: ${(teamMood.averageMood * 100).toFixed(0)}%\n`;
+        report += `Users tracked: ${teamMood.totalUsers}\n`;
+
+        if (teamMood.burnoutRisk > 0.5) {
+          report += `\n⚠️ **Team Burnout Risk:** ${(teamMood.burnoutRisk * 100).toFixed(0)}%\n`;
+          report += `Consider team break or workload adjustment! 🌴`;
+        }
+
+        await message.reply(report);
         return;
       }
 
@@ -946,6 +1172,23 @@ export async function startDiscordHandler() {
           error: error.message,
         });
       });
+
+      // 🚀 NEW: Track sentiment (async, non-blocking)
+      const sentiment = sentimentTracker.trackMood(userId, text);
+      
+      // Adapt response based on sentiment
+      const adaptation = sentimentTracker.getResponseAdaptation(userId);
+      
+      if (adaptation.shouldSuggestBreak) {
+        // Suggest break if high burnout risk
+        setTimeout(() => {
+          message.reply(
+            `💙 **Take Care of Yourself**\n\n` +
+            `I noticed you might be feeling stressed lately.\n` +
+            `Consider taking a short break! Your well-being matters. 🌿`
+          ).catch(() => {});
+        }, 2000);
+      }
 
       // If connected to voice channel, speak the response
       const guildId = message.guild?.id;
