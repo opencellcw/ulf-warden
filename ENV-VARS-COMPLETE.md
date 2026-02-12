@@ -1,8 +1,10 @@
 # ========================================
 # Ulf Warden - Complete Environment Variables
 # ========================================
+# DOCUMENTATION FILE - NOT A REAL .env FILE
+# All values here are PLACEHOLDERS/EXAMPLES only!
 # This is the COMPLETE list of all env vars used in the codebase.
-# Copy to .env and fill in your values.
+# Copy to .env and fill in your REAL values.
 
 # ========================================
 # CORE SETTINGS
