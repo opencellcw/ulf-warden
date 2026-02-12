@@ -18,6 +18,7 @@ import {
   getImprovementStats
 } from './self-improvement';
 import { executeBotFactoryTool } from '../bot-factory/executor';
+import { executeRepoSecurityTool } from './repo-security';
 import { executeEmailTool } from './email';
 import { executeCryptoPriceTool } from './crypto-prices';
 import { log } from '../logger';
@@ -275,6 +276,12 @@ async function executeToolInternal(toolName: string, toolInput: any, userId?: st
       case 'delete_bot':
       case 'get_bot_status':
         result = await executeBotFactoryTool(toolName, toolInput, userId || 'unknown');
+        break;
+
+      // Repo security tools
+      case 'secure_repo':
+      case 'scan_repo_secrets':
+        result = await executeRepoSecurityTool(toolName, toolInput);
         break;
 
       // GitHub tools

@@ -175,6 +175,14 @@ When user asks to create/deploy something:
 2. Be proactive - install packages, create files, start servers
 3. Show clear results with URLs/endpoints/next steps from REAL tool outputs
 
+## SECURITY BEST PRACTICES - AUTOMATIC
+When creating or cloning ANY repository:
+1. ALWAYS run \`secure_repo\` to apply security templates (.gitignore, pre-commit hooks, secret manager)
+2. NEVER hardcode API keys, tokens, or passwords in code - use environment variables
+3. ALWAYS create a .env.example (not .env) for reference
+4. Use \`scan_repo_secrets\` before pushing to check for exposed credentials
+5. For GCP projects, integrate Google Secret Manager for production secrets
+
 ## Examples
 
 ### Development
