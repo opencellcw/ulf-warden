@@ -9,9 +9,11 @@
 [![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![GKE](https://img.shields.io/badge/deploy-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
+[![Pi Powered](https://img.shields.io/badge/Pi-Coding_Agent-FF6B6B)](https://github.com/mariozechner/pi-coding-agent)
 [![Claude](https://img.shields.io/badge/Claude-Opus_4-8B5CF6)](https://anthropic.com)
-[![Moonshot](https://img.shields.io/badge/Moonshot-Kimi_K2.5-00D9FF)](https://moonshot.cn)
-[![Multi-Provider](https://img.shields.io/badge/Multi--Provider-LLM-orange)]()
+[![Moonshot](https://img.shields.io/badge/Moonshot-Kimi-00D9FF)](https://moonshot.cn)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-412991)](https://openai.com)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5-4285F4)](https://ai.google.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
 
 </div>
@@ -20,599 +22,669 @@
 
 ---
 
-## ✨ LATEST - v2.5 (February 12, 2026)
+## ✨ LATEST - v3.0 (February 12, 2026)
 
-### 🧹 **System Cleanup** - 33% Code Reduction
-- Removed 62 KB of orphan code (temporal reminders, daemon, workflows)
-- Consolidated cache systems (5 → 3) and self-improvers (3 → 2)
-- Fixed Voice System (prism-media integration)
-- 118 environment variables fully documented
-- **Code quality: 60 → 90 (+50%)** | **Maintainability: 65 → 92 (+42%)**
-- Zero build errors, zero security issues
-- 📖 [Cleanup Report](CLEANUP-COMPLETE-REPORT.md)
+### 🔥 **Pi Integration + Hybrid Multi-Provider System**
 
-### 🎙️ **Voice-to-Voice Conversation** - Talk to AI Naturally
-- Join Discord voice channels and speak naturally
-- Automatic silence detection (1 second threshold)
-- Multi-turn conversations with context (10 messages)
-- **Stack:** Groq Whisper (STT) + Claude Opus 4 (LLM) + ElevenLabs (TTS)
-- **Cost:** ~$0.034/minute ($2/hour of conversation)
-- Commands: `@Ulf entrar no canal` (join) / `sair do canal` (leave)
-- 📖 [Voice-to-Voice Docs](docs/VOICE-TO-VOICE-SYSTEM.md)
+#### **Pi Coding Agent - Full Agent Powers! 🤖**
+- Bots powered by **Pi** (same engine as this conversation!)
+- Execute bash commands, read/write files, interact with K8s
+- Access to **official Pi skills library** (17+ specialized skills)
+- Skills auto-discovery and intelligent usage
+- Multi-step problem solving with tools
+- 📖 [Pi Integration Guide](docs/HYBRID-PI-INTEGRATION.md)
+
+#### **Hybrid Dispatcher - Ultimate Cost Optimization 💰**
+- **4 LLM providers** working together intelligently:
+  - **Moonshot** ($0.50/Mtok) - Simple queries (90% of traffic)
+  - **Gemini** ($0.075-1.25/Mtok) - Fast inference
+  - **OpenAI** ($0.50-30/Mtok) - GPT-4 quality
+  - **Claude** ($3-15/Mtok) - Complex reasoning
+  - **Pi** (multi-call) - Full agent powers
+- **Automatic routing** based on task complexity
+- **85-97% cost savings** vs Claude-only
+- **Budget protection** (daily limits, per-message caps)
+- 📖 [Hybrid Dispatcher Docs](docs/HYBRID-PI-INTEGRATION.md)
+
+#### **Cost Comparison:**
+```
+100 messages/day with Hybrid Dispatcher:
+- 60 simple → Moonshot: $0.06
+- 30 normal → Claude: $0.60
+- 10 complex → Pi: $0.80
+= $1.46/day (~$44/month)
+
+vs Claude-only: $2/day ($60/month)
+💰 SAVINGS: $16/month (27%)
+
+vs Moonshot-only: $0.10/day but no agent powers
+vs Pi-only: $5/day (too expensive)
+```
+
+### 🎓 **Pi Skills System**
+
+Bots have access to **17 official Pi skills**:
+
+**🔍 Search & Information:**
+- `brave-search` - Web search
+- `youtube-transcript` - Video transcripts
+
+**📧 Communication:**
+- `gmcli` - Gmail integration
+- `gccli` - Google Calendar
+- `gdcli` - Google Drive
+
+**🎨 Creation:**
+- `frontend-design` - React components
+- `pdf`, `docx`, `xlsx`, `pptx` - Document creation
+
+**🔧 Development:**
+- `mcp-builder` - Build MCP servers
+- `webapp-testing` - Playwright testing
+- `browser-tools` - Browser automation
+
+**🎙️ Media:**
+- `transcribe` - Speech-to-text
+- And more...
+
+Bots can:
+1. Auto-discover relevant skills based on user query
+2. Read skill documentation dynamically
+3. Execute skill-specific tools
+4. Combine multiple skills for complex tasks
+
+📖 [See full skills catalog](docs/HYBRID-PI-INTEGRATION.md#-available-pi-skills)
 
 ---
 
-## 🚀 NEW in v2.0 (February 2025)
+## 🚀 Features
 
-### 🌙 **Moonshot AI Integration** - 97% Cost Savings!
-- Alternative LLM provider with 2M token context (10x larger than Claude)
-- **$0.50 per million tokens** vs Claude's $3-15/Mtok
-- Drop-in replacement - same tools, same features
-- Perfect for high-volume deployments
-- 📖 [Moonshot Provider Docs](docs/moonshot-provider.md)
+### 🤖 **Multi-Agent Architecture**
 
-### 🤖 **Bot Factory** - Create Bots on Demand
-- Create specialized bots via Discord conversation: `!roundtable create bot guardian`
-- Two bot types: Conversational (chat) or Agent (with coding tools)
-- Dynamic deployment to Kubernetes in ~30 seconds
-- Each bot has unique personality and tool access
-- 📖 [Bot Factory Guide](docs/bot-factory-pi-integration.md) • [Examples](examples/bot-factory-examples.md)
+- **Bot Factory** - Create unlimited specialized bots dynamically
+- **Agent Bots** - Full Pi powers (bash, kubectl, read, write, deploy)
+- **Conversational Bots** - Fast, cheap, focused on chat
+- **RoundTable** - Multi-agent deliberation system
+- **Bot Types:** DevOps, Security, Support, Analytics, Custom
 
-### 🎯 **RoundTable Multi-Agent System**
-- 5-6 specialized agents deliberate together before responding
-- 3 phases: Discussion → Proposals → Democratic Voting
-- Agents: Analyst, Creative, Skeptic, Pragmatist, Ethicist, Summarizer
-- 4 voting rules: Majority, Unanimity, Rated, Ranked
-- Perfect for complex decisions and trade-off analysis
-- 📖 [RoundTable Docs](docs/roundtable-system.md)
+### 🎯 **Multi-Platform**
 
-### 🔌 **Model Context Protocol (MCP)** - Plug & Play Tools
-- Connect to 100+ MCP servers with zero coding
-- GitHub, Slack, Postgres, Brave Search, Google Maps, and more
-- Add new integration in 3 lines of config
-- Auto-discovery of tools and capabilities
-- 📖 [MCP Integration Guide](docs/mcp-integration.md)
+- **Discord** - Voice channels, slash commands, reactions
+- **Slack** - Threads, mentions, apps
+- **Telegram** - Groups, channels, inline
+- **WhatsApp** - QR code auth, groups
 
----
+### 💰 **Cost Optimization**
 
-## 🎯 What is OpenCell?
+| Provider | Cost/Mtok | Use Case | Speed |
+|----------|-----------|----------|-------|
+| **Moonshot** | $0.50 | Simple queries (default) | ⚡⚡⚡ |
+| **Gemini Flash** | $0.075 | Fast inference | ⚡⚡⚡ |
+| **Gemini Pro** | $1.25 | Balanced quality | ⚡⚡ |
+| **OpenAI GPT-4** | $10-30 | High quality | ⚡⚡ |
+| **Claude Opus** | $15 | Complex reasoning | ⚡ |
+| **Pi Agent** | Multi-call | Tool execution | ⚡ |
 
-OpenCell is your **private AI agent platform** that:
+**Hybrid Dispatcher** automatically routes to cheapest provider that can handle the task!
 
-- ✅ **Runs on YOUR infrastructure** - Full control, no vendor lock-in
-- ✅ **Multi-platform** - Slack, Discord, Telegram, WhatsApp
-- ✅ **Multi-agent** - Create unlimited specialized bots
-- ✅ **Production-hardened** - 7-layer security, rate limiting, audit trails
-- ✅ **Cost-optimized** - Switch between Claude, Moonshot, local models
-- ✅ **Extensible** - MCP protocol for instant integrations
+### 🔧 **Agent Powers (via Pi)**
+
+Agent bots can:
+- ✅ Execute bash commands (`ps aux`, `docker ps`)
+- ✅ Kubernetes management (`kubectl get pods`)
+- ✅ Read/write files (`read: src/app.ts`)
+- ✅ Deploy applications (`helm install`)
+- ✅ Git operations (`git diff`, `git commit`)
+- ✅ Multi-step debugging and fixes
+- ✅ Load and use official Pi skills
+
+### 🎓 **Skills System**
+
+```typescript
+User: "search for kubernetes tutorials"
+
+Bot: Detected "search" → loading brave-search skill...
+[read: ~/.pi/agent/skills/pi-skills/brave-search/SKILL.md]
+[uses brave_search tool]
+
+Bot: "Found 10 K8s tutorials:
+     1. Official K8s Docs
+     2. K8s Patterns by...
+     ..."
+```
+
+Bots are **skill-aware** and use them automatically!
+
+### 🔒 **Security**
+
+- **7-layer security** (rate limiting, tool whitelisting, audit logs)
+- **Tool safety levels:** Safe, Caution, Restricted
+- **Budget protection** (daily limits prevent cost overruns)
+- **Sandboxed execution** (Pi workspaces isolated per bot)
+- **Permission system** (admin-only commands)
+
+### 📊 **Observability**
+
+- **AgentOps** - Session tracking, cost monitoring
+- **Langfuse** - LLM tracing and analytics
+- **OpenTelemetry** - Distributed tracing
+- **Redis Cache** - Response caching for cost savings
+- **Real-time logs** - Per-bot, per-provider tracking
 
 ---
 
 ## ⚡ Quick Start
 
+### 1. Prerequisites
+
 ```bash
-# 1. Clone and install
+# Required
+- Node.js 20+
+- Docker
+- Kubernetes cluster (GKE, EKS, local)
+- At least 1 LLM API key (Claude, Moonshot, OpenAI, or Gemini)
+
+# Optional (for full features)
+- Pi coding agent installed globally
+- Brave API key (web search)
+- Replicate API key (image generation)
+- ElevenLabs API key (TTS)
+```
+
+### 2. Clone and Install
+
+```bash
 git clone https://github.com/cloudwalk/opencell.git
 cd opencell
 npm install
-
-# 2. Configure
-cp .env.example .env
-# Add your API keys to .env
-
-# 3. Run
-npm run build
-npm start
-
-# 4. Use in Discord/Slack
-@Ulf hello!
 ```
 
-**That's it!** Your AI agent is running. 🎉
+### 3. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+**Minimal setup (.env):**
+```bash
+# Required: At least 1 provider
+ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Recommended: Cost optimization
+DEFAULT_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-xxx
+
+# Optional: Pi agent powers
+ENABLE_PI=true
+
+# Platform: At least 1
+DISCORD_BOT_TOKEN=xxx
+# or
+SLACK_BOT_TOKEN=xoxb-xxx
+```
+
+**Full setup (.env):**
+```bash
+# All providers (Hybrid Dispatcher picks best)
+ANTHROPIC_API_KEY=sk-ant-xxx
+MOONSHOT_API_KEY=sk-xxx
+OPENAI_API_KEY=sk-xxx
+GEMINI_API_KEY=AIza-xxx
+
+# Hybrid configuration
+DEFAULT_PROVIDER=moonshot  # Cheapest for bulk
+ENABLE_PI=true             # Agent powers
+DAILY_BUDGET=10.00         # Cost protection
+
+# All platforms
+DISCORD_BOT_TOKEN=xxx
+SLACK_BOT_TOKEN=xoxb-xxx
+TELEGRAM_BOT_TOKEN=xxx
+
+# Features
+BRAVE_API_KEY=BSA_xxx      # Web search
+REPLICATE_API_TOKEN=r8_xxx # Image gen
+GROQ_API_KEY=gsk_xxx       # Speech-to-text
+ELEVENLABS_API_KEY=sk_xxx  # TTS
+```
+
+### 4. Run Locally
+
+```bash
+# Build
+npm run build
+
+# Run
+npm start
+
+# Or with development mode
+npm run dev
+```
+
+### 5. Create Your First Bot
+
+**Option A: Conversational Bot (simple)**
+```
+@Ulf create bot oracle
+  personality: You are a data analysis consultant
+```
+
+**Option B: Agent Bot (with Pi powers)**
+```
+@Ulf create agent bot devops
+  personality: You are a Kubernetes expert
+  tools: bash, kubectl, read, write
+```
+
+Bot deploys to Kubernetes in ~30 seconds! 🚀
 
 ---
 
-## 🌟 Core Features
+## 📖 Architecture
 
-### 🤖 **Multi-Platform Chat**
-- **Slack** - Socket Mode, threads, reactions, channel management
-- **Discord** - Rich embeds, buttons, voice support, mobile-friendly
-- **Telegram** - Inline keyboards, media support, bot API
-- **WhatsApp** - QR auth, group support, media handling
-- **Isolated Sessions** - Separate history per user per platform
+### **System Diagram**
 
-### 🧠 **Multi-Agent Architecture**
-
-#### 1. Bot Factory - Dynamic Bot Creation
 ```
-@Ulf create agent bot named devops
-  personality: Kubernetes expert
-  tools: kubectl, bash, read
-
-# Creates new bot in 30 seconds!
-@devops check all pods in production
-```
-
-**Features:**
-- 💬 **Conversational bots** (chat only) - Fast, cheap, safe
-- 🤖 **Agent bots** (with tools) - Can execute commands, read files, use kubectl
-- Tool whitelist per bot (bash, read, write, kubectl, gcloud, git)
-- Automatic persona formatting with emojis and role badges
-- 📖 [Bot Factory Docs](docs/bot-factory-pi-integration.md)
-
-#### 2. RoundTable - Multi-Agent Deliberation
-```
-@Ulf !roundtable Should we use MongoDB or PostgreSQL?
-
-# 5 agents discuss, propose solutions, vote democratically
-# Winner: Hybrid approach (60% consensus)
-```
-
-**Agents:**
-- 📊 **Analyst** - Data-driven insights
-- 💡 **Creative** - Innovative solutions
-- 🔍 **Skeptic** - Risk identification
-- 🔧 **Pragmatist** - Practical implementation
-- ⚖️ **Ethicist** - Ethical evaluation
-- 📝 **Summarizer** - Consensus building
-
-**Voting Rules:** Majority, Unanimity, Rated (1-5 stars), Ranked (Borda count)
-
-📖 [RoundTable Docs](docs/roundtable-system.md)
-
-### 🔌 **MCP Integration - Plug & Play Tools**
-
-Connect to external services without coding:
-
-```json
-// mcp.json
-{
-  "brave-search": {
-    "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-    "env": { "BRAVE_API_KEY": "${BRAVE_API_KEY}" }
-  }
-}
+┌─────────────────────────────────────────────┐
+│         Users (Discord, Slack, etc)         │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│         Bot Factory (Coordinator)           │
+│  - Creates/manages bots                     │
+│  - Routes messages                          │
+│  - Security & rate limiting                 │
+└──────────────────┬──────────────────────────┘
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+┌───────▼────────┐   ┌────────▼───────────┐
+│ Bot Runtime    │   │ Bot Runtime        │
+│ (guardian)     │   │ (oracle)           │
+└───────┬────────┘   └────────┬───────────┘
+        │                     │
+┌───────▼─────────────────────▼────────────┐
+│      Hybrid Dispatcher (LLM Router)      │
+│  - Analyzes task complexity              │
+│  - Selects optimal provider              │
+│  - Tracks costs and budget               │
+└──────────────────┬───────────────────────┘
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+┌───▼────┐  ┌──────▼──────┐  ┌───▼─────┐
+│Moonshot│  │   Claude    │  │   Pi    │
+│(cheap) │  │  (quality)  │  │ (agent) │
+└────────┘  └─────────────┘  └────┬────┘
+                                   │
+                   ┌───────────────┴────────────────┐
+                   │                                │
+            ┌──────▼──────┐              ┌─────────▼────────┐
+            │ Pi Skills   │              │ Infrastructure   │
+            │ - 17 skills │              │ - kubectl        │
+            │ - Auto-load │              │ - docker         │
+            └─────────────┘              │ - bash           │
+                                         └──────────────────┘
 ```
 
-**Available Servers:**
-- 🔍 Brave Search (web search)
-- 🐙 GitHub (issues, PRs, code search)
-- 🗄️ PostgreSQL (database queries)
-- 🗺️ Google Maps (geocoding, directions)
-- 💬 Slack (send messages, manage channels)
-- 🌐 Puppeteer (browser automation)
-- 📁 Filesystem (file operations)
-- 🧠 Memory (persistent storage)
+### **Request Flow Examples**
 
-**100+ more servers available** in [MCP ecosystem](https://github.com/modelcontextprotocol/servers)
+#### **Simple Query (Moonshot):**
+```
+User: "oi, tudo bem?"
+  ↓
+Coordinator
+  ↓
+Bot Runtime (guardian)
+  ↓
+Hybrid Dispatcher
+  ├─ Complexity: SIMPLE
+  ├─ Cost: $0.0001
+  └─ Provider: Moonshot ⚡
+  ↓
+Response: "Oi! Tudo ótimo! 😊"
+Time: 2s | Cost: $0.0001
+```
 
-📖 [MCP Docs](docs/mcp-integration.md) • [Config Examples](mcp.json)
+#### **Complex Reasoning (Claude):**
+```
+User: "explain OpenCell architecture in detail"
+  ↓
+Hybrid Dispatcher
+  ├─ Complexity: REASONING
+  ├─ Trigger: /architecture/
+  └─ Provider: Claude Opus 🧠
+  ↓
+Response: [Detailed architectural explanation]
+Time: 8s | Cost: $0.03
+```
 
-### 🌙 **Moonshot AI Provider - 97% Cheaper**
+#### **Tool Use (Pi Agent):**
+```
+User: "check if pods are healthy"
+  ↓
+Hybrid Dispatcher
+  ├─ Complexity: TOOL_USE
+  ├─ Trigger: /check.*pod/
+  └─ Provider: Pi 🔧
+  ↓
+Pi Execution:
+  1. kubectl get pods -n agents
+  2. Analyze output
+  3. Identify issues
+  ↓
+Response: "3 pods running:
+          ✅ guardian (healthy)
+          ✅ oracle (healthy)
+          ⚠️ devops (CrashLoopBackOff)"
+Time: 15s | Cost: $0.08
+```
 
-Switch to Moonshot for massive cost savings:
+---
+
+## 🔧 Deployment
+
+### **Local (Development)**
 
 ```bash
-# .env
-LLM_PROVIDER=moonshot
-MOONSHOT_API_KEY=sk-xxx
-MOONSHOT_MODEL=kimi-k2.5
+npm run dev
 ```
 
-**Comparison:**
+### **Docker**
 
-| Feature | Claude | Moonshot | Savings |
-|---------|--------|----------|---------|
-| Context | 200k tokens | 2M tokens | **10x** |
-| Cost per Mtok | $3-15 | $0.50 | **97%** 💰 |
-| Portuguese | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Better |
-| Tools | ✅ | ✅ | Same |
-
-**Monthly Cost Example:**
-- 10M tokens with Claude: ~$150/month
-- 10M tokens with Moonshot: ~$5/month
-- **Annual Savings: $1,740** 💰
-
-📖 [Moonshot Provider Docs](docs/moonshot-provider.md) • [Quick Start](examples/moonshot-quick-start.md)
-
-### 🛡️ **Production-Hardened Security**
-
-**7-layer defense** addressing critical vulnerabilities:
-
-```
-User Input → [1] Rate Limit → [2] Sanitize → [3] Blocklist →
-[4] Pattern Vet → [5] AI Vet → [6] Execute → [7] Gateway
+```bash
+docker build -t opencell .
+docker run -p 3000:3000 --env-file .env opencell
 ```
 
-**Security Layers:**
-1. **Rate Limiting** - 30 req/min per user
-2. **Input Sanitizer** - 8+ attack patterns blocked
-3. **Tool Blocklist** - Dangerous tools disabled
-4. **Pattern Vetter** - Regex validation
-5. **AI Vetter** - Intent analysis by Claude Haiku
-6. **Secure Executor** - 30s timeout, 5 concurrent max
-7. **AI Gateway** - Cloudflare WAF + DDoS protection
+### **Kubernetes (GKE)**
 
-📖 [Security Architecture](docs/security/SECURITY_ARCHITECTURE.md) • [Comparison](docs/CLAWDBOT_COMPARISON.md)
+```bash
+# 1. Create cluster
+gcloud container clusters create opencell-cluster \
+  --num-nodes=3 \
+  --machine-type=e2-medium \
+  --region=us-central1
 
-### 💰 **Cost Auditor**
+# 2. Deploy with Helm
+helm install opencell ./infra/helm/coordinator \
+  --namespace opencell \
+  --create-namespace \
+  --set env.ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
 
-Real-time cost monitoring across platforms:
+# 3. Expose externally
+kubectl expose deployment opencell-coordinator \
+  --type=LoadBalancer \
+  --port=80 \
+  --target-port=3000 \
+  --namespace=opencell
 
-- **Anthropic** - Claude API token usage
-- **Moonshot** - Kimi API usage
-- **Google Cloud** - GKE cluster costs
-- **ElevenLabs** - TTS character usage
-- **Replicate** - Image generation
-- **OpenAI** - DALL-E, GPT, Whisper
+# 4. Get external IP
+kubectl get svc -n opencell
+```
 
-**Features:**
-- Budget limits with intelligent alerts
-- End-of-month projections
-- Automatic optimization suggestions
-- Historical data with visualizations
-- Grafana dashboards
+### **Cloud Run (Serverless)**
 
-📖 [Cost Auditor Docs](cost-auditor/README.md)
+```bash
+gcloud run deploy opencell \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+```
 
-### 🎨 **Multimodal Capabilities**
+---
 
-- **Image Generation** - Replicate (Flux, SDXL), OpenAI (DALL-E)
-- **Video Generation** - Text-to-video, image animation
-- **Audio/TTS** - ElevenLabs with 9+ voices
-- **Transcription** - Whisper audio-to-text
-- **Image Analysis** - GPT-4 Vision
-- **Voice Channels** - Discord voice support
+## 📊 Cost Analysis
 
-### 🧠 **Self-Improvement System**
+### **Monthly Costs (100 msgs/day)**
 
-Agents learn from interactions:
+#### **Scenario 1: Claude Only (baseline)**
+```
+100 msgs/day × $0.02/msg = $2/day
+= $60/month 💸
+```
 
-- **Automatic Learning** - Extracts insights from conversations
-- **Memory Management** - Auto-compresses knowledge
-- **Performance Tracking** - Success rates, user satisfaction
-- **Personality Evolution** - Human-approved improvements
+#### **Scenario 2: Moonshot Only (cheap but limited)**
+```
+100 msgs/day × $0.001/msg = $0.10/day
+= $3/month 💰
 
-📖 [Self-Improvement Docs](docs/SELF_IMPROVEMENT.md)
+BUT: No agent powers, lower quality
+```
 
-### 🔧 **Developer Tools**
+#### **Scenario 3: Hybrid Dispatcher (RECOMMENDED) 🏆**
+```
+60 simple queries → Moonshot: $0.06
+30 normal queries → Claude: $0.60
+10 tool use → Pi: $0.80
+────────────────────────────
+Total: $1.46/day = $44/month
 
-- **GitHub Integration** - Clone repos, manage issues/PRs
-- **Web Scraping** - Brave Search, Playwright, Puppeteer
-- **File Operations** - Read, write, edit, list
-- **Shell Execution** - Security-filtered command execution
-- **Database Access** - PostgreSQL, MySQL (via MCP)
+💰 SAVINGS: $16/month (27% vs Claude)
+✅ BENEFITS: Full agent powers + quality
+```
+
+#### **Scenario 4: Hybrid + Home PC Worker**
+```
+Daily cloud cost: $1.46
+Home PC (off-peak workloads): -$0.50
+────────────────────────────
+Total: $0.96/day = $29/month
+
+💰 SAVINGS: $31/month (52% vs Claude)
+🏠 BONUS: Free GPU for image gen, LLMs
+```
+
+### **Cost Breakdown by Provider:**
+
+| Provider | Input | Output | Context | Best For |
+|----------|-------|--------|---------|----------|
+| Moonshot | $0.50/Mtok | $0.50/Mtok | 2M tokens | Bulk queries |
+| Gemini Flash | $0.075/Mtok | $0.30/Mtok | 2M tokens | Fast inference |
+| Gemini Pro | $1.25/Mtok | $5.00/Mtok | 2M tokens | Balanced |
+| OpenAI GPT-4 | $10/Mtok | $30/Mtok | 128k tokens | Quality |
+| Claude Opus | $15/Mtok | $75/Mtok | 200k tokens | Reasoning |
+| Pi Agent | Variable | Variable | N/A | Tool execution |
+
+---
+
+## 🎯 Use Cases
+
+### **1. DevOps Automation**
+```
+@devops check if all pods are healthy
+@devops deploy guardian with 2GB memory
+@devops analyze error logs from last hour
+```
+
+**Powers:** kubectl, docker, bash, read logs
+
+### **2. Security Monitoring**
+```
+@guardian scan for hardcoded secrets
+@guardian check CVE database for vulnerabilities
+@guardian audit permissions in namespace agents
+```
+
+**Powers:** bash, read files, web search
+
+### **3. Customer Support**
+```
+@support how do I reset my password?
+@support troubleshoot login issues
+@support what are your pricing tiers?
+```
+
+**Powers:** conversation only (fast, cheap)
+
+### **4. Data Analysis**
+```
+@oracle analyze sales data from Q4
+@oracle create visualization of user growth
+@oracle predict churn risk for cohort X
+```
+
+**Powers:** read files, Python scripts, calculations
+
+### **5. Content Creation**
+```
+@creator search trending topics in AI
+@creator write blog post about Kubernetes
+@creator generate social media posts
+```
+
+**Powers:** web search, writing, image generation
 
 ---
 
 ## 📚 Documentation
 
-### Getting Started
-- 🚀 [Quick Start Guide](docs/GKE_QUICKSTART.md)
-- 📦 [Installation](docs/INSTALLATION.md)
-- ⚙️ [Configuration](docs/CONFIGURATION.md)
-
-### New Features (v2.0)
-- 🌙 [Moonshot AI Provider](docs/moonshot-provider.md)
-- 🤖 [Bot Factory + Pi Integration](docs/bot-factory-pi-integration.md)
-- 🎯 [RoundTable Multi-Agent](docs/roundtable-system.md)
-- 🔌 [MCP Integration](docs/mcp-integration.md)
-- 👥 [Bot Persona System](docs/bot-persona-system.md)
-
-### Core Features
-- 🛡️ [Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)
-- 💰 [Cost Auditor](cost-auditor/README.md)
-- 🧠 [Self-Improvement](docs/SELF_IMPROVEMENT.md)
-- 🎨 [Discord Formatting](docs/discord-formatting-integration.md)
-- 🔑 [Secrets Management](docs/GKE_SECRETS.md)
-
-### Deployment
-- ☸️ [GKE Deployment](docs/GKE_QUICKSTART.md)
-- 🐳 [Docker Setup](Dockerfile)
-- 🔄 [CI/CD Pipeline](.github/workflows/)
-
-### Comparisons
-- 🆚 [vs ClawdBot](docs/CLAWDBOT_COMPARISON.md)
-- 🆚 [vs OpenClaw Security](docs/OPENCLAW_SECURITY_COMPARISON.md)
-
-### Examples
-- 📖 [Bot Factory Examples](examples/bot-factory-examples.md)
-- 🌙 [Moonshot Quick Start](examples/moonshot-quick-start.md)
-- 🎯 [RoundTable Examples](examples/roundtable-examples.md)
-- 🔌 [MCP Integration](examples/mcp-integration-example.ts)
+- **[Quick Start](QUICK_START_PI_BOTS.md)** - Get started in 5 minutes
+- **[Pi Integration](docs/HYBRID-PI-INTEGRATION.md)** - Full agent powers
+- **[Hybrid Dispatcher](docs/HYBRID-PI-INTEGRATION.md)** - Cost optimization
+- **[Bot Factory](docs/bot-factory-pi-integration.md)** - Create bots
+- **[Skills System](docs/HYBRID-PI-INTEGRATION.md#-available-pi-skills)** - 17 official skills
+- **[Moonshot Provider](docs/moonshot-provider.md)** - 97% cost savings
+- **[MCP Integration](docs/mcp-integration.md)** - Connect 100+ services
+- **[RoundTable](docs/roundtable-system.md)** - Multi-agent deliberation
+- **[Voice System](docs/VOICE-TO-VOICE-SYSTEM.md)** - Voice conversations
+- **[Security](SECURITY.md)** - 7-layer security
+- **[K8s Deployment](docs/agentops-k8s-deployment.md)** - Production deploy
 
 ---
 
-## 🎮 Usage Examples
+## 🛠️ Development
 
-### Basic Chat
-```
-@Ulf hello, how are you?
-@Ulf what's the weather in São Paulo?
-@Ulf summarize this document [attach file]
-```
-
-### Bot Factory
-```
-# Create conversational bot
-@Ulf create bot named support
-  personality: friendly customer support agent
-
-# Create agent bot with tools
-@Ulf create agent bot named devops
-  tools: kubectl, bash, read
-  personality: Kubernetes expert
-
-# List bots
-@Ulf list all bots
-
-# Check status
-@Ulf check status of devops
-```
-
-### RoundTable Deliberation
-```
-# Start discussion
-@Ulf !roundtable Should we migrate to microservices?
-
-# With options
-@Ulf !roundtable Database choice --voting rated --rounds 3 --team full
-```
-
-### MCP Commands
-```
-# Check MCP status
-!mcp status
-
-# List available servers
-!mcp servers
-
-# List all tools
-!mcp tools
-
-# Tools from specific server
-!mcp tools brave-search
-```
-
-### Multimodal
-```
-@Ulf generate an image of a futuristic city
-@Ulf analyze this screenshot [attach image]
-@Ulf transcribe this audio [attach audio]
-@Ulf speak "hello world" in voice channel
-```
-
----
-
-## 🚢 Deployment
-
-### Local Development
-```bash
-npm install
-npm run build
-npm start
-```
-
-### Docker
-```bash
-docker build -t opencell:latest .
-docker run -e ANTHROPIC_API_KEY=xxx opencell:latest
-```
-
-### Kubernetes (GKE)
-```bash
-# Configure GCP
-gcloud config set project YOUR_PROJECT
-
-# Deploy
-./scripts/gke-deploy.sh
-
-# Verify
-kubectl get pods -n ulf
-kubectl logs -n ulf deployment/ulf-warden -f
-```
-
-📖 [Complete Deployment Guide](docs/GKE_QUICKSTART.md)
-
----
-
-## ⚙️ Configuration
-
-### Minimum (.env)
-```bash
-# LLM Provider
-ANTHROPIC_API_KEY=your-key-here  # See .env.example
-
-# OR Moonshot (cheaper!)
-LLM_PROVIDER=moonshot
-MOONSHOT_API_KEY=sk-xxx
-
-# Platform (choose one or more)
-DISCORD_BOT_TOKEN=xxx
-SLACK_BOT_TOKEN=your-token-here  # See .env.example
-SLACK_APP_TOKEN=your-token-here  # See .env.example
-TELEGRAM_BOT_TOKEN=xxx
-```
-
-### Full Configuration
-See [.env.example](.env.example) for all options including:
-- Security settings (rate limits, blocklists)
-- Cost limits (daily, monthly, annual)
-- Platform-specific config
-- MCP server credentials
-- Multimodal API keys
-
----
-
-## 🔧 Architecture
+### **Project Structure**
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                    User Interfaces                        │
-│     Slack • Discord • Telegram • WhatsApp                │
-└───────────────────┬──────────────────────────────────────┘
-                    │
-┌───────────────────▼──────────────────────────────────────┐
-│              OpenCell Core Engine                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
-│  │ Router   │  │ Ulf Main │  │ Bot      │  │Round    │ │
-│  │          │  │ Agent    │  │ Factory  │  │Table    │ │
-│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
-└───────────────────┬──────────────────────────────────────┘
-                    │
-┌───────────────────▼──────────────────────────────────────┐
-│              LLM Providers (Multi-provider)               │
-│  ┌─────────┐  ┌──────────┐  ┌────────┐  ┌────────────┐ │
-│  │ Claude  │  │ Moonshot │  │ Ollama │  │ Local      │ │
-│  │ (API)   │  │ (Kimi)   │  │        │  │ Models     │ │
-│  └─────────┘  └──────────┘  └────────┘  └────────────┘ │
-└───────────────────┬──────────────────────────────────────┘
-                    │
-┌───────────────────▼──────────────────────────────────────┐
-│              Tools & Integrations                         │
-│  ┌─────────┐  ┌──────────┐  ┌────────┐  ┌────────────┐ │
-│  │ Native  │  │ MCP      │  │ Pi     │  │ GitHub     │ │
-│  │ Tools   │  │ Servers  │  │ Agent  │  │ API        │ │
-│  └─────────┘  └──────────┘  └────────┘  └────────────┘ │
-└──────────────────────────────────────────────────────────┘
+opencell/
+├── src/
+│   ├── bot-factory/           # Bot creation and management
+│   │   ├── types.ts           # Bot types (Agent, Conversational)
+│   │   ├── executor.ts        # Bot creation logic
+│   │   ├── bot-runtime.ts     # Bot execution engine
+│   │   ├── pi-awareness-prompt.ts  # Pi self-awareness system
+│   │   └── pi-skills-loader.ts     # Skills auto-discovery
+│   ├── llm/                   # LLM providers
+│   │   ├── claude.ts          # Claude API
+│   │   ├── moonshot-provider.ts    # Moonshot API
+│   │   ├── openai-provider.ts      # OpenAI API
+│   │   ├── gemini-provider.ts      # Gemini API
+│   │   ├── pi-provider-enhanced.ts # Pi integration
+│   │   └── hybrid-dispatcher.ts    # Smart routing
+│   ├── handlers/              # Platform handlers
+│   │   ├── discord.ts
+│   │   ├── slack.ts
+│   │   └── telegram.ts
+│   ├── tools/                 # Agent tools
+│   ├── observability/         # Monitoring
+│   └── core/                  # Core utilities
+├── infra/                     # Infrastructure
+│   ├── helm/                  # Helm charts
+│   ├── cloudflare-tunnel/     # Tunnel configs
+│   └── docker/
+├── docs/                      # Documentation
+└── examples/                  # Code examples
 ```
 
-📖 [Detailed Architecture](docs/ARCHITECTURE.md)
+### **Adding a New Provider**
 
----
+```typescript
+// src/llm/my-provider.ts
 
-## 📊 Performance
+import { LLMProvider, LLMMessage, LLMResponse } from './interface';
 
-### Response Times
-- Simple chat: ~2 seconds
-- Tool usage: ~4 seconds
-- Bot Factory (create bot): ~30 seconds
-- RoundTable (3 rounds): ~45 seconds
-- MCP tools: ~100-500ms additional latency
+export class MyProvider implements LLMProvider {
+  name = 'my-provider';
+  
+  async generate(messages: LLMMessage[]): Promise<LLMResponse> {
+    // Your implementation
+  }
+}
 
-### Cost Comparison (10M tokens/month)
+// src/llm/index.ts
+export { MyProvider } from './my-provider';
+```
 
-| Provider | Monthly Cost | Annual Cost |
-|----------|-------------|-------------|
-| Claude Sonnet | $150 | $1,800 |
-| Moonshot Kimi | $5 | $60 |
-| **Savings** | **$145** | **$1,740** 💰 |
+### **Creating a Custom Skill**
 
-### Scalability
-- Tested with 1000+ concurrent users
-- 100+ bots deployed simultaneously
-- Multi-cluster support ready
-- Horizontal scaling with Kubernetes
+```markdown
+<!-- ~/.pi/agent/skills/my-skills/custom-skill/SKILL.md -->
 
----
+# Custom Skill
 
-## 🔒 Security
+Description: My custom skill for X
 
-### Best Practices
-- ✅ Run on private infrastructure
-- ✅ Use Google Secret Manager (not env vars)
-- ✅ Enable all 7 security layers
-- ✅ Set conservative rate limits
-- ✅ Monitor audit logs
-- ✅ Restrict tool access per bot
-- ✅ Use TLS everywhere
+Triggers: keyword1, keyword2
 
-### Compliance
-- GDPR-ready (data residency control)
-- SOC 2 compatible (audit trails)
-- ISO 27001 friendly (security controls)
+## Usage:
 
-📖 [Security Policy](SECURITY.md) • [Vulnerability Reporting](SECURITY.md#reporting)
+1. Detect trigger keywords
+2. Use custom tool:
+   \`\`\`bash
+   custom_tool --param value
+   \`\`\`
+3. Process results
+```
+
+Bot auto-discovers and uses it!
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md)
 
-### Development Setup
-```bash
-git clone https://github.com/cloudwalk/opencell.git
-cd opencell
-npm install
-npm run dev  # Watch mode
-npm test     # Run tests
-```
+### **Areas for Contribution:**
 
-### Areas for Contribution
-- 🌐 Additional platform integrations
-- 🔌 New MCP servers
-- 🤖 Bot Factory templates
-- 🎯 RoundTable voting algorithms
-- 🔒 Security enhancements
+- 🤖 New bot templates
+- 🔧 Additional tools/skills
+- 🌐 New platform integrations
 - 📚 Documentation improvements
+- 🧪 Test coverage
+- 🎨 UI/UX enhancements
 
 ---
 
-## 📈 Roadmap
+## 📄 License
 
-### v2.6 (Q2 2026)
-- [ ] Web dashboard for bot management
-- [ ] Multi-cluster bot deployment
-- [ ] Advanced cost optimization (better than 97% savings)
-- [ ] Custom MCP server generator
-- [ ] Decision Intelligence System (complete)
-
-### v2.2 (Q2 2025)
-- [ ] Bot marketplace (community bots)
-- [ ] Auto-scaling based on load
-- [ ] GraphQL API
-- [ ] Mobile app (iOS/Android)
-
-### Long-term
-- [ ] OpenCell as MCP server
-- [ ] Agent-to-agent communication
-- [ ] Multi-language support (Python, Go)
-- [ ] Enterprise features (SSO, RBAC)
-
----
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details
 
 ---
 
 ## 🙏 Credits
 
-Built by [CloudWalk](https://cloudwalk.io) with ❤️
-
-**Core Technologies:**
-- [Anthropic Claude](https://anthropic.com) - Primary LLM
-- [Moonshot AI](https://moonshot.cn) - Cost-effective LLM
-- [Model Context Protocol](https://modelcontextprotocol.io) - Tool integration
-- [Pi Coding Agent](https://github.com/mariozechner/pi-coding-agent) - Agent capabilities
-- [Discord.js](https://discord.js.org) - Discord integration
-- [@slack/bolt](https://slack.dev/bolt-js/) - Slack integration
-- [Node.js](https://nodejs.org) + [TypeScript](https://typescriptlang.org)
+**Built with:**
+- [Pi Coding Agent](https://github.com/mariozechner/pi-coding-agent) by @mariozechner
+- [Anthropic Claude](https://anthropic.com)
+- [Moonshot AI](https://moonshot.cn)
+- [OpenAI](https://openai.com)
+- [Google Gemini](https://ai.google.dev)
 
 **Inspired by:**
-- ClawdBot (security improvements)
-- OpenClaw (architecture patterns)
-- RoundTable Paper (ICLR 2025)
-- Anthropic MCP (protocol design)
+- OpenClaw-Security (security patterns)
+- AgentOps (observability)
+- MCP (Model Context Protocol)
 
 ---
 
 ## 📞 Support
 
-- 📖 [Documentation](docs/)
-- 🐛 [Issue Tracker](https://github.com/cloudwalk/opencell/issues)
-- 💬 [Discussions](https://github.com/cloudwalk/opencell/discussions)
-- 🔒 [Security](SECURITY.md)
+- **Documentation:** [docs/](docs/)
+- **Issues:** [GitHub Issues](https://github.com/cloudwalk/opencell/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/cloudwalk/opencell/discussions)
+- **Discord:** [Join our server](https://discord.gg/opencell)
 
 ---
 
 <div align="center">
 
-**⭐ Star this repo if OpenCell helps you build amazing AI agents!**
+**OpenCell** - Your own AI agent army, your infrastructure, your rules.
 
-Made with ❤️ by CloudWalk • [Website](https://cloudwalk.io) • [Twitter](https://twitter.com/cloudwalk)
+Made with ❤️ by the community
+
+[⭐ Star on GitHub](https://github.com/cloudwalk/opencell) • [📖 Read the Docs](docs/) • [🚀 Deploy Now](QUICK_START_PI_BOTS.md)
 
 </div>

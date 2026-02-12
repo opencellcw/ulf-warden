@@ -1,7 +1,7 @@
 {
-  "name": "ulfberht-warden",
-  "version": "1.0.0",
-  "description": "Ulfberht-Warden - AI assistant on Slack, Discord, and Telegram",
+  "name": "opencell",
+  "version": "3.0.0",
+  "description": "OpenCell - Open-source multi-agent AI platform with Pi integration, hybrid multi-provider routing, and 17 official skills",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",

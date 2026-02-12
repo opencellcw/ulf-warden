@@ -20,8 +20,6 @@ export * from './local';
 export * from './router';
 export * from './selector-agent';
 
-export { getRouter } from './router';
 export { getClaudeProvider } from './claude';
 export { getMoonshotProvider } from './moonshot-provider';
 export { getLocalProvider } from './local';
-export { selectorAgent } from './selector-agent';
