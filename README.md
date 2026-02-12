@@ -1,3 +1,7 @@
+<div align="center">
+
+<img src=".github/assets/logo.png" alt="OpenCell Logo" width="600"/>
+
 # OpenCell (Ulf-Warden)
 
 > **🤖 Open-Source Multi-Agent AI Platform - Your Own AI Agent Army**
@@ -7,6 +11,8 @@
 [![GKE](https://img.shields.io/badge/deploy-GKE-4285F4?logo=googlecloud)](https://cloud.google.com/kubernetes-engine)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
+
+</div>
 
 **OpenCell** (Ulfberht-Warden) is a production-ready multi-agent AI platform that runs on YOUR infrastructure. Deploy unlimited specialized AI agents across Slack, Discord, Telegram, and WhatsApp.
 
