@@ -524,6 +524,36 @@ When generating images/videos/audio:
       .join('\n\n');
   }
 
+  // 🔧 FIX: Include tool results with URLs/media in final response
+  // Find the last tool results in messages history
+  const lastToolResults = messages
+    .slice()
+    .reverse()
+    .find((msg: any) => msg.role === 'user' && Array.isArray(msg.content));
+
+  if (lastToolResults && Array.isArray(lastToolResults.content)) {
+    for (const block of lastToolResults.content) {
+      if (block.type === 'tool_result' && typeof block.content === 'string') {
+        // Check if tool result contains media URLs (image/video/audio)
+        const hasMediaURL = 
+          block.content.includes('URL:') || 
+          block.content.includes('replicate.delivery') ||
+          block.content.includes('oaidalleapiprodscus') ||
+          block.content.includes('https://') && (
+            block.content.includes('image') ||
+            block.content.includes('video') ||
+            block.content.includes('audio')
+          );
+
+        if (hasMediaURL) {
+          // Append tool result to final message (Claude sometimes omits the URL)
+          log.info('[Agent] Appending media URL from tool result to final message');
+          finalMessage += '\n\n' + block.content;
+        }
+      }
+    }
+  }
+
   console.log(`[Agent] Completed after ${iteration} iterations`);
   activityTracker.emitCompleted(iteration, Date.now() - agentStartTime);
 
