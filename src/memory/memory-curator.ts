@@ -24,10 +24,46 @@ export class MemoryCurator {
   private client: Anthropic | null = null;
   private lastCuration: Date | null = null;
   private curationInterval: number = 24 * 60 * 60 * 1000; // 24 hours
+  private isRunning: boolean = false;
+  private consecutiveFailures: number = 0;
+  private maxConsecutiveFailures: number = 3;
+  private isDisabled: boolean = false;
 
   constructor(workspacePath: string = './workspace') {
-    this.workspacePath = workspacePath;
-    this.memoryFilePath = path.join(workspacePath, 'MEMORY.md');
+    // Use /data/workspace for K8s (has write permissions)
+    this.workspacePath = process.env.DATA_DIR 
+      ? path.join(process.env.DATA_DIR, 'workspace')
+      : workspacePath;
+    
+    this.memoryFilePath = path.join(this.workspacePath, 'MEMORY.md');
+
+    // Ensure workspace directory exists
+    if (!fs.existsSync(this.workspacePath)) {
+      try {
+        fs.mkdirSync(this.workspacePath, { recursive: true });
+        log.info('[MemoryCurator] Created workspace directory', { path: this.workspacePath });
+      } catch (error: any) {
+        log.error('[MemoryCurator] Failed to create workspace directory', { 
+          error: error.message,
+          path: this.workspacePath
+        });
+        this.isDisabled = true;
+      }
+    }
+
+    // Test write permissions
+    try {
+      const testFile = path.join(this.workspacePath, '.write-test');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      log.info('[MemoryCurator] Write permissions OK', { path: this.workspacePath });
+    } catch (error: any) {
+      log.warn('[MemoryCurator] No write permissions, disabling auto-curation', {
+        error: error.message,
+        path: this.workspacePath
+      });
+      this.isDisabled = true;
+    }
 
     // Initialize Anthropic client if API key available
     if (process.env.ANTHROPIC_API_KEY) {
@@ -153,6 +189,29 @@ Return as JSON:
    * Update MEMORY.md with curated insights
    */
   async curateMemory(dryRun: boolean = false): Promise<void> {
+    // Skip if disabled
+    if (this.isDisabled) {
+      log.debug('[MemoryCurator] Curator is disabled (no write permissions)');
+      return;
+    }
+
+    // Skip if too many consecutive failures
+    if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+      log.warn('[MemoryCurator] Too many failures, auto-disabling curator', {
+        failures: this.consecutiveFailures
+      });
+      this.isDisabled = true;
+      return;
+    }
+
+    // Skip if already running (prevent concurrent executions)
+    if (this.isRunning) {
+      log.debug('[MemoryCurator] Curation already in progress, skipping');
+      return;
+    }
+
+    this.isRunning = true;
+
     try {
       log.info('[MemoryCurator] Starting memory curation', { dryRun });
 
@@ -235,8 +294,17 @@ Return as JSON:
       });
 
       this.lastCuration = new Date();
+      this.consecutiveFailures = 0; // Reset failure counter on success
     } catch (error: any) {
-      log.error('[MemoryCurator] Failed to curate memory', { error: error.message });
+      this.consecutiveFailures++;
+      
+      log.error('[MemoryCurator] Failed to curate memory', { 
+        error: error.message,
+        consecutiveFailures: this.consecutiveFailures,
+        willDisable: this.consecutiveFailures >= this.maxConsecutiveFailures
+      });
+    } finally {
+      this.isRunning = false;
     }
   }
 
@@ -244,27 +312,52 @@ Return as JSON:
    * Start automatic curation (runs periodically)
    */
   startAutoCuration(intervalMs?: number): void {
+    if (this.isDisabled) {
+      log.warn('[MemoryCurator] Auto-curation not started (curator is disabled)');
+      return;
+    }
+
     if (intervalMs) {
       this.curationInterval = intervalMs;
     }
 
     log.info('[MemoryCurator] Starting auto-curation', {
-      interval: `${this.curationInterval / 1000 / 60 / 60}h`
+      interval: `${this.curationInterval / 1000 / 60 / 60}h`,
+      path: this.memoryFilePath
     });
 
+    // Run immediately on first start (async, non-blocking)
+    this.curateMemory(false).catch(err => {
+      log.error('[MemoryCurator] Initial curation failed', { error: err.message });
+    });
+
+    // Then run periodically
     setInterval(async () => {
-      log.info('[MemoryCurator] Running scheduled curation');
-      await this.curateMemory(false);
+      if (!this.isDisabled) {
+        log.info('[MemoryCurator] Running scheduled curation');
+        await this.curateMemory(false);
+      }
     }, this.curationInterval);
   }
 
   /**
    * Get curation status
    */
-  getStatus(): { lastCuration: Date | null; intervalHours: number } {
+  getStatus(): { 
+    lastCuration: Date | null; 
+    intervalHours: number;
+    isDisabled: boolean;
+    consecutiveFailures: number;
+    isRunning: boolean;
+    memoryFilePath: string;
+  } {
     return {
       lastCuration: this.lastCuration,
-      intervalHours: this.curationInterval / 1000 / 60 / 60
+      intervalHours: this.curationInterval / 1000 / 60 / 60,
+      isDisabled: this.isDisabled,
+      consecutiveFailures: this.consecutiveFailures,
+      isRunning: this.isRunning,
+      memoryFilePath: this.memoryFilePath
     };
   }
 }
