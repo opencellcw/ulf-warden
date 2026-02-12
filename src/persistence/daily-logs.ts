@@ -1,4 +1,5 @@
 import { persistence } from './index';
+import { intervalManager } from '../../utils/interval-manager';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 
 export class DailyLogManager {
@@ -8,7 +9,7 @@ export class DailyLogManager {
   private constructor() {
     this.updateCurrentDate();
     // Update date at midnight
-    setInterval(() => this.updateCurrentDate(), 60000); // Check every minute
+    intervalManager.register('daily-logs-update', () => this.updateCurrentDate(), 60000); // Check every minute
   }
 
   static getInstance(): DailyLogManager {

@@ -1,4 +1,5 @@
 import { log } from '../logger';
+import { intervalManager } from '../../utils/interval-manager';
 import { cache } from '../core/cache';
 import { sessionManager } from '../sessions';
 import { memoryCurator } from '../memory/memory-curator';
@@ -317,7 +318,7 @@ export class HeartbeatManager {
     });
 
     // Schedule periodic execution
-    this.intervalHandle = setInterval(async () => {
+    this.intervalHandle = intervalManager.register('heartbeat-proactive', async () => {
       try {
         await this.execute();
       } catch (error: any) {
@@ -331,7 +332,7 @@ export class HeartbeatManager {
    */
   stop(): void {
     if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
+      intervalManager.clear('heartbeat-proactive');
       this.intervalHandle = null;
       log.info('[Heartbeat] Stopped');
     }

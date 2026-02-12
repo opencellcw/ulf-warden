@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { intervalManager } from '../../utils/interval-manager';
 import path from 'path';
 import { log } from '../logger';
 
@@ -31,7 +32,7 @@ export class DailyLogger {
     this.ensureMemoryDirectory();
 
     // Check date every minute
-    setInterval(() => this.updateCurrentDate(), 60000);
+    intervalManager.register('daily-logger-update', () => this.updateCurrentDate(), 60000);
   }
 
   private ensureMemoryDirectory(): void {

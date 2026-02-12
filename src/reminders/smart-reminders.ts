@@ -1,4 +1,5 @@
 import { log } from '../logger';
+import { intervalManager } from '../utils/interval-manager';
 import { memory } from '../memory/vector-memory';
 
 /**
@@ -408,7 +409,7 @@ export class SmartRemindersSystem {
    */
   private startReminderChecker(): void {
     // Check every minute
-    this.checkInterval = setInterval(() => {
+    this.checkInterval = intervalManager.register('smart-reminders-check', () => {
       const dueReminders = this.getDueReminders();
       
       if (dueReminders.length > 0) {
@@ -427,7 +428,7 @@ export class SmartRemindersSystem {
    */
   stop(): void {
     if (this.checkInterval) {
-      clearInterval(this.checkInterval);
+      intervalManager.clear('smart-reminders-check');
       this.checkInterval = null;
     }
   }

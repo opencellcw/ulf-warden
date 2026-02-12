@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel, Partials } from 'discord.js';
+import { intervalManager } from '../../utils/interval-manager';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
 import { sessionManager } from '../sessions';
@@ -432,7 +433,7 @@ export async function startDiscordHandler() {
     log.info('[Discord] Approval system initialized');
 
     // 🚀 NEW: Start reminder checker
-    setInterval(async () => {
+    intervalManager.register('discord-reminder-checker', async () => {
       const dueReminders = smartReminders.getDueReminders();
 
       for (const reminder of dueReminders) {

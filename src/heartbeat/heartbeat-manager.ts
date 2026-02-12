@@ -1,4 +1,5 @@
 import { App } from '@slack/bolt';
+import { intervalManager } from '../../utils/interval-manager';
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs';
 import path from 'path';
@@ -239,7 +240,7 @@ Be concise. Only alert if truly important.`;
 
     const intervalMs = this.config.intervalMinutes * 60 * 1000;
 
-    this.interval = setInterval(async () => {
+    this.interval = intervalManager.register('heartbeat-legacy', async () => {
       try {
         const check = await this.performCheck();
         await this.sendAlert(check);
@@ -265,7 +266,7 @@ Be concise. Only alert if truly important.`;
    */
   stop(): void {
     if (this.interval) {
-      clearInterval(this.interval);
+      intervalManager.clear('heartbeat-legacy');
       this.interval = null;
       log.info('[Heartbeat] Stopped');
     }

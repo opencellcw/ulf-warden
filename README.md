@@ -41,6 +41,29 @@ npm start      # Bot is live! 🚀
 
 ---
 
+## 📚 Documentation
+
+**New to OpenCell?** Start here:
+- [⚡ QUICKSTART.md](QUICKSTART.md) - 3-minute setup guide
+- [🗺️ Navigation Guide](docs/NAVIGATION.md) - Find any documentation quickly
+- [📖 Main Index](docs/INDEX.md) - Complete documentation index
+
+**By category:**
+- [🎨 Features](docs/features/) - Feature guides & usage (21 docs)
+- [🚀 Deployment](docs/deployment/) - Platform-specific guides (9 docs)
+- [✅ Implementation](docs/implementation/) - Technical details (23 docs)
+- [📊 History](docs/history/) - Work summaries & reports (26 docs)
+
+**Popular docs:**
+- [TOP3 Features Guide](docs/features/TOP3_FEATURES_GUIDE.md) - Best features
+- [Discord Commands](docs/features/DISCORD_COMMANDS_READY.md) - All commands
+- [Video Clone System](docs/features/VIDEO_CLONE_GUIDE.md) - Clone YouTube videos
+- [Self-Improvement](docs/SELF_IMPROVEMENT.md) - AI-powered evolution
+
+**Total: 174 organized docs** | [📂 See full structure →](docs/NAVIGATION.md)
+
+---
+
 ## ✨ LATEST - v3.0 (February 12, 2026)
 
 ### 🔥 **Pi Integration + Hybrid Multi-Provider System**

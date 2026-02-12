@@ -20,6 +20,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { intervalManager } from '../../utils/interval-manager';
 import Database from 'better-sqlite3';
 import path from 'path';
 import { log } from '../logger';
@@ -127,7 +128,7 @@ export class FeedbackAnalyzer {
    */
   private startAnalysisWorker(): void {
     // Process queue every 5 minutes
-    this.analysisTimer = setInterval(() => {
+    this.analysisTimer = intervalManager.register('feedback-analyzer', () => {
       if (this.analysisQueue.length > 0) {
         this.processQueue();
       }
@@ -530,7 +531,7 @@ Respond in JSON:
    */
   shutdown(): void {
     if (this.analysisTimer) {
-      clearInterval(this.analysisTimer);
+      intervalManager.clear('feedback-analyzer');
     }
   }
 }

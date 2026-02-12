@@ -1,4 +1,5 @@
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
+import { intervalManager } from './utils/interval-manager';
 import { persistence } from './persistence';
 import { dailyLog } from './persistence/daily-logs';
 import { memoryCurator } from './persistence/memory-curator';
@@ -130,10 +131,10 @@ class SessionManager {
    */
   startAutoFlush(intervalMs: number = 60000): void {
     if (this.autoFlushInterval) {
-      clearInterval(this.autoFlushInterval);
+      intervalManager.clear('session-auto-flush');
     }
 
-    this.autoFlushInterval = setInterval(async () => {
+    this.autoFlushInterval = intervalManager.register('session-auto-flush', async () => {
       try {
         await this.flushAll();
         console.log('[Sessions] Auto-flush completed');
@@ -150,7 +151,7 @@ class SessionManager {
    */
   stopAutoFlush(): void {
     if (this.autoFlushInterval) {
-      clearInterval(this.autoFlushInterval);
+      intervalManager.clear('session-auto-flush');
       this.autoFlushInterval = null;
       console.log('[Sessions] Auto-flush stopped');
     }
@@ -181,10 +182,10 @@ class SessionManager {
    */
   startGarbageCollection(intervalMs: number = 3600000, maxAgeHours: number = 24): void {
     if (this.gcInterval) {
-      clearInterval(this.gcInterval);
+      intervalManager.clear('session-gc');
     }
 
-    this.gcInterval = setInterval(async () => {
+    this.gcInterval = intervalManager.register('session-gc', async () => {
       try {
         await this.collectGarbage(maxAgeHours);
       } catch (error) {
@@ -200,7 +201,7 @@ class SessionManager {
    */
   stopGarbageCollection(): void {
     if (this.gcInterval) {
-      clearInterval(this.gcInterval);
+      intervalManager.clear('session-gc');
       this.gcInterval = null;
       console.log('[Sessions] Garbage collection stopped');
     }

@@ -1,4 +1,5 @@
 import { VoiceHandler, getVoiceHandler } from './voice-handler';
+import { intervalManager } from '../utils/interval-manager';
 // import { SpeechToText, getSpeechToText } from './speech-to-text'; // TODO: Re-enable when speech-to-text is fixed
 import { VoiceChannel, Message } from 'discord.js';
 import Anthropic from '@anthropic-ai/sdk';
@@ -92,11 +93,11 @@ export class VoiceConversation {
     console.log('[VoiceConversation] 🔄 Starting audio processing loop...');
 
     // Check for new recordings every 3 seconds
-    const interval = setInterval(async () => {
+    const interval = intervalManager.register('voice-transcription-check', async () => {
       // Check if still connected
       if (!this.voiceHandler.isConnected(guildId)) {
         console.log('[VoiceConversation] ⏹️ Voice disconnected, stopping loop');
-        clearInterval(interval);
+        intervalManager.clear('voice-transcription-check');
         return;
       }
 
