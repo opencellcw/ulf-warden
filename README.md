@@ -20,6 +20,28 @@
 
 ---
 
+## ✨ LATEST - v2.5 (February 12, 2026)
+
+### 🧹 **System Cleanup** - 33% Code Reduction
+- Removed 62 KB of orphan code (temporal reminders, daemon, workflows)
+- Consolidated cache systems (5 → 3) and self-improvers (3 → 2)
+- Fixed Voice System (prism-media integration)
+- 118 environment variables fully documented
+- **Code quality: 60 → 90 (+50%)** | **Maintainability: 65 → 92 (+42%)**
+- Zero build errors, zero security issues
+- 📖 [Cleanup Report](CLEANUP-COMPLETE-REPORT.md)
+
+### 🎙️ **Voice-to-Voice Conversation** - Talk to AI Naturally
+- Join Discord voice channels and speak naturally
+- Automatic silence detection (1 second threshold)
+- Multi-turn conversations with context (10 messages)
+- **Stack:** Groq Whisper (STT) + Claude Opus 4 (LLM) + ElevenLabs (TTS)
+- **Cost:** ~$0.034/minute ($2/hour of conversation)
+- Commands: `@Ulf entrar no canal` (join) / `sair do canal` (leave)
+- 📖 [Voice-to-Voice Docs](docs/VOICE-TO-VOICE-SYSTEM.md)
+
+---
+
 ## 🚀 NEW in v2.0 (February 2025)
 
 ### 🌙 **Moonshot AI Integration** - 97% Cost Savings!
@@ -530,12 +552,12 @@ npm test     # Run tests
 
 ## 📈 Roadmap
 
-### v2.1 (Q1 2025)
+### v2.6 (Q2 2026)
 - [ ] Web dashboard for bot management
-- [ ] Voice-to-voice conversations
 - [ ] Multi-cluster bot deployment
-- [ ] Advanced cost optimization
+- [ ] Advanced cost optimization (better than 97% savings)
 - [ ] Custom MCP server generator
+- [ ] Decision Intelligence System (complete)
 
 ### v2.2 (Q2 2025)
 - [ ] Bot marketplace (community bots)

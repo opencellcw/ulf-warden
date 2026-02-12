@@ -315,5 +315,4 @@ function formatUptime(seconds: number): string {
   }
 }
 
-// Export managed processes for daemon manager
 export { managedProcesses };

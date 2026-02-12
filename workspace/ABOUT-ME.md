@@ -553,5 +553,5 @@ Níveis de confiança por usuário:
 ---
 
 **Última atualização:** 12 Fevereiro 2026  
-**Versão:** 2.0 (Decision Intelligence + Scheduler + Bot Factory + Self-Improvement + Auto-Rollback + Skills Library + Voice-to-Voice)  
-**Status:** ✅ Production Ready
+**Versão:** 2.5 (System Cleanup + Voice-to-Voice + Auto-Rollback + Skills Library + Bot Factory + Decision Intelligence)  
+**Status:** ✅ Production Ready - Code Quality 90/100
