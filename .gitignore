@@ -47,3 +47,18 @@ auditor/test_example.py
 
 # GitHub workflows (require workflow scope)
 .github/workflows/
+# Arquivos temporários de documentação
+BITCOIN-PRICE-DIAGNOSIS.md
+BOT-SELF-AWARENESS-COMPLETE.md
+COMMIT-MESSAGE.txt
+CRON-*.md
+SESSION-SUMMARY-*.md
+WORKSPACE-FILES-REVIEW.md
+STACK-ANALYSIS-*.md
+*-ANALYSIS.md
+*-DEPLOYMENT-SETUP.md
+*-RESOURCES.md
+*-V2-PLAN.md
+AUTO-ROLLBACK-*.md
+SELF-IMPROVEMENT-*.md
+IMPLEMENTATION-SUMMARY-*.md
