@@ -1,0 +1,33 @@
+# DOCUMENTATION CLEANUP PLAN
+
+## KEEP IN ROOT (7 files):
+✅ README.md - Main documentation
+✅ CONTRIBUTING.md - How to contribute
+✅ SECURITY.md - Security policy
+✅ CHANGELOG_v3.0.md - Version changelog
+✅ INTEGRATION_COMPLETE.md - v3.0 technical summary
+✅ QUICK_START_v3.0.md - Quick start guide
+✅ FINAL_SUMMARY.md - Executive summary
+
+## MOVE TO docs/ (consolidate):
+📁 VOICE-TO-VOICE-COMPLETE.md → docs/VOICE-TO-VOICE-SYSTEM.md
+📁 API_INTEGRATIONS_GUIDE.md → docs/API-INTEGRATIONS.md
+📁 FEEDBACK_SYSTEM_GUIDE.md → docs/FEEDBACK-SYSTEM.md
+📁 REPLICATE_ENHANCED_GUIDE.md → docs/REPLICATE-GUIDE.md
+📁 VIDEO_CLONE_GUIDE.md → docs/VIDEO-CLONE.md
+📁 TEMPORAL_REMINDERS_GUIDE.md → docs/TEMPORAL-REMINDERS.md (if still used)
+
+## DELETE (redundant/temporary - 90+ files):
+🗑️ All FINAL_* files (except FINAL_SUMMARY.md)
+🗑️ All *_FEB12.md files
+🗑️ All COMPLETE_* files (except features that need docs)
+🗑️ All STATUS_* files
+🗑️ All SUMMARY_* files (except FINAL_SUMMARY.md)
+🗑️ All COMMIT_MESSAGE* files
+🗑️ All DEPLOY_* files
+🗑️ All WORK-* SESSION-* TODAY-* files
+🗑️ All diagnosis/analysis files (BITCOIN, GAPS, CHECKUP, AUDIT, etc)
+🗑️ All TEST_* files
+🗑️ Duplicate guides (CRON-*, CLEANUP-*, etc)
+
+Total to delete: ~90 files
