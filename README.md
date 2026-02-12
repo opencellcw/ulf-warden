@@ -400,7 +400,7 @@ kubectl logs -n ulf deployment/ulf-warden -f
 ### Minimum (.env)
 ```bash
 # LLM Provider
-ANTHROPIC_API_KEY=sk-ant-api03-xxx
+ANTHROPIC_API_KEY=your-key-here  # See .env.example
 
 # OR Moonshot (cheaper!)
 LLM_PROVIDER=moonshot
@@ -408,8 +408,8 @@ MOONSHOT_API_KEY=sk-xxx
 
 # Platform (choose one or more)
 DISCORD_BOT_TOKEN=xxx
-SLACK_BOT_TOKEN=xoxb-xxx
-SLACK_APP_TOKEN=xapp-xxx
+SLACK_BOT_TOKEN=your-token-here  # See .env.example
+SLACK_APP_TOKEN=your-token-here  # See .env.example
 TELEGRAM_BOT_TOKEN=xxx
 ```
 

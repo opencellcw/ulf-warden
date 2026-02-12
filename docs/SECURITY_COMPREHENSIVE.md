@@ -252,7 +252,7 @@ const KEY_PATTERNS = {
 ```bash
 # Setup de chave (auto-detecta)
 Cole sua API key diretamente no chat
-> sk-ant-api_xxx...
+> [REDACTED]
 
 # Listar suas chaves
 /keys

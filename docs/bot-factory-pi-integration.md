@@ -226,7 +226,7 @@ npm install -g @mariozechner/pi-coding-agent
 
 ```bash
 # Required for all bots
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=your-key-here  # See .env.example
 
 # Required for agent bots
 # (Pi uses the same ANTHROPIC_API_KEY)

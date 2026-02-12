@@ -20,14 +20,14 @@ Manter segurança máxima usando chaves API de curta duração (24h) que são ro
 1. Acesse: https://console.anthropic.com/settings/keys
 2. Clique em "Create Key"
 3. Defina expiração: **24 horas**
-4. Copie a chave (formato: `sk-ant-api03-...`)
+4. Copie a chave (formato: `YOUR_NEW_ANTHROPIC_KEY`)
 
 ### 2. Rotacionar via Discord (DM Privada)
 
 **⚠️ IMPORTANTE:** Use apenas em **DM privada** com o bot, nunca em canais públicos!
 
 ```
-/rotate-key sk-ant-api03-[sua-nova-chave-aqui]
+/rotate-key YOUR_NEW_ANTHROPIC_KEY
 ```
 
 **O sistema irá:**
@@ -151,7 +151,7 @@ await slack.chat.postMessage({
 ### "Formato de Chave Inválido"
 
 ✅ **Solução:** Verifique se copiou a chave completa:
-- Deve começar com `sk-ant-api03-`
+- Deve começar com `sk-ant-api03-` (Anthropic format)
 - Deve ter exatamente 95 caracteres após o prefixo
 - Total: 110 caracteres
 
@@ -178,7 +178,7 @@ Use este checklist a cada rotação:
 - [ ] Gerei nova chave no dashboard Anthropic (24h)
 - [ ] Copiei a chave completa
 - [ ] Abri DM privada com o bot
-- [ ] Executei `/rotate-key sk-ant-api03-...`
+- [ ] Executei `/rotate-key YOUR_NEW_ANTHROPIC_KEY`
 - [ ] Bot confirmou sucesso ✅
 - [ ] Deletei a chave antiga no dashboard
 - [ ] Verifiquei status com `/key-status`

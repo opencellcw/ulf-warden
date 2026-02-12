@@ -76,11 +76,11 @@ PROJECT_ID=seu-projeto-gcp
 CLUSTER_NAME=ulf-cluster
 REGION=us-central1
 ZONE=us-central1-a
-ANTHROPIC_API_KEY=sk-ant-xxx
+ANTHROPIC_API_KEY=your-key-here
 
 # Opcional (para Slack/Discord/Telegram)
-SLACK_BOT_TOKEN=xoxb-xxx
-SLACK_APP_TOKEN=xapp-xxx
+SLACK_BOT_TOKEN=your-token-here
+SLACK_APP_TOKEN=your-token-here
 SLACK_SIGNING_SECRET=xxx
 DISCORD_BOT_TOKEN=xxx
 TELEGRAM_BOT_TOKEN=xxx
@@ -275,9 +275,9 @@ kubectl get secret agent-secrets -n agents -o yaml
 # Recriar secret
 kubectl delete secret agent-secrets -n agents
 kubectl create secret generic agent-secrets \
-  --from-literal=anthropic-api-key=sk-ant-xxx \
-  --from-literal=slack-bot-token=xoxb-xxx \
-  --from-literal=slack-app-token=xapp-xxx \
+  --from-literal=anthropic-api-key=YOUR_KEY \
+  --from-literal=slack-bot-token=YOUR_TOKEN \
+  --from-literal=slack-app-token=YOUR_TOKEN \
   --from-literal=slack-signing-secret=xxx \
   -n agents
 

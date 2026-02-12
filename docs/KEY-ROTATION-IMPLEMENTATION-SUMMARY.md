@@ -85,7 +85,7 @@ src/handlers/discord.ts               # + comandos /rotate-key e /key-status
 
 1. Gere chave no dashboard Anthropic (24h)
 2. Abra DM privada com o bot
-3. Execute: `/rotate-key sk-ant-api03-...`
+3. Execute: `/rotate-key YOUR_NEW_KEY`
 4. Bot confirma sucesso ✅
 5. Delete chave antiga no dashboard
 
@@ -302,7 +302,7 @@ kubectl rollout restart deployment/ulf-warden-agent -n agents
 
 **Solução:**
 - Verifique se copiou a chave completa
-- Formato: `sk-ant-api03-[95 caracteres]`
+- Formato: `sk-ant-api03-[REDACTED]`
 - Total: 110 caracteres
 
 ### Problema: Deployment não reiniciou

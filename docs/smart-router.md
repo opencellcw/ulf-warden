@@ -41,8 +41,8 @@ Add to `.env`:
 LLM_STRATEGY=smart_router
 
 # Add your API keys
-ANTHROPIC_API_KEY=sk-ant-api03-...
-GEMINI_API_KEY=AIzaSy...
+ANTHROPIC_API_KEY=your-key-here  # See .env.example
+GEMINI_API_KEY=your-key-here  # See .env.example
 ```
 
 ### 2. Use Normally
@@ -563,7 +563,7 @@ const response = await router.generate([
 ```bash
 # Add to .env
 LLM_STRATEGY=smart_router
-GEMINI_API_KEY=AIzaSy...
+GEMINI_API_KEY=your-key-here  # See .env.example
 
 # Deploy
 # Enjoy 90%+ cost savings! 🎉

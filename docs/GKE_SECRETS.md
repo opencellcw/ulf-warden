@@ -103,16 +103,16 @@ gcloud services enable secretmanager.googleapis.com
 
 ```bash
 # Anthropic API Key (obrigatório)
-echo -n "sk-ant-api03-xxx" | gcloud secrets create anthropic-api-key \
+echo -n "YOUR_ANTHROPIC_KEY" | gcloud secrets create anthropic-api-key \
   --data-file=- \
   --replication-policy="automatic"
 
 # Slack (opcional)
-echo -n "xoxb-xxx" | gcloud secrets create slack-bot-token \
+echo -n "YOUR_SLACK_BOT_TOKEN" | gcloud secrets create slack-bot-token \
   --data-file=- \
   --replication-policy="automatic"
 
-echo -n "xapp-xxx" | gcloud secrets create slack-app-token \
+echo -n "YOUR_SLACK_APP_TOKEN" | gcloud secrets create slack-app-token \
   --data-file=- \
   --replication-policy="automatic"
 

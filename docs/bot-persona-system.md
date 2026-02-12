@@ -180,7 +180,6 @@ Running security scan...
 🚨 **Security Issues Found:**
 
 HIGH SEVERITY:
-- Found "ANTHROPIC_API_KEY=sk-ant-" in .env.example
   Location: Line 3
   Recommendation: Remove or use placeholder
 

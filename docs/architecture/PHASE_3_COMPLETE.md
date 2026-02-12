@@ -85,8 +85,8 @@ const PII_PATTERNS = [
   Credit Card:  4111-1111-1111-1111 → [CREDIT_CARD]
   Phone:        555-123-4567 → [PHONE]
   JWT:          Bearer eyJhb... → Bearer [JWT]
-  API Keys:     sk-ant-xyz123 → sk-ant-[API_KEY]
-  Slack Tokens: xoxb-123-456 → xoxb-[SLACK_TOKEN]
+  API Keys:     [ORIGINAL] → [REDACTED]
+  Slack Tokens: [ORIGINAL] → [REDACTED]
 ];
 ```
 
