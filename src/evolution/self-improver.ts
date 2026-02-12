@@ -476,4 +476,88 @@ ${proposal.files.map(f => `- ${f}`).join('\n')}
       errors: row.errors ? JSON.parse(row.errors) : undefined
     };
   }
+
+  /**
+   * Get improvement history (most recent first)
+   */
+  getHistory(limit: number = 10): ImprovementProposal[] {
+    const rows = this.db.prepare(`
+      SELECT * FROM improvement_proposals
+      ORDER BY proposed_at DESC
+      LIMIT ?
+    `).all(limit);
+
+    return rows.map(row => this.rowToProposal(row));
+  }
+
+  /**
+   * Get pending proposals (waiting for approval)
+   */
+  getPendingProposals(): ImprovementProposal[] {
+    const rows = this.db.prepare(`
+      SELECT * FROM improvement_proposals
+      WHERE status = 'proposed'
+      ORDER BY proposed_at DESC
+    `).all();
+
+    return rows.map(row => this.rowToProposal(row));
+  }
+
+  /**
+   * Format proposal for Discord display
+   */
+  formatProposalForDiscord(proposal: ImprovementProposal): string {
+    const riskEmoji = {
+      low: '🟢',
+      medium: '🟡',
+      high: '🔴',
+    }[proposal.risk];
+
+    let formatted = `**${proposal.title}**\n`;
+    formatted += `${proposal.description}\n\n`;
+    formatted += `${riskEmoji} **Risk:** ${proposal.risk.toUpperCase()}\n`;
+    formatted += `📁 **Files:** ${proposal.files.length}\n`;
+    formatted += `🌿 **Branch:** \`${proposal.branch}\`\n\n`;
+    formatted += `📋 **Implementation Plan:**\n${proposal.implementationPlan}\n\n`;
+    formatted += `📏 **Estimated changes:** ${proposal.estimatedChanges} lines\n`;
+    formatted += `🆔 **ID:** \`${proposal.id.slice(0, 8)}\``;
+
+    return formatted;
+  }
+
+  /**
+   * Request approval via Discord approval system
+   */
+  async requestApprovalViaDiscord(channel: any, proposal: ImprovementProposal): Promise<void> {
+    const { approvalSystem } = await import('../approval-system');
+
+    const approvalRequest = {
+      id: proposal.id,
+      title: `🤖 ${proposal.title}`,
+      description: `${proposal.description}\n\n**Reasoning:** ${proposal.reasoning}\n**Risk:** ${proposal.risk.toUpperCase()}`,
+      changes: proposal.files.map(file => ({
+        file,
+        action: 'modify' as const,
+        diff: undefined, // Would be populated with actual diff
+      })),
+      onApprove: async () => {
+        await this.handleApproval(proposal.id, true, 'discord-admin');
+        const updatedProposal = this.getProposal(proposal.id);
+        if (updatedProposal && updatedProposal.status === 'approved') {
+          await this.implementProposal(updatedProposal);
+        }
+      },
+      onDecline: async () => {
+        await this.handleApproval(proposal.id, false, 'discord-admin');
+      },
+      authorizedUsers: process.env.DISCORD_ADMIN_USER_IDS?.split(',') || [],
+    };
+
+    await approvalSystem.requestApproval(channel, approvalRequest);
+
+    log.info('[SelfImprover] Discord approval requested', {
+      proposalId: proposal.id,
+      title: proposal.title,
+    });
+  }
 }

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Database from 'better-sqlite3';
 import path from 'path';
 import { log } from '../logger';
-import { CronJob, CronJobCreate, ScheduledTask, RelativeTime } from './types';
+import { CronJob, CronJobCreate, ScheduledTask, RelativeTime, DiscordMessageData, SlackMessageData, TelegramMessageData } from './types';
 import { getSlackApp } from '../tools/slack-messaging';
 
 /**
@@ -230,6 +230,14 @@ export class CronManager {
         await this.executeSlackMessage(job.task.data);
         break;
 
+      case 'discord_message':
+        await this.executeDiscordMessage(job.task.data);
+        break;
+
+      case 'telegram_message':
+        await this.executeTelegramMessage(job.task.data);
+        break;
+
       case 'custom':
         log.info('[CronManager] Custom task type not implemented yet', {
           jobId: job.id
@@ -244,7 +252,7 @@ export class CronManager {
   /**
    * Execute Slack message task
    */
-  private async executeSlackMessage(data: any): Promise<void> {
+  private async executeSlackMessage(data: SlackMessageData): Promise<void> {
     const { channel, message, thread_ts } = data;
 
     try {
@@ -263,6 +271,84 @@ export class CronManager {
       log.error('[CronManager] Failed to send Slack message', {
         error: error.message,
         channel
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Execute Discord message task
+   */
+  private async executeDiscordMessage(data: DiscordMessageData): Promise<void> {
+    const { channel, message, thread_id } = data;
+
+    try {
+      // Get Discord client from handlers
+      // We'll use dynamic import to avoid circular dependencies
+      const { getDiscordClient } = await import('../handlers/discord-client');
+      const client = getDiscordClient();
+
+      if (!client) {
+        throw new Error('Discord client not available');
+      }
+
+      const targetChannel = await client.channels.fetch(channel);
+      if (!targetChannel || !('send' in targetChannel)) {
+        throw new Error(`Channel ${channel} not found or not a text channel`);
+      }
+
+      // Send message (with optional thread)
+      const options: any = { content: message };
+      if (thread_id) {
+        // If thread_id is provided, it's already a thread channel
+        const thread = await client.channels.fetch(thread_id);
+        if (thread && 'send' in thread) {
+          await thread.send(options);
+        } else {
+          throw new Error(`Thread ${thread_id} not found`);
+        }
+      } else {
+        await (targetChannel as any).send(options);
+      }
+
+      log.info('[CronManager] Discord message sent', { channel, thread_id });
+    } catch (error: any) {
+      log.error('[CronManager] Failed to send Discord message', {
+        error: error.message,
+        channel,
+        thread_id
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Execute Telegram message task
+   */
+  private async executeTelegramMessage(data: TelegramMessageData): Promise<void> {
+    const { chat_id, message, reply_to } = data;
+
+    try {
+      // Get Telegram bot from handlers
+      const { getTelegramBot } = await import('../handlers/telegram');
+      const bot = getTelegramBot();
+
+      if (!bot) {
+        throw new Error('Telegram bot not available');
+      }
+
+      const options: any = {};
+      if (reply_to) {
+        options.reply_to_message_id = reply_to;
+      }
+
+      await bot.telegram.sendMessage(chat_id, message, options);
+
+      log.info('[CronManager] Telegram message sent', { chat_id });
+    } catch (error: any) {
+      log.error('[CronManager] Failed to send Telegram message', {
+        error: error.message,
+        chat_id
       });
       throw error;
     }

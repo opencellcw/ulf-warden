@@ -1,8 +1,16 @@
 # CAPABILITIES.md
 
+**Última atualização:** 12 Fevereiro 2026  
+**Versão:** 2.0
+
 ## O que o Ulf pode fazer com as tools de execução
 
 Ulf tem acesso total ao sistema onde ele roda. Pode executar comandos, criar arquivos, gerenciar processos.
+
+**Ferramentas:** 55+ tools integradas  
+**Modelo Principal:** Claude Opus 4 com Smart Router  
+**Plataformas:** Discord, Slack, Telegram, WhatsApp  
+**Features v2.0:** Decision Intelligence, Scheduler/Cron, Bot Factory, Self-Improvement
 
 ---
 
@@ -142,9 +150,118 @@ Ulf vai:
 
 ---
 
+## 🚀 Features v2.0 (NOVAS!)
+
+### 🧠 Decision Intelligence System
+**Comando:** `!decide [pergunta]`
+
+Análise multi-perspectiva usando 5 agentes especializados:
+- 📊 Strategic Analyst (data-driven)
+- 💡 Creative Strategist (innovative)
+- ⚠️ Critical Skeptic (risk-focused)
+- 🔨 Pragmatic Executor (practical)
+- 🎯 Ethical Advisor (values-driven)
+
+**Exemplo:**
+```
+!decide Should I migrate to microservices or keep monolith?
+
+Resultado:
+✅ Consenso com 5 perspectivas diferentes
+✅ Confidence score (0-100)
+✅ Top prós, contras e riscos
+✅ Perguntas críticas
+✅ Alternativas sugeridas
+
+Custo: ~$0.20 por análise
+```
+
+### 📅 Scheduler/Cron System
+**Multi-plataforma:** Discord, Slack, Telegram (auto-detect)
+
+**Formatos:**
+- Tempo relativo: "in 30 minutes", "in 2 hours"
+- Cron expressions: "0 9 * * *", "*/5 * * * *"
+
+**Exemplos:**
+```
+Me lembra em 30 minutos de revisar PR
+→ One-time task
+
+Me avisa todo dia às 9h sobre standup
+→ Recurring task (0 9 * * *)
+
+Lista minhas tasks
+→ Ver todas tasks agendadas
+
+Cancela task [ID]
+→ Remover task
+```
+
+**Features:**
+- ✅ SQLite persistence (sobrevive restarts)
+- ✅ Thread support (Discord threads, Slack thread_ts, Telegram replies)
+- ✅ Auto-pause one-time tasks após execução
+- ✅ Last run tracking
+
+### 🏭 Bot Factory
+**Comando:** `!create-bot [nome] [persona]`
+
+Cria novos bots com personas customizadas em runtime.
+
+**Exemplo:**
+```
+!create-bot CodeReviewer "Expert in code review, strict but helpful"
+
+Resultado:
+✅ Bot criado com persona customizada
+✅ Isolated runtime
+✅ System prompt configurável
+✅ Todos os tools disponíveis
+```
+
+**Gerenciamento:**
+```
+!list-bots        → Ver todos bots
+!delete-bot [nome] → Remover bot
+```
+
+### 🎯 Smart Router (Cost Optimization)
+**AI-powered LLM selection** para cada tarefa.
+
+**Routing inteligente:**
+- 80% tarefas simples → Gemini 2.5 Flash ($0.15/Mtok)
+- 10% tarefas médias → Gemini 2.5 Pro ($2/Mtok)
+- 8% tarefas complexas → Claude 3.7 Sonnet ($3/Mtok)
+- 2% tarefas críticas → Claude Opus 4 ($15/Mtok)
+
+**Economia:** 90-99% vs usar só Claude Opus ($450/mês → $37/mês para 10M tokens)
+
+---
+
 ## Capacidades Gerais
 
-### 🎨 Multimodal/Media Generation (NOVO!)
+### 💰 Cryptocurrency Prices (IMPORTANTE!)
+**Tool:** `get_crypto_price`
+
+**⚠️ CRITICAL:** SEMPRE usar esta tool para preços de criptomoedas!
+- ❌ NUNCA usar training data (desatualizado 45-60 dias!)
+- ✅ SEMPRE chamar get_crypto_price quando perguntado sobre BTC, ETH, SOL, etc
+
+**Features:**
+- Multi-source validation (CoinGecko, Binance, Kraken)
+- Divergence detection (alerta se fontes discordam >2%)
+- Suporta todas principais cryptos e moedas fiat (USD, EUR, BRL)
+- Real-time prices com timestamps
+
+**Exemplo:**
+```
+User: Qual o preço do Bitcoin?
+Bot: [chama get_crypto_price tool]
+→ Retorna ~$67,050 USD com breakdown de 3 fontes
+```
+
+### 🎨 Multimodal/Media Generation
 **Replicate:**
 - Gerar imagens com IA (Flux, SDXL, Stable Diffusion)
 - Gerar vídeos a partir de texto ou animar imagens
@@ -203,9 +320,12 @@ Ulf vai:
 - **Container**: Docker com Node.js/TypeScript
 - **Região**: us-central1-a
 - **Orquestração**: Kubernetes com Helm charts
-- **IP Externo**: 34.72.79.4:8080
+- **Networking**: Cloudflare Tunnel (outbound-only, bypasses firewall)
+- **Public URL**: https://9733ce54-43c9-4bd7-a103-a825aca9c24c.cfargotunnel.com
+  - ⚠️ **IMPORTANTE**: NUNCA usar localhost/IPs em links externos!
 - **Storage**: Persistent Volume (5GB) - filesystem é PERSISTENTE
 - **Database**: SQLite em /data/ulf.db (persistente entre restarts)
+- **Cache**: Redis (redis-master.agents.svc.cluster.local:6379)
 - **Secrets**: Google Secret Manager (via CSI Driver)
 - **Autoscaling**: HPA configurado (1-3 replicas baseado em CPU)
 - **Recursos**:
@@ -270,17 +390,51 @@ Ulf usa read_file() em logs ou tail -f
 
 ---
 
-## Próximas Features (Futuro)
+## Features Implementadas (v2.0)
 
 - [x] Persistência de projetos (✅ PersistentVolume no GKE)
 - [x] Deploy automatizado (✅ Cloud Build + Helm)
-- [ ] Monitoramento contínuo (Google Cloud Monitoring)
-- [ ] Webhooks para notificações
-- [x] Scheduled tasks (✅ CronManager integrado)
+- [x] Scheduled tasks (✅ Cron System multi-plataforma)
+- [x] Decision Intelligence (✅ Multi-perspectiva com 5 agentes)
+- [x] Bot Factory (✅ Criar bots em runtime)
+- [x] Smart Router (✅ AI-powered LLM selection)
+- [x] Self-Improvement (✅ Propor melhorias + auto-deploy)
+- [x] Cloudflare Tunnel (✅ Bypass GCP firewall)
+- [x] Observability (✅ AgentOps integration)
+- [x] Discord handler (✅ Ativo)
+- [x] Slack handler (✅ Ativo)
+- [x] Telegram handler (✅ Ativo)
+- [x] WhatsApp handler (✅ Ativo)
+
+## Próximas Features (v2.1+)
+
+- [ ] Learning loop (Agent Lightning integration)
+- [ ] Skills library (reusable code)
+- [ ] Auto-rollback (health monitoring)
+- [ ] Canary deployments
+- [ ] Web dashboard
+- [ ] Voice-to-voice
 - [ ] Multi-region deploy
-- [ ] Discord handler ativo
-- [ ] Telegram handler ativo
 
 ---
 
-**Ulf é um desenvolvedor full-stack com acesso ao terminal. Pode fazer praticamente qualquer coisa que você faria localmente.** ⚔️
+---
+
+## 📊 Resumo de Capacidades
+
+**Tools:** 55+ integradas  
+**Plataformas:** Discord, Slack, Telegram, WhatsApp (4/4 ativas)  
+**LLMs:** Claude Opus 4, Gemini 2.5 Flash/Pro, Moonshot Kimi K2.5  
+**Custo:** $110-190/mês (92% economia com Smart Router)  
+**Networking:** Cloudflare Tunnel (bypass firewall)  
+**Features v2.0:** Decision Intelligence, Scheduler, Bot Factory, Self-Improvement
+
+**Ulf é um agente AI autônomo multi-plataforma com:**
+- 🧠 Capacidade de análise multi-perspectiva
+- 📅 Agendamento autônomo de tarefas
+- 🏭 Criação de novos bots em runtime
+- 🔧 Self-improvement com auto-deploy
+- 💰 Otimização inteligente de custos
+- 🌐 Acesso via Cloudflare Tunnel 24/7
+
+**Pode fazer praticamente qualquer coisa que você faria localmente, e mais!** ⚔️

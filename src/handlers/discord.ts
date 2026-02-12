@@ -37,6 +37,8 @@ import { copyStyle } from '../viral-features/copy-style';
 import { smartReminders } from '../reminders/smart-reminders';
 import { botThemes } from '../themes/bot-themes';
 import { sentimentTracker } from '../sentiment/sentiment-tracker';
+import { SelfImprover } from '../evolution/self-improver';
+import Anthropic from '@anthropic-ai/sdk';
 
 export async function startDiscordHandler() {
   if (!process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN === 'xxx') {
@@ -75,6 +77,22 @@ export async function startDiscordHandler() {
     } catch (error: any) {
       console.error('[Discord] Failed to initialize Cloud Run agents:', error.message);
     }
+  }
+
+  // 🚀 Initialize Self-Improver (Advanced AI self-modification)
+  let selfImprover: SelfImprover | null = null;
+  try {
+    const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+    if (claudeApiKey && claudeApiKey !== 'xxx') {
+      const anthropic = new Anthropic({ apiKey: claudeApiKey });
+      selfImprover = new SelfImprover(anthropic);
+      console.log('✓ Self-Improver initialized (Advanced Mode)');
+      log.info('[Discord] Self-Improver system activated');
+    } else {
+      console.log('⚠ Self-Improver disabled (no API key)');
+    }
+  } catch (error: any) {
+    console.error('[Discord] Failed to initialize Self-Improver:', error.message);
   }
 
   /**
@@ -830,6 +848,175 @@ export async function startDiscordHandler() {
         }
 
         await message.reply(report);
+        return;
+      }
+
+      // 🚀 NEW: Self-Improvement Commands
+      if (text.startsWith('/improve')) {
+        if (!selfImprover) {
+          await message.reply('❌ Self-Improver not available. Check API key configuration.');
+          return;
+        }
+
+        const args = text.split(' ').slice(1);
+        const subcommand = args[0];
+
+        // /improve status
+        if (subcommand === 'status' || !subcommand) {
+          const stats = selfImprover.getStats();
+
+          let statusMsg = `🤖 **Self-Improvement System Status**\n\n`;
+          statusMsg += `📊 **Statistics:**\n`;
+          statusMsg += `• Total proposed: ${stats.totalProposed}\n`;
+          statusMsg += `• Approved: ${stats.totalApproved}\n`;
+          statusMsg += `• Rejected: ${stats.totalRejected}\n`;
+          statusMsg += `• Deployed: ${stats.totalDeployed}\n`;
+          statusMsg += `• Failed: ${stats.totalFailed}\n`;
+          statusMsg += `• Success rate: ${(stats.successRate * 100).toFixed(1)}%\n\n`;
+          statusMsg += `📈 **Today:**\n`;
+          statusMsg += `• Proposals: ${stats.todayProposed}/5 (daily limit)\n\n`;
+          statusMsg += `**Commands:**\n`;
+          statusMsg += `• \`/improve <idea>\` - Propose improvement\n`;
+          statusMsg += `• \`/improve history\` - View recent proposals\n`;
+          statusMsg += `• \`/improve pending\` - View pending approvals`;
+
+          await message.reply(statusMsg);
+          return;
+        }
+
+        // /improve history
+        if (subcommand === 'history') {
+          const history = selfImprover.getHistory(10);
+
+          if (history.length === 0) {
+            await message.reply('📋 No improvement history yet.\n\nUse `/improve <idea>` to propose one!');
+            return;
+          }
+
+          let historyMsg = `📜 **Improvement History** (last ${history.length})\n\n`;
+
+          for (const proposal of history) {
+            const statusEmoji = {
+              proposed: '⏳',
+              approved: '✅',
+              rejected: '❌',
+              deployed: '🚀',
+              failed: '💥',
+            }[proposal.status];
+
+            historyMsg += `${statusEmoji} **${proposal.title}**\n`;
+            historyMsg += `   Risk: ${proposal.risk.toUpperCase()}\n`;
+            historyMsg += `   Date: ${new Date(proposal.proposedAt).toLocaleDateString()}\n`;
+            historyMsg += `   ID: \`${proposal.id.slice(0, 8)}\`\n\n`;
+          }
+
+          await message.reply(historyMsg);
+          return;
+        }
+
+        // /improve pending
+        if (subcommand === 'pending') {
+          const pending = selfImprover.getPendingProposals();
+
+          if (pending.length === 0) {
+            await message.reply('✅ No pending proposals!\n\nAll caught up! 🎉');
+            return;
+          }
+
+          let pendingMsg = `⏳ **Pending Approvals** (${pending.length})\n\n`;
+
+          for (const proposal of pending) {
+            pendingMsg += `**${proposal.title}**\n`;
+            pendingMsg += `   Risk: ${proposal.risk.toUpperCase()}\n`;
+            pendingMsg += `   Files: ${proposal.files.length}\n`;
+            pendingMsg += `   Proposed: ${new Date(proposal.proposedAt).toLocaleString()}\n`;
+            pendingMsg += `   ID: \`${proposal.id.slice(0, 8)}\`\n\n`;
+          }
+
+          await message.reply(pendingMsg);
+          return;
+        }
+
+        // /improve <idea> - Propose new improvement
+        const idea = args.join(' ').trim();
+
+        if (!idea) {
+          await message.reply(
+            `❌ Usage: \`/improve <idea>\`\n\n` +
+            `**Examples:**\n` +
+            `• \`/improve add /joke command\`\n` +
+            `• \`/improve fix memory leak in handler\`\n` +
+            `• \`/improve optimize database queries\`\n` +
+            `• \`/improve add unit tests for tools\`\n\n` +
+            `**Other commands:**\n` +
+            `• \`/improve status\` - View statistics\n` +
+            `• \`/improve history\` - View history\n` +
+            `• \`/improve pending\` - View pending`
+          );
+          return;
+        }
+
+        // Check rate limit
+        const stats = selfImprover.getStats();
+        if (stats.todayProposed >= 5) {
+          await message.reply(
+            `⚠️ **Rate limit reached!**\n\n` +
+            `Maximum 5 proposals per day.\n` +
+            `Currently: ${stats.todayProposed}/5\n\n` +
+            `Try again tomorrow! 🌅`
+          );
+          return;
+        }
+
+        if ('sendTyping' in message.channel) {
+          await message.channel.sendTyping();
+        }
+
+        try {
+          await message.reply('🧠 **Analyzing improvement idea...**\n\nThis may take a few seconds...');
+
+          // Propose improvement
+          const proposal = await selfImprover.proposeImprovement(idea);
+
+          // Format as Discord embed
+          const formattedProposal = selfImprover.formatProposalForDiscord(proposal);
+
+          await message.reply(
+            `✅ **Improvement Proposed!**\n\n` +
+            `**${proposal.title}**\n` +
+            `${proposal.description}\n\n` +
+            `**Risk Level:** ${proposal.risk.toUpperCase()}\n` +
+            `**Files affected:** ${proposal.files.length}\n` +
+            `**Branch:** \`${proposal.branch}\`\n\n` +
+            `📋 **Implementation Plan:**\n` +
+            `${proposal.implementationPlan}\n\n` +
+            `**Estimated changes:** ${proposal.estimatedChanges} lines\n\n` +
+            `⚠️ **Waiting for approval from authorized users...**\n` +
+            `Proposal ID: \`${proposal.id.slice(0, 8)}\``
+          );
+
+          // Request approval (will send embed with buttons)
+          await selfImprover.requestApprovalViaDiscord(message.channel, proposal);
+
+          log.info('[Discord] Improvement proposed', {
+            proposalId: proposal.id,
+            userId,
+            title: proposal.title,
+          });
+        } catch (error: any) {
+          log.error('[Discord] Failed to propose improvement', {
+            error: error.message,
+            userId,
+            idea,
+          });
+
+          await message.reply(
+            `❌ **Failed to propose improvement:**\n\n` +
+            `${error.message}\n\n` +
+            `Please try again or check the logs.`
+          );
+        }
+
         return;
       }
 

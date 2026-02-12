@@ -6,6 +6,13 @@ import { extractMediaMetadata, cleanResponseText } from '../media-handler';
 import { uploadMediaToTelegram } from '../media-handler-telegram';
 import { log } from '../logger';
 
+// Singleton for accessing Telegram bot from other modules
+let telegramBot: Telegraf | null = null;
+
+export function getTelegramBot(): Telegraf | null {
+  return telegramBot;
+}
+
 export async function startTelegramHandler() {
   if (!process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN === 'xxx') {
     console.log('[Telegram] Token not configured, skipping Telegram handler');
@@ -13,6 +20,9 @@ export async function startTelegramHandler() {
   }
 
   const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+  
+  // Register bot for scheduled tasks
+  telegramBot = bot;
 
   /**
    * Send response with automatic media handling

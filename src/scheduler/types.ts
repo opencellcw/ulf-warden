@@ -18,8 +18,26 @@ export interface CronJob {
 }
 
 export interface ScheduledTask {
-  type: 'slack_message' | 'custom';
+  type: 'slack_message' | 'discord_message' | 'telegram_message' | 'custom';
   data: any;  // Task-specific data
+}
+
+export interface DiscordMessageData {
+  channel: string;      // Channel ID
+  message: string;      // Message content
+  thread_id?: string;   // Optional thread ID
+}
+
+export interface SlackMessageData {
+  channel: string;      // Channel ID
+  message: string;      // Message text
+  thread_ts?: string;   // Optional thread timestamp
+}
+
+export interface TelegramMessageData {
+  chat_id: string;      // Chat ID
+  message: string;      // Message text
+  reply_to?: number;    // Optional message ID to reply to
 }
 
 export interface CronJobCreate {

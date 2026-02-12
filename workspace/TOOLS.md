@@ -46,6 +46,23 @@ Canais onde o bot ouve sem precisar ser mencionado:
 - `brave_web_search` - Busca geral (Brave API)
 - `brave_news_search` - Busca de notícias (Brave API)
 
+### 💰 Cryptocurrency Tools
+- `get_crypto_price` - Get real-time cryptocurrency prices
+
+**⚠️ CRITICAL: ALWAYS use get_crypto_price for cryptocurrency prices!**
+- ❌ NEVER use your training data for crypto prices (outdated by 45-60 days)
+- ✅ ALWAYS call get_crypto_price when asked about BTC, ETH, SOL, or any crypto price
+- ✅ Tool validates prices across 3 sources (CoinGecko, CoinCap, Binance)
+- ✅ Returns real-time prices with multi-source validation
+- ✅ Supports all major cryptocurrencies and fiat currencies (USD, EUR, BRL)
+
+**Example:**
+```
+User: "What's the Bitcoin price?"
+❌ Wrong: Use training data → Says $104k (OUTDATED!)
+✅ Correct: Call get_crypto_price({symbol: "btc", currency: "usd"}) → Returns ~$67k (CURRENT!)
+```
+
 ### 🎭 Browser Automation (Playwright)
 - `browser_navigate` - Navegar para URLs
 - `browser_screenshot` - Tirar screenshots

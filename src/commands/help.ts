@@ -124,6 +124,17 @@ const COMMANDS: CommandDoc[] = [
     usage: '/teammood',
     category: 'general'
   },
+  {
+    name: 'improve',
+    description: '🤖 AI-powered self-improvement system',
+    usage: '/improve <idea|status|history|pending>',
+    examples: [
+      '/improve add /joke command',
+      '/improve status',
+      '/improve history'
+    ],
+    category: 'general'
+  },
 
   // Key Management
   {

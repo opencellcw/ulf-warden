@@ -5,8 +5,8 @@ import { log } from '../logger';
 /**
  * Schedule a task
  */
-export async function scheduleTask(input: any, userId?: string): Promise<string> {
-  const { name, when, channel, message } = input;
+export async function scheduleTask(input: any, userId?: string, platform?: string): Promise<string> {
+  const { name, when, channel, message, thread_id } = input;
 
   if (!name || !when || !channel || !message) {
     return '❌ Missing required parameters: name, when, channel, and message are required';
@@ -15,20 +15,52 @@ export async function scheduleTask(input: any, userId?: string): Promise<string>
   try {
     const cronManager = getCronManager();
 
+    // Determine task type based on platform or channel format
+    let taskType: 'slack_message' | 'discord_message' | 'telegram_message' = 'slack_message';
+    
+    if (platform) {
+      // Explicit platform provided
+      if (platform === 'discord') {
+        taskType = 'discord_message';
+      } else if (platform === 'telegram') {
+        taskType = 'telegram_message';
+      }
+    } else {
+      // Auto-detect from channel ID format
+      if (/^\d{17,19}$/.test(channel)) {
+        // Discord channel IDs are 17-19 digit snowflakes
+        taskType = 'discord_message';
+      } else if (/^-?\d{1,15}$/.test(channel)) {
+        // Telegram chat IDs are up to 15 digits, can be negative
+        taskType = 'telegram_message';
+      }
+      // Otherwise defaults to Slack
+    }
+
     const job = await cronManager.addJob({
       name,
       expression: when,
       task: {
-        type: 'slack_message',
-        data: { channel, message }
+        type: taskType,
+        data: { 
+          channel, 
+          message,
+          thread_id,  // Discord/Telegram thread support
+          thread_ts: thread_id,  // Slack thread support (alias)
+          reply_to: thread_id ? parseInt(thread_id) : undefined  // Telegram reply
+        }
       },
-      userId
+      userId,
+      metadata: {
+        platform: taskType.replace('_message', '')
+      }
     });
 
     log.info('[Scheduler] Task scheduled', {
       id: job.id,
       name: job.name,
-      when: job.expression
+      when: job.expression,
+      platform: taskType
     });
 
     return `✅ Task scheduled successfully!
@@ -37,6 +69,7 @@ export async function scheduleTask(input: any, userId?: string): Promise<string>
 **Name:** ${job.name}
 **When:** ${when}
 **Channel:** ${channel}
+**Platform:** ${taskType.replace('_message', '')}
 
 Use \`cancel_scheduled_task\` with ID to cancel.`;
   } catch (error: any) {
@@ -64,13 +97,20 @@ export async function listScheduledTasks(input: any, userId?: string): Promise<s
       const lastRun = job.lastRun
         ? new Date(job.lastRun).toLocaleString('pt-BR')
         : 'Never';
+      
+      // Get platform from task type or metadata
+      const platform = job.metadata?.platform || job.task.type.replace('_message', '');
+      const platformEmoji = platform === 'discord' ? '💬' : 
+                           platform === 'slack' ? '💼' : 
+                           platform === 'telegram' ? '✈️' : '📱';
 
       result += `**${job.name}**\n`;
       result += `  • ID: \`${job.id}\`\n`;
       result += `  • Status: ${status}\n`;
+      result += `  • Platform: ${platformEmoji} ${platform}\n`;
       result += `  • Schedule: ${job.expression}\n`;
       result += `  • Last run: ${lastRun}\n`;
-      result += `  • Task: Send message to ${job.task.data.channel}\n`;
+      result += `  • Channel: ${job.task.data.channel}\n`;
       result += `\n`;
     }
 
@@ -113,7 +153,9 @@ export async function cancelScheduledTask(input: any): Promise<string> {
 export const SCHEDULER_TOOLS: Anthropic.Tool[] = [
   {
     name: 'schedule_task',
-    description: `Schedule a task to be executed at a specific time. Supports both cron expressions and relative time.
+    description: `Schedule a task to be executed at a specific time. Supports Discord, Slack, and Telegram. 
+    
+**Supports both cron expressions and relative time:**
 
 **Relative time examples:**
 - "in 30 seconds"
@@ -126,17 +168,26 @@ export const SCHEDULER_TOOLS: Anthropic.Tool[] = [
 - "0 9 * * *" (daily at 9am)
 - "0 9 * * 1" (every Monday at 9am)
 - "0 0 1 * *" (first day of every month)
+- "0 */2 * * *" (every 2 hours)
+
+**Multi-platform support:**
+- Auto-detects platform from channel ID format
+- Discord: 17-19 digit snowflake IDs
+- Telegram: Numeric chat IDs (can be negative)
+- Slack: String channel IDs (e.g., C1234567890)
 
 **Use cases:**
-- Reminders: "Me lembra em 30 minutos"
-- Recurring alerts: "Me avisa todo dia às 9h"
-- Follow-ups: "Pergunta pro usuário em 2 horas se ele terminou"`,
+- Reminders: "Me lembra em 30 minutos de revisar o PR"
+- Recurring alerts: "Me avisa todo dia às 9h sobre o standup"
+- Follow-ups: "Pergunta pro usuário em 2 horas se terminou a task"
+- Daily reports: "Posta o relatório todo dia às 18h"
+- Weekly summaries: "Envia resumo toda segunda às 10h"`,
     input_schema: {
       type: 'object',
       properties: {
         name: {
           type: 'string',
-          description: 'Task name (e.g., "Code review reminder")'
+          description: 'Task name (e.g., "Daily standup reminder")'
         },
         when: {
           type: 'string',
@@ -144,11 +195,15 @@ export const SCHEDULER_TOOLS: Anthropic.Tool[] = [
         },
         channel: {
           type: 'string',
-          description: 'Slack channel ID or name where to send the message'
+          description: 'Channel/chat ID where to send the message (Discord/Slack/Telegram). Platform auto-detected from ID format.'
         },
         message: {
           type: 'string',
           description: 'Message to send when task executes'
+        },
+        thread_id: {
+          type: 'string',
+          description: '(Optional) Thread ID for Discord threads, thread_ts for Slack, or message_id for Telegram replies'
         }
       },
       required: ['name', 'when', 'channel', 'message']

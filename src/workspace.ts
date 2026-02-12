@@ -5,6 +5,7 @@ export class WorkspaceLoader {
   private workspacePath: string;
   private soul: string = '';
   private identity: string = '';
+  private aboutMe: string = '';
   private memory: string = '';
   private agents: string = '';
   private capabilities: string = '';
@@ -18,13 +19,16 @@ export class WorkspaceLoader {
 
   private load(): void {
     try {
-      const files = ['SOUL.md', 'IDENTITY.md', 'CAPABILITIES.md', 'MEMORY.md', 'AGENTS.md', 'USER.md', 'TOOLS.md'];
+      const files = ['SOUL.md', 'IDENTITY.md', 'ABOUT-ME.md', 'CAPABILITIES.md', 'MEMORY.md', 'AGENTS.md', 'USER.md', 'TOOLS.md'];
 
       for (const file of files) {
         const filePath = path.join(this.workspacePath, file);
         if (fs.existsSync(filePath)) {
           const content = fs.readFileSync(filePath, 'utf-8');
-          const key = file.replace('.md', '').toLowerCase();
+          // Convert filename to property name (e.g., "ABOUT-ME.md" -> "aboutMe")
+          let key = file.replace('.md', '').toLowerCase();
+          // Convert kebab-case to camelCase
+          key = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
           (this as any)[key] = content;
           console.log(`[Workspace] ✓ Loaded ${file}`);
         } else {
@@ -40,6 +44,7 @@ export class WorkspaceLoader {
     const parts: string[] = [];
 
     if (this.identity) parts.push(this.identity);
+    if (this.aboutMe) parts.push('\n---\n# ABOUT ME - MY COMPLETE CAPABILITIES\n', this.aboutMe);
     if (this.soul) parts.push('\n---\n', this.soul);
     if (this.user) parts.push('\n---\n# USER\n', this.user);
     if (this.capabilities) parts.push('\n---\n', this.capabilities);
