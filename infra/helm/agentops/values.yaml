@@ -1,0 +1,102 @@
+# AgentOps Helm Chart Values
+
+# Server (Backend API)
+server:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentops/server
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  env:
+    # Database (optional - uses SQLite by default)
+    # DATABASE_URL: postgresql://user:pass@postgres:5432/agentops
+    LOG_LEVEL: info
+  
+  # Persistent storage for SQLite
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default storage class
+    size: 10Gi
+    accessMode: ReadWriteOnce
+
+# Dashboard (Frontend UI)
+dashboard:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: agentops/dashboard
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: LoadBalancer  # Change to NodePort or ClusterIP if needed
+    port: 3000
+    targetPort: 3000
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  
+  env:
+    # Backend API URL (internal service)
+    AGENTOPS_API_URL: http://agentops-server:8080
+    # Public URL (for redirects)
+    PUBLIC_URL: http://localhost:3000
+
+# Ingress (optional)
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: agentops.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend: dashboard
+        - path: /api
+          pathType: Prefix
+          backend: server
+  tls:
+    - secretName: agentops-tls
+      hosts:
+        - agentops.example.com
+
+# PostgreSQL (optional - for production)
+postgresql:
+  enabled: false
+  auth:
+    username: agentops
+    password: changeme
+    database: agentops
+  persistence:
+    size: 20Gi
+
+# Service Account
+serviceAccount:
+  create: true
+  name: agentops
+
+# RBAC
+rbac:
+  create: true

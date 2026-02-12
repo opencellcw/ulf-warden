@@ -1,0 +1,14 @@
+apiVersion: v2
+name: agentops
+description: AgentOps observability platform for OpenCell
+type: application
+version: 1.0.0
+appVersion: "latest"
+keywords:
+  - agentops
+  - observability
+  - monitoring
+  - ai-agents
+maintainers:
+  - name: OpenCell Team
+    email: opencell@cloudwalk.io
