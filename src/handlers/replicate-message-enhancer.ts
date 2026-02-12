@@ -22,22 +22,51 @@ interface ReplicateImageInfo {
 
 /**
  * Extract Replicate image info from bot response
+ * Supports multiple formats for maximum compatibility
  */
 export function extractReplicateImageInfo(message: string): ReplicateImageInfo | null {
-  // Pattern: ✅ Image generated! | ModelName | $0.0200
-  // Next line: URL
-  const pattern = /✅ Image generated! \| (.+?) \| \$(\d+\.\d+)\n\n(https:\/\/replicate\.delivery\/[^\s]+)/;
-  const match = message.match(pattern);
+  // Pattern 1: Our new format
+  // ✅ Image generated! | ModelName | $0.0200
+  // https://replicate.delivery/...
+  const pattern1 = /✅ Image generated! \| (.+?) \| \$(\d+\.\d+)\n\n(https:\/\/replicate\.delivery\/[^\s]+)/;
+  const match1 = message.match(pattern1);
 
-  if (!match) {
-    return null;
+  if (match1) {
+    return {
+      model: match1[1],
+      cost: parseFloat(match1[2]),
+      url: match1[3]
+    };
   }
 
-  return {
-    model: match[1],
-    cost: parseFloat(match[2]),
-    url: match[3]
-  };
+  // Pattern 2: Search for Replicate URL + model name
+  const urlPattern = /(https:\/\/replicate\.delivery\/[^\s\)]+)/;
+  const modelPattern = /(Nanobanana Pro|Flux Schnell|Flux Dev|Flux Pro|SDXL|SD3|Stable Diffusion|Playground|RealVisXL|EpicRealism)/i;
+  
+  const urlMatch = message.match(urlPattern);
+  const modelMatch = message.match(modelPattern);
+  
+  if (urlMatch) {
+    return {
+      url: urlMatch[1],
+      model: modelMatch ? modelMatch[1] : 'Unknown Model',
+      cost: 0.02 // Default assumption
+    };
+  }
+
+  // Pattern 3: Any image URL in message (fallback)
+  const genericImagePattern = /(https?:\/\/[^\s]+\.(png|jpg|jpeg|webp))/i;
+  const genericMatch = message.match(genericImagePattern);
+  
+  if (genericMatch && (message.includes('gerada') || message.includes('generated') || message.includes('Imagem'))) {
+    return {
+      url: genericMatch[1],
+      model: modelMatch ? modelMatch[1] : 'AI Model',
+      cost: 0.02
+    };
+  }
+
+  return null;
 }
 
 /**

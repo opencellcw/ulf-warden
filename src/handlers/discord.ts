@@ -13,7 +13,7 @@ import { voiceManager } from '../voice/discord-voice';
 import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
 import { handleReplicateUIButtons } from './replicate-ui-handler';
-import { enhanceReplicateMessage } from './replicate-message-enhancer';
+import { intelligentEnhancer } from './intelligent-image-enhancer';
 import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
 import {
   analyzeMessage,
@@ -161,16 +161,25 @@ export async function startDiscordHandler() {
         // Build Discord message
         const discordFormat = formatter.toDiscordFormat(richResponse);
         
-        // 🎨 Check if message contains Replicate image and enhance with UI buttons
-        const replicateEnhancement = await enhanceReplicateMessage(
+        // 🎨 INTELLIGENT IMAGE ENHANCEMENT SYSTEM
+        // Uses 5 specialized agents to detect and enhance ANY image generation
+        const enhancement = await intelligentEnhancer.enhance(
           discordFormat.content || sanitizedResponse,
           message.author.id,
           message.id
         );
         
+        log.info('[Discord] Enhancement result', {
+          shouldEnhance: enhancement.shouldEnhance,
+          hasComponents: !!enhancement.components,
+          userId: message.author.id
+        });
+        
         // Add quick action buttons
         const messageOptions: any = {
-          content: replicateEnhancement.content,
+          content: enhancement.shouldEnhance 
+            ? enhancement.enhancedContent 
+            : discordFormat.content || sanitizedResponse,
         };
 
         // Add embeds if present
@@ -179,8 +188,11 @@ export async function startDiscordHandler() {
         }
 
         // Priority: Replicate UI buttons > Quick actions
-        if (replicateEnhancement.components) {
-          messageOptions.components = replicateEnhancement.components;
+        if (enhancement.shouldEnhance && enhancement.components) {
+          messageOptions.components = enhancement.components;
+          log.info('[Discord] Image buttons added!', {
+            buttonsCount: enhancement.components.length
+          });
         } else if (actions.length > 0) {
           messageOptions.components = [quickActions.toDiscordComponents(actions)];
         }
