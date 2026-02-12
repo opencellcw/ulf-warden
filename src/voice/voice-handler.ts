@@ -180,8 +180,6 @@ export class VoiceHandler {
 
     console.log(`[VoiceHandler] 📹 Recording to: ${filename}`);
 
-    // TODO: Re-enable once prism-media is added to package.json
-    /*
     // Create opus decoder
     const opusDecoder = new prism.opus.Decoder({
       rate: 48000,
@@ -208,8 +206,6 @@ export class VoiceHandler {
     } catch (error: any) {
       console.error('[VoiceHandler] ❌ Recording failed:', error.message);
     }
-    */
-    console.warn('[VoiceHandler] ⚠️ Recording disabled (prism-media not installed)');
   }
 
   /**

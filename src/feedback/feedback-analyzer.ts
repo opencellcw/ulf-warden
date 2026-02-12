@@ -486,33 +486,11 @@ Respond in JSON:
     proposalId: string,
     proposal: any
   ): Promise<void> {
-    try {
-      // Import dynamically
-      const { getSelfImprover } = await import(
-        '../evolution/enhanced-self-improver'
-      );
-      const improver = getSelfImprover();
-
-      // Create improvement proposal (pass as formatted idea string)
-      const ideaText = `${proposal.title}
-
-**Description:**
-${proposal.description}
-
-**Rationale:**
-${proposal.rationale}
-
-**Impact:** ${proposal.impact} | **Effort:** ${proposal.effort}
-**Source:** User Feedback (Proposal ID: ${proposalId})`;
-
-      await improver.proposeImprovement(ideaText);
-
-      log.info('[FeedbackAnalyzer] Sent to self-improvement', { proposalId });
-    } catch (error: any) {
-      log.error('[FeedbackAnalyzer] Failed to send to self-improvement', {
-        error: error.message,
-      });
-    }
+    // TODO: Re-integrate with self-improvement system after refactor
+    // Need channel parameter which is not available in this context
+    log.info('[FeedbackAnalyzer] Self-improvement integration disabled (needs refactor)', { 
+      proposalId 
+    });
   }
 
   /**
