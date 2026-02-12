@@ -31,7 +31,12 @@ import { handleTrustCommand, isTrustCommand } from '../commands/trust';
 import { handleSecretCommand, isSecretCommand } from '../commands/secrets';
 import { initCloudRunClient } from '../cloud-run-client';
 import { activityTracker } from '../activity/activity-tracker';
-import { handleDecisionCommand, isDecisionCommand } from '../decision-intelligence';
+import { 
+  handleDecisionCommand, 
+  isDecisionCommand,
+  handleDecisionHistoryCommand,
+  isDecisionHistoryCommand 
+} from '../decision-intelligence';
 import { setDiscordClient } from './discord-client';
 import axios from 'axios';
 
@@ -643,6 +648,11 @@ export async function startDiscordHandler() {
       // Handle decision intelligence command
       if (isDecisionCommand(text)) {
         await handleDecisionCommand(message);
+        return;
+      }
+
+      if (isDecisionHistoryCommand(text)) {
+        await handleDecisionHistoryCommand(message);
         return;
       }
 

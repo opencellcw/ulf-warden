@@ -17,6 +17,41 @@ export function isDecisionCommand(content: string): boolean {
 }
 
 /**
+ * Verifica se é comando de histórico
+ */
+export function isDecisionHistoryCommand(content: string): boolean {
+  return content.startsWith('!decisions');
+}
+
+/**
+ * Handler para comandos de histórico (!decisions history, !decisions stats, etc.)
+ */
+export async function handleDecisionHistoryCommand(message: Message): Promise<void> {
+  const content = message.content.toLowerCase();
+  
+  // !decisions history
+  if (content.includes('history')) {
+    await sendUserHistory(message);
+    return;
+  }
+  
+  // !decisions stats
+  if (content.includes('stats')) {
+    await sendUserStats(message);
+    return;
+  }
+  
+  // !decisions recent
+  if (content.includes('recent')) {
+    await sendRecentDecisions(message);
+    return;
+  }
+  
+  // !decisions help
+  await sendDecisionsHelp(message);
+}
+
+/**
  * Handler principal do comando !decide
  */
 export async function handleDecisionCommand(message: Message): Promise<void> {
@@ -297,6 +332,197 @@ function buildActionButtons(analysis: DecisionAnalysis): ActionRowBuilder<Button
     );
   
   return [row];
+}
+
+/**
+ * Enviar histórico do usuário
+ */
+async function sendUserHistory(message: Message): Promise<void> {
+  const { DecisionStorage } = await import('./storage');
+  const storage = new DecisionStorage();
+  
+  const history = storage.getByUser(message.author.id, 10);
+  
+  if (history.length === 0) {
+    await message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x0099FF)
+          .setTitle('📋 Your Decision History')
+          .setDescription('You haven\'t made any decisions yet!\n\nTry: `!decide Should I...?`')
+      ]
+    });
+    return;
+  }
+  
+  const embed = new EmbedBuilder()
+    .setColor(0x0099FF)
+    .setTitle('📋 Your Recent Decisions')
+    .setDescription(`Showing last ${history.length} decisions:`);
+  
+  for (const decision of history) {
+    const date = new Date(decision.timestamp).toLocaleDateString();
+    const implementedIcon = decision.implemented ? '✅' : '⏳';
+    const outcomeText = decision.outcome ? ` (${decision.outcome})` : '';
+    
+    embed.addFields({
+      name: `${implementedIcon} ${date}`,
+      value: 
+        `**Q:** ${decision.question.substring(0, 100)}${decision.question.length > 100 ? '...' : ''}\n` +
+        `**R:** ${decision.recommendation.substring(0, 150)}${decision.recommendation.length > 150 ? '...' : ''}` +
+        outcomeText +
+        `\n*Confidence: ${decision.confidence}/100 • Agreement: ${decision.agreement}%*`,
+      inline: false,
+    });
+  }
+  
+  embed.setFooter({ text: `Use !decisions stats to see your statistics` });
+  
+  await message.reply({ embeds: [embed] });
+}
+
+/**
+ * Enviar estatísticas do usuário
+ */
+async function sendUserStats(message: Message): Promise<void> {
+  const { DecisionStorage } = await import('./storage');
+  const storage = new DecisionStorage();
+  
+  const stats = storage.getUserStats(message.author.id);
+  
+  if (stats.totalDecisions === 0) {
+    await message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x0099FF)
+          .setTitle('📊 Your Decision Stats')
+          .setDescription('No decisions yet! Try: `!decide Should I...?`')
+      ]
+    });
+    return;
+  }
+  
+  const totalImplemented = stats.byOutcome.success + stats.byOutcome.failure + stats.byOutcome.mixed;
+  
+  const embed = new EmbedBuilder()
+    .setColor(0x9B59B6)
+    .setTitle('📊 Your Decision Intelligence Stats')
+    .addFields(
+      {
+        name: '📝 Total Decisions',
+        value: stats.totalDecisions.toString(),
+        inline: true,
+      },
+      {
+        name: '✅ Decided & Acted',
+        value: `${totalImplemented} (${((totalImplemented / stats.totalDecisions) * 100).toFixed(0)}%)`,
+        inline: true,
+      },
+      {
+        name: '💯 Avg Confidence',
+        value: `${stats.averageConfidence.toFixed(0)}/100`,
+        inline: true,
+      },
+      {
+        name: '🤝 Avg Agreement',
+        value: `${stats.averageAgreement.toFixed(0)}%`,
+        inline: true,
+      },
+      {
+        name: '🎯 Most Common Category',
+        value: stats.mostCommonCategory || 'N/A',
+        inline: true,
+      },
+      {
+        name: '📈 Outcomes',
+        value: 
+          `✅ Success: ${stats.byOutcome.success}\n` +
+          `❌ Failure: ${stats.byOutcome.failure}\n` +
+          `⚖️ Mixed: ${stats.byOutcome.mixed}\n` +
+          `⏳ Pending: ${stats.byOutcome.pending}`,
+        inline: true,
+      }
+    );
+  
+  await message.reply({ embeds: [embed] });
+}
+
+/**
+ * Enviar decisões recentes (todas, não só do usuário)
+ */
+async function sendRecentDecisions(message: Message): Promise<void> {
+  const { DecisionStorage } = await import('./storage');
+  const storage = new DecisionStorage();
+  
+  const recent = storage.getRecent(5);
+  
+  if (recent.length === 0) {
+    await message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(0x0099FF)
+          .setTitle('🌐 Recent Decisions (All Users)')
+          .setDescription('No decisions yet in this server!')
+      ]
+    });
+    return;
+  }
+  
+  const embed = new EmbedBuilder()
+    .setColor(0x3498DB)
+    .setTitle('🌐 Recent Decisions (All Users)')
+    .setDescription(`Last ${recent.length} decisions:`);
+  
+  for (const decision of recent) {
+    const date = new Date(decision.timestamp).toLocaleDateString();
+    const implementedIcon = decision.implemented ? '✅' : '⏳';
+    
+    embed.addFields({
+      name: `${implementedIcon} ${date}`,
+      value: 
+        `**Q:** ${decision.question.substring(0, 100)}${decision.question.length > 100 ? '...' : ''}\n` +
+        `**R:** ${decision.recommendation.substring(0, 150)}${decision.recommendation.length > 150 ? '...' : ''}` +
+        `\n*Confidence: ${decision.confidence}/100 • Agreement: ${decision.agreement}%*`,
+      inline: false,
+    });
+  }
+  
+  await message.reply({ embeds: [embed] });
+}
+
+/**
+ * Enviar ajuda para comandos !decisions
+ */
+async function sendDecisionsHelp(message: Message): Promise<void> {
+  const embed = new EmbedBuilder()
+    .setColor(0x0099FF)
+    .setTitle('📚 Decision Commands Help')
+    .setDescription('Available commands:')
+    .addFields(
+      {
+        name: '!decisions history',
+        value: 'Show your decision history (last 10)',
+        inline: false,
+      },
+      {
+        name: '!decisions stats',
+        value: 'Show your decision statistics',
+        inline: false,
+      },
+      {
+        name: '!decisions recent',
+        value: 'Show recent decisions from all users',
+        inline: false,
+      },
+      {
+        name: '!decide [question]',
+        value: 'Analyze a new decision',
+        inline: false,
+      }
+    )
+    .setFooter({ text: 'Use !decide help for more details on decision analysis' });
+  
+  await message.reply({ embeds: [embed] });
 }
 
 /**

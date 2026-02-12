@@ -9,7 +9,12 @@ export * from './types';
 export * from './analyzer';
 export * from './storage';
 export * from './prompts';
-export { handleDecisionCommand, isDecisionCommand } from './discord-handler';
+export { 
+  handleDecisionCommand, 
+  isDecisionCommand,
+  handleDecisionHistoryCommand,
+  isDecisionHistoryCommand 
+} from './discord-handler';
 
 // Re-exports convenientes
 export { getDecisionAnalyzer } from './analyzer';
