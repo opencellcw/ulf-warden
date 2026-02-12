@@ -25,6 +25,10 @@ export interface LLMOptions {
   temperature?: number;
   systemPrompt?: string;
   tools?: any[];
+  // Smart router options
+  maxCost?: number; // Budget constraint for smart router
+  minQuality?: 'basic' | 'good' | 'excellent'; // Quality requirement
+  preferredProvider?: string; // User override (claude, gemini, openai, moonshot)
 }
 
 export interface LLMProvider {
@@ -100,5 +104,6 @@ export enum ModelStrategy {
   CLAUDE_ONLY = 'claude_only',       // Always use Claude API
   LOCAL_ONLY = 'local_only',         // Always use local model
   HYBRID = 'hybrid',                 // Route based on task type
-  LOCAL_FALLBACK = 'local_fallback'  // Try local first, fallback to Claude
+  LOCAL_FALLBACK = 'local_fallback', // Try local first, fallback to Claude
+  SMART_ROUTER = 'smart_router'      // AI-powered intelligent routing (selector agent)
 }

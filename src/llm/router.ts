@@ -3,6 +3,7 @@ import { getClaudeProvider } from './claude';
 import { getLocalProvider } from './local';
 import { getOllamaProvider } from './ollama';
 import { getMoonshotProvider } from './moonshot-provider';
+import { selectorAgent } from './selector-agent';
 import { log } from '../logger';
 import { config } from '../config';
 
@@ -74,6 +75,10 @@ export class LLMRouter {
         return ModelStrategy.HYBRID;
       case 'local_fallback':
         return ModelStrategy.LOCAL_FALLBACK;
+      case 'smart_router':
+      case 'smart':
+      case 'auto':
+        return ModelStrategy.SMART_ROUTER; // AI-powered intelligent routing
       default:
         return ModelStrategy.CLAUDE_ONLY; // Will use primary provider (claude or moonshot)
     }
@@ -179,6 +184,12 @@ export class LLMRouter {
         log.info(`[Router] Using ${primaryProvider.name} (strategy: primary_only)`);
         return primaryProvider;
 
+      case ModelStrategy.SMART_ROUTER:
+        // Smart routing is handled in generate() method
+        // This case shouldn't be reached directly
+        log.info(`[Router] Smart router strategy (handled in generate)`);
+        return primaryProvider;
+
       case ModelStrategy.LOCAL_ONLY:
         // Prefer Moonshot if set as primary and available
         if (this.primaryProvider === 'moonshot' && this.moonshotAvailable) {
@@ -233,6 +244,77 @@ export class LLMRouter {
   }
 
   /**
+   * Generate with smart router (selector agent)
+   */
+  private async generateWithSmartRouter(
+    messages: LLMMessage[],
+    options?: LLMOptions
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+
+    try {
+      // Use selector agent to choose provider
+      const recommendation = await selectorAgent.selectProvider(messages, options?.tools, {
+        maxCost: options?.maxCost,
+        minQuality: options?.minQuality,
+        userPreference: options?.preferredProvider
+      });
+
+      log.info('[Router] Smart router recommendation', {
+        provider: recommendation.provider,
+        model: recommendation.model,
+        confidence: recommendation.confidence,
+        reasoning: recommendation.reasoning,
+        estimatedCost: `$${recommendation.estimatedCost.toFixed(4)}`
+      });
+
+      // Get the appropriate provider
+      let provider: LLMProvider;
+      switch (recommendation.provider) {
+        case 'claude':
+          provider = this.claudeProvider;
+          break;
+        case 'gemini':
+          // TODO: Implement Gemini provider
+          log.warn('[Router] Gemini provider not implemented yet, falling back to Claude');
+          provider = this.claudeProvider;
+          break;
+        case 'openai':
+          // TODO: Implement OpenAI provider
+          log.warn('[Router] OpenAI provider not implemented yet, falling back to Claude');
+          provider = this.claudeProvider;
+          break;
+        case 'moonshot':
+          provider = this.moonshotProvider;
+          break;
+        default:
+          provider = this.claudeProvider;
+      }
+
+      // Generate with selected provider
+      const response = await provider.generate(messages, options);
+
+      const totalTime = Date.now() - startTime;
+      log.info('[Router] Smart router generation complete', {
+        provider: recommendation.provider,
+        model: recommendation.model,
+        totalTime: `${totalTime}ms`
+      });
+
+      return response;
+    } catch (error: any) {
+      log.error('[Router] Smart router generation failed', {
+        error: error.message
+      });
+
+      // Fallback to primary provider
+      log.warn('[Router] Falling back to primary provider');
+      const primaryProvider = this.getPrimaryProvider();
+      return await primaryProvider.generate(messages, options);
+    }
+  }
+
+  /**
    * Hybrid strategy: route based on task complexity
    * Priority: Ollama > Local (transformers.js) > Primary Provider (Claude/Moonshot)
    */
@@ -269,6 +351,11 @@ export class LLMRouter {
    */
   async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
     const startTime = Date.now();
+
+    // If SMART_ROUTER strategy, use selector agent
+    if (this.strategy === ModelStrategy.SMART_ROUTER) {
+      return await this.generateWithSmartRouter(messages, options);
+    }
 
     // Classify task
     const taskType = this.classifyTask(messages, options);
