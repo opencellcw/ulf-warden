@@ -319,3 +319,106 @@ export async function storeVectors(
 
   log.info('[Activity] Vectors stored', { botId, count: vectors.length });
 }
+
+// ============================================================================
+// REMINDER ACTIVITIES
+// ============================================================================
+
+export interface DiscordReminderInput {
+  userId: string;
+  message: string;
+  channelId?: string;
+}
+
+export interface SlackReminderInput {
+  userId: string;
+  message: string;
+  channelId?: string;
+}
+
+/**
+ * Send Discord reminder
+ */
+export async function sendDiscordReminder(input: DiscordReminderInput): Promise<void> {
+  log.info('[Activity] Sending Discord reminder', {
+    userId: input.userId,
+    hasChannel: !!input.channelId,
+  });
+
+  try {
+    // Import Discord client dynamically to avoid circular deps
+    const { getDiscordClient } = await import('../../handlers/discord-client');
+    const client = getDiscordClient();
+
+    if (!client) {
+      throw new Error('Discord client not available');
+    }
+
+    // Try to send as DM first
+    try {
+      const user = await client.users.fetch(input.userId);
+      await user.send(`🔔 **Reminder**\n${input.message}`);
+      log.info('[Activity] Discord reminder sent via DM', { userId: input.userId });
+      return;
+    } catch (dmError: any) {
+      log.warn('[Activity] Failed to send DM, trying channel', {
+        error: dmError.message,
+      });
+    }
+
+    // If DM fails and channelId provided, send to channel
+    if (input.channelId) {
+      const channel = await client.channels.fetch(input.channelId);
+      if (channel && 'send' in channel) {
+        await (channel as any).send(
+          `<@${input.userId}> 🔔 **Reminder**\n${input.message}`
+        );
+        log.info('[Activity] Discord reminder sent to channel', {
+          channelId: input.channelId,
+        });
+        return;
+      }
+    }
+
+    throw new Error('Could not send reminder (DM blocked and no channel)');
+  } catch (error: any) {
+    log.error('[Activity] Failed to send Discord reminder', {
+      error: error.message,
+      userId: input.userId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Send Slack reminder
+ */
+export async function sendSlackReminder(input: SlackReminderInput): Promise<void> {
+  log.info('[Activity] Sending Slack reminder', {
+    userId: input.userId,
+    hasChannel: !!input.channelId,
+  });
+
+  try {
+    const { getSlackApp } = await import('../../tools/slack-messaging');
+    const app = getSlackApp();
+
+    // Send as DM or to channel
+    const channel = input.channelId || input.userId;
+
+    await app.client.chat.postMessage({
+      channel,
+      text: `:bell: *Reminder*\n${input.message}`,
+      unfurl_links: false,
+      unfurl_media: false,
+    });
+
+    log.info('[Activity] Slack reminder sent', { channel });
+  } catch (error: any) {
+    log.error('[Activity] Failed to send Slack reminder', {
+      error: error.message,
+      userId: input.userId,
+    });
+    throw error;
+  }
+}
