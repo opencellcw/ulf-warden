@@ -2,30 +2,39 @@ import { LLMProvider, LLMMessage, LLMResponse, LLMOptions, TaskType, ModelStrate
 import { getClaudeProvider } from './claude';
 import { getLocalProvider } from './local';
 import { getOllamaProvider } from './ollama';
+import { getMoonshotProvider } from './moonshot-provider';
 import { log } from '../logger';
 import { config } from '../config';
 
 /**
- * Intelligent router between Claude API, local model, and Ollama
+ * Intelligent router between Claude API, Moonshot AI, local model, and Ollama
  *
  * Routing strategies:
  * 1. CLAUDE_ONLY - Always use Claude (default)
- * 2. LOCAL_ONLY - Always use local model (or Ollama if enabled)
- * 3. HYBRID - Route based on task complexity
- * 4. LOCAL_FALLBACK - Try local/Ollama first, fallback to Claude
+ * 2. MOONSHOT_ONLY - Always use Moonshot AI (Kimi)
+ * 3. LOCAL_ONLY - Always use local model (or Ollama if enabled)
+ * 4. HYBRID - Route based on task complexity
+ * 5. LOCAL_FALLBACK - Try local/Ollama first, fallback to Claude/Moonshot
  */
 export class LLMRouter {
   private claudeProvider: LLMProvider;
+  private moonshotProvider: LLMProvider;
   private localProvider: LLMProvider;
   private ollamaProvider: LLMProvider;
   private strategy: ModelStrategy;
+  private primaryProvider: 'claude' | 'moonshot'; // NEW: Choose primary provider
   private localAvailable: boolean = false;
   private ollamaAvailable: boolean = false;
+  private moonshotAvailable: boolean = false;
 
   constructor() {
     this.claudeProvider = getClaudeProvider();
+    this.moonshotProvider = getMoonshotProvider();
     this.localProvider = getLocalProvider();
     this.ollamaProvider = getOllamaProvider();
+
+    // Get primary provider from env (claude or moonshot)
+    this.primaryProvider = (process.env.LLM_PROVIDER || 'claude') as 'claude' | 'moonshot';
 
     // Get strategy from config
     const strategyStr = process.env.LLM_STRATEGY || config.get('LLM_STRATEGY', 'claude_only');
@@ -34,6 +43,12 @@ export class LLMRouter {
     // Check availability
     this.checkLocalAvailability();
     this.checkOllamaAvailability();
+    this.checkMoonshotAvailability();
+
+    log.info('[Router] Initialized', {
+      primaryProvider: this.primaryProvider,
+      strategy: this.strategy
+    });
   }
 
   private async checkOllamaAvailability(): Promise<void> {
@@ -43,16 +58,24 @@ export class LLMRouter {
     });
   }
 
+  private async checkMoonshotAvailability(): Promise<void> {
+    this.moonshotAvailable = await this.moonshotProvider.isAvailable();
+    log.info('[Router] Moonshot availability checked', {
+      available: this.moonshotAvailable
+    });
+  }
+
   private parseStrategy(str: string): ModelStrategy {
     switch (str.toLowerCase()) {
+      case 'moonshot_only':
       case 'local_only':
-        return ModelStrategy.LOCAL_ONLY;
+        return ModelStrategy.LOCAL_ONLY; // Repurpose for non-Claude providers
       case 'hybrid':
         return ModelStrategy.HYBRID;
       case 'local_fallback':
         return ModelStrategy.LOCAL_FALLBACK;
       default:
-        return ModelStrategy.CLAUDE_ONLY;
+        return ModelStrategy.CLAUDE_ONLY; // Will use primary provider (claude or moonshot)
     }
   }
 
@@ -137,21 +160,31 @@ export class LLMRouter {
       strategy: this.strategy,
       taskType,
       hasTools,
-      localAvailable: this.localAvailable
+      primaryProvider: this.primaryProvider,
+      localAvailable: this.localAvailable,
+      moonshotAvailable: this.moonshotAvailable
     });
 
-    // If tools are required, must use Claude
+    // Get the primary provider (Claude or Moonshot)
+    const primaryProvider = this.getPrimaryProvider();
+
+    // If tools are required, use primary provider (Claude or Moonshot both support tools)
     if (hasTools) {
-      log.info('[Router] Using Claude (tools required)');
-      return this.claudeProvider;
+      log.info(`[Router] Using ${primaryProvider.name} (tools required)`);
+      return primaryProvider;
     }
 
     switch (this.strategy) {
       case ModelStrategy.CLAUDE_ONLY:
-        log.info('[Router] Using Claude (strategy: claude_only)');
-        return this.claudeProvider;
+        log.info(`[Router] Using ${primaryProvider.name} (strategy: primary_only)`);
+        return primaryProvider;
 
       case ModelStrategy.LOCAL_ONLY:
+        // Prefer Moonshot if set as primary and available
+        if (this.primaryProvider === 'moonshot' && this.moonshotAvailable) {
+          log.info('[Router] Using Moonshot (strategy: local_only)');
+          return this.moonshotProvider;
+        }
         // Prefer Ollama if available, then transformers.js
         if (this.ollamaAvailable) {
           log.info('[Router] Using Ollama (strategy: local_only)');
@@ -161,14 +194,14 @@ export class LLMRouter {
           log.info('[Router] Using local model (strategy: local_only)');
           return this.localProvider;
         }
-        log.warn('[Router] No local model available, falling back to Claude');
-        return this.claudeProvider;
+        log.warn(`[Router] No local model available, falling back to ${primaryProvider.name}`);
+        return primaryProvider;
 
       case ModelStrategy.HYBRID:
         return this.selectProviderHybrid(taskType);
 
       case ModelStrategy.LOCAL_FALLBACK:
-        // Prefer Ollama, then transformers.js, then Claude
+        // Prefer Ollama, then transformers.js, then primary provider
         if (this.ollamaAvailable) {
           log.info('[Router] Using Ollama (strategy: local_fallback)');
           return this.ollamaProvider;
@@ -177,19 +210,35 @@ export class LLMRouter {
           log.info('[Router] Using local model (strategy: local_fallback)');
           return this.localProvider;
         }
-        log.info('[Router] Using Claude (no local model available)');
-        return this.claudeProvider;
+        log.info(`[Router] Using ${primaryProvider.name} (no local model available)`);
+        return primaryProvider;
 
       default:
-        return this.claudeProvider;
+        return primaryProvider;
     }
   }
 
   /**
+   * Get primary provider based on configuration
+   */
+  private getPrimaryProvider(): LLMProvider {
+    if (this.primaryProvider === 'moonshot' && this.moonshotAvailable) {
+      return this.moonshotProvider;
+    }
+    // Fallback to Claude if Moonshot not available
+    if (this.primaryProvider === 'moonshot' && !this.moonshotAvailable) {
+      log.warn('[Router] Moonshot not available, falling back to Claude');
+    }
+    return this.claudeProvider;
+  }
+
+  /**
    * Hybrid strategy: route based on task complexity
-   * Priority: Ollama > Local (transformers.js) > Claude
+   * Priority: Ollama > Local (transformers.js) > Primary Provider (Claude/Moonshot)
    */
   private selectProviderHybrid(taskType: TaskType): LLMProvider {
+    const primaryProvider = this.getPrimaryProvider();
+    
     // Simple tasks can use local model if available
     const simpleTasksForLocal = [
       TaskType.SIMPLE_CHAT,
@@ -210,9 +259,9 @@ export class LLMRouter {
       }
     }
 
-    // Complex tasks use Claude
-    log.info('[Router] Using Claude (hybrid: complex task)', { taskType });
-    return this.claudeProvider;
+    // Complex tasks use primary provider (Claude or Moonshot)
+    log.info(`[Router] Using ${primaryProvider.name} (hybrid: complex task)`, { taskType });
+    return primaryProvider;
   }
 
   /**
@@ -257,11 +306,18 @@ export class LLMRouter {
   }
 
   /**
-   * Generate with tools (always uses Claude)
+   * Generate with tools (uses primary provider: Claude or Moonshot)
    */
   async generateWithTools(messages: LLMMessage[], tools: any[], options?: LLMOptions): Promise<LLMResponse> {
-    log.info('[Router] Using Claude for tool-based generation');
-    return await this.claudeProvider.generateWithTools!(messages, tools, options);
+    const primaryProvider = this.getPrimaryProvider();
+    log.info(`[Router] Using ${primaryProvider.name} for tool-based generation`);
+    
+    if (primaryProvider.generateWithTools) {
+      return await primaryProvider.generateWithTools(messages, tools, options);
+    } else {
+      // Fallback: use generate with tools in options
+      return await primaryProvider.generate(messages, { ...options, tools });
+    }
   }
 
   /**
@@ -283,7 +339,9 @@ export class LLMRouter {
    * Get status of all providers
    */
   async getStatus(): Promise<{
+    primaryProvider: 'claude' | 'moonshot';
     claude: { available: boolean; model: string };
+    moonshot: { available: boolean; model: string };
     local: { available: boolean; model?: string };
     ollama: { available: boolean; model?: string };
     strategy: ModelStrategy;
@@ -293,11 +351,17 @@ export class LLMRouter {
     // Refresh availability
     await this.checkLocalAvailability();
     await this.checkOllamaAvailability();
+    await this.checkMoonshotAvailability();
 
     return {
+      primaryProvider: this.primaryProvider,
       claude: {
         available: claudeAvailable,
         model: (this.claudeProvider as any).getModel()
+      },
+      moonshot: {
+        available: this.moonshotAvailable,
+        model: (this.moonshotProvider as any).getModel()
       },
       local: {
         available: this.localAvailable,
@@ -319,6 +383,13 @@ export class LLMRouter {
   }
 
   /**
+   * Get the Moonshot provider for direct access
+   */
+  getMoonshotProvider(): LLMProvider {
+    return this.moonshotProvider;
+  }
+
+  /**
    * Get the local provider for direct access
    */
   getLocalProvider(): LLMProvider {
@@ -330,6 +401,13 @@ export class LLMRouter {
    */
   getOllamaProvider(): LLMProvider {
     return this.ollamaProvider;
+  }
+
+  /**
+   * Get the active primary provider
+   */
+  getActivePrimaryProvider(): LLMProvider {
+    return this.getPrimaryProvider();
   }
 }
 

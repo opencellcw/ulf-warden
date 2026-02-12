@@ -1,9 +1,11 @@
 /**
- * LLM Module - Dual-model architecture with intelligent routing
+ * LLM Module - Multi-model architecture with intelligent routing
  *
  * Supports:
- * - Claude API (primary, full-featured)
- * - Local models (secondary, lightweight tasks)
+ * - Claude API (Anthropic)
+ * - Moonshot AI (Kimi K2.5)
+ * - Local models (transformers.js)
+ * - Ollama (self-hosted)
  *
  * Usage:
  *   import { getRouter } from './llm';
@@ -13,9 +15,11 @@
 
 export * from './interface';
 export * from './claude';
+export * from './moonshot-provider';
 export * from './local';
 export * from './router';
 
 export { getRouter } from './router';
 export { getClaudeProvider } from './claude';
+export { getMoonshotProvider } from './moonshot-provider';
 export { getLocalProvider } from './local';

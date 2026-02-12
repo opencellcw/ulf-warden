@@ -50,6 +50,8 @@ async function createBotHandler(input: any, userId: string): Promise<string> {
     name,
     personality,
     model = 'sonnet',
+    type = 'conversational', // ← NEW: default to conversational
+    allowed_tools = [], // ← NEW: tools for agent bots
     enable_discord = true,
     enable_slack = false
   } = input;
@@ -58,6 +60,22 @@ async function createBotHandler(input: any, userId: string): Promise<string> {
   const validation = validateBotName(name);
   if (!validation.valid) {
     return `❌ Error: ${validation.reason}`;
+  }
+
+  // Validate bot type
+  if (type !== 'conversational' && type !== 'agent') {
+    return `❌ Error: Invalid bot type "${type}". Must be "conversational" or "agent"`;
+  }
+
+  // Validate tools (only for agent bots)
+  if (type === 'agent' && allowed_tools.length === 0) {
+    return `❌ Error: Agent bots must have at least one allowed tool. Available: bash, read, write, edit, kubectl, gcloud, git`;
+  }
+
+  const validTools = ['bash', 'read', 'write', 'edit', 'kubectl', 'gcloud', 'git'];
+  const invalidTools = allowed_tools.filter((t: string) => !validTools.includes(t));
+  if (invalidTools.length > 0) {
+    return `❌ Error: Invalid tools: ${invalidTools.join(', ')}. Available: ${validTools.join(', ')}`;
   }
 
   // Check if bot exists
@@ -74,13 +92,15 @@ async function createBotHandler(input: any, userId: string): Promise<string> {
 
   // Generate bot ID
   const botId = generateBotId(name);
-  log.info('[BotFactory] Creating bot', { name, botId, model });
+  log.info('[BotFactory] Creating bot', { name, botId, model, type, allowed_tools });
 
   // Generate Helm values
   const config: BotConfig = {
     name: botId,
     personality,
     model,
+    type, // ← NEW
+    allowedTools: type === 'agent' ? allowed_tools : undefined, // ← NEW
     replicas: 1,
     enableDiscord: enable_discord,
     enableSlack: enable_slack
@@ -107,15 +127,21 @@ async function createBotHandler(input: any, userId: string): Promise<string> {
         log.warn('[BotFactory] Security template failed (non-critical)', { error: secError.message });
       }
 
-      return `✅ Bot "${name}" created successfully!
+      const typeEmoji = type === 'agent' ? '🤖' : '💬';
+      const toolsInfo = type === 'agent' && allowed_tools.length > 0
+        ? `\n**Tools:** ${allowed_tools.join(', ')}`
+        : '';
 
+      return `✅ ${typeEmoji} Bot "${name}" created successfully!
+
+**Type:** ${type === 'agent' ? 'Agent (with tools)' : 'Conversational'}
 **Status:** ${result.status}
 **Pod:** ${result.podName}
-**Model:** ${model}
+**Model:** ${model}${toolsInfo}
 **Channels:** ${enable_discord ? 'Discord' : ''} ${enable_slack ? 'Slack' : ''}
 **Security:** Template applied automatically
 
-The bot should be online in ~30 seconds. Try mentioning @${name} to interact with it.`;
+The bot should be online in ~30 seconds. Try mentioning @${name} to interact with it.${type === 'agent' ? '\n\n⚠️ **Agent Mode**: This bot can execute commands and modify files. Use responsibly!' : ''}`;
     } else {
       await botRegistry.updateStatus(botId, 'failed');
 
@@ -145,10 +171,15 @@ async function listBotsHandler(): Promise<string> {
     const statusEmoji = bot.status === 'running' ? '✅' :
                        bot.status === 'deploying' ? '🔄' :
                        bot.status === 'failed' ? '❌' : '⏸️';
+    const typeEmoji = config.type === 'agent' ? '🤖' : '💬';
 
-    lines.push(`${statusEmoji} **${bot.name}**`);
+    lines.push(`${statusEmoji} ${typeEmoji} **${bot.name}**`);
+    lines.push(`   - Type: ${config.type || 'conversational'}`);
     lines.push(`   - Status: ${bot.status}`);
     lines.push(`   - Model: ${config.model}`);
+    if (config.type === 'agent' && config.allowedTools && config.allowedTools.length > 0) {
+      lines.push(`   - Tools: ${config.allowedTools.join(', ')}`);
+    }
     lines.push(`   - Created: ${new Date(bot.createdAt).toLocaleDateString()}`);
     lines.push(`   - Creator: <@${bot.creatorDiscordId}>`);
     lines.push('');
@@ -194,17 +225,22 @@ async function getBotStatusHandler(name: string): Promise<string> {
     const config = JSON.parse(bot.deploymentConfig) as BotConfig;
 
     const statusEmoji = status.ready ? '✅' : '⚠️';
+    const typeEmoji = config.type === 'agent' ? '🤖' : '💬';
     const healthCheck = bot.lastHealthCheck
       ? new Date(bot.lastHealthCheck).toLocaleString()
       : 'Never';
+    const toolsInfo = config.type === 'agent' && config.allowedTools && config.allowedTools.length > 0
+      ? `\n**Allowed Tools:** ${config.allowedTools.join(', ')}`
+      : '';
 
-    return `${statusEmoji} **Bot Status: ${bot.name}**
+    return `${statusEmoji} ${typeEmoji} **Bot Status: ${bot.name}**
 
+**Type:** ${config.type || 'conversational'}
 **Database Status:** ${bot.status}
 **Kubernetes Status:** ${status.status}
 **Ready:** ${status.ready ? 'Yes' : 'No'}
 **Pod Name:** ${status.podName || 'N/A'}
-**Model:** ${config.model}
+**Model:** ${config.model}${toolsInfo}
 **Personality:** ${bot.personality.substring(0, 100)}...
 **Created:** ${new Date(bot.createdAt).toLocaleString()}
 **Last Health Check:** ${healthCheck}`;

@@ -1,7 +1,21 @@
+/**
+ * Bot Type - Defines execution mode
+ * - conversational: Simple Claude API (chat only)
+ * - agent: Pi-powered (with tools: bash, read, write, etc.)
+ */
+export type BotType = 'conversational' | 'agent';
+
+/**
+ * Available tools for agent bots
+ */
+export type BotTool = 'bash' | 'read' | 'write' | 'edit' | 'kubectl' | 'gcloud' | 'git';
+
 export interface BotConfig {
   name: string;
   personality: string;
   model: 'sonnet' | 'opus' | 'haiku';
+  type: BotType; // ← NEW: conversational or agent
+  allowedTools?: BotTool[]; // ← NEW: Tools whitelist for agent bots
   replicas: number;
   enableSlack?: boolean;
   enableDiscord?: boolean;
@@ -33,4 +47,6 @@ export interface BotIntent {
   name: string;
   personality: string;
   model?: 'sonnet' | 'opus' | 'haiku';
+  type?: BotType; // ← NEW
+  allowedTools?: BotTool[]; // ← NEW
 }

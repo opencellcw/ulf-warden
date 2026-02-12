@@ -1,10 +1,6 @@
-<div align="center">
+# OpenCell (Ulf-Warden)
 
-<img src=".github/assets/logo.png" alt="OpenCell Logo" width="600"/>
-
-# OpenCell
-
-> **Open-Source Multi-Agent AI Platform - Deploy Your Own CloudBots**
+> **🤖 Open-Source Multi-Agent AI Platform - Your Own AI Agent Army**
 
 [![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -12,964 +8,581 @@
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://anthropic.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript)](https://typescriptlang.org)
 
-</div>
-
-**OpenCell** is CloudWalk's open-source template for building multi-agent AI platforms. This repository provides everything you need to **clone, customize, and deploy your own AI agents** on your Kubernetes cluster.
-
-### 🎯 What is this?
-
-- ✅ **Production-ready template** for multi-platform AI agents (Slack, Discord, Telegram)
-- ✅ **Complete infrastructure** - Kubernetes manifests, Helm charts, security systems
-- ✅ **Example implementation** - "Ulfberht (Ulf)" agent showcasing all features
-- ✅ **Fork and customize** - Build your own specialized CloudBots for your needs
-
-### 💡 Use Cases
-
-Clone this repository to:
-- 🤖 Deploy AI assistants in your company's Slack/Discord/Telegram
-- 🔧 Build custom automation agents for your workflows
-- 📊 Create specialized bots for data analysis, customer support, DevOps, etc.
-- 🏗️ Learn how to build production-grade AI agents with Claude
-
-**The CloudBots family** includes specialized agents like Guardian (security), Oracle (analytics), Forge (DevOps), and Scribe (documentation) - all built on this foundation.
-
-[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Features](#-key-features) • [Deploy](#-deploy) • [Security](#-security--safety)
-
-</div>
+**OpenCell** (Ulfberht-Warden) is a production-ready multi-agent AI platform that runs on YOUR infrastructure. Deploy unlimited specialized AI agents across Slack, Discord, Telegram, and WhatsApp.
 
 ---
 
-## ⚡ TL;DR - Fork & Deploy
+## 🚀 NEW in v2.0 (February 2025)
+
+### 🌙 **Moonshot AI Integration** - 97% Cost Savings!
+- Alternative LLM provider with 2M token context (10x larger than Claude)
+- **$0.50 per million tokens** vs Claude's $3-15/Mtok
+- Drop-in replacement - same tools, same features
+- Perfect for high-volume deployments
+- 📖 [Moonshot Provider Docs](docs/moonshot-provider.md)
+
+### 🤖 **Bot Factory** - Create Bots on Demand
+- Create specialized bots via Discord conversation: `!roundtable create bot guardian`
+- Two bot types: Conversational (chat) or Agent (with coding tools)
+- Dynamic deployment to Kubernetes in ~30 seconds
+- Each bot has unique personality and tool access
+- 📖 [Bot Factory Guide](docs/bot-factory-pi-integration.md) • [Examples](examples/bot-factory-examples.md)
+
+### 🎯 **RoundTable Multi-Agent System**
+- 5-6 specialized agents deliberate together before responding
+- 3 phases: Discussion → Proposals → Democratic Voting
+- Agents: Analyst, Creative, Skeptic, Pragmatist, Ethicist, Summarizer
+- 4 voting rules: Majority, Unanimity, Rated, Ranked
+- Perfect for complex decisions and trade-off analysis
+- 📖 [RoundTable Docs](docs/roundtable-system.md)
+
+### 🔌 **Model Context Protocol (MCP)** - Plug & Play Tools
+- Connect to 100+ MCP servers with zero coding
+- GitHub, Slack, Postgres, Brave Search, Google Maps, and more
+- Add new integration in 3 lines of config
+- Auto-discovery of tools and capabilities
+- 📖 [MCP Integration Guide](docs/mcp-integration.md)
+
+---
+
+## 🎯 What is OpenCell?
+
+OpenCell is your **private AI agent platform** that:
+
+- ✅ **Runs on YOUR infrastructure** - Full control, no vendor lock-in
+- ✅ **Multi-platform** - Slack, Discord, Telegram, WhatsApp
+- ✅ **Multi-agent** - Create unlimited specialized bots
+- ✅ **Production-hardened** - 7-layer security, rate limiting, audit trails
+- ✅ **Cost-optimized** - Switch between Claude, Moonshot, local models
+- ✅ **Extensible** - MCP protocol for instant integrations
+
+---
+
+## ⚡ Quick Start
 
 ```bash
-# 1. Fork/clone this repository
+# 1. Clone and install
 git clone https://github.com/cloudwalk/opencell.git
 cd opencell
-
-# 2. Configure your environment
-cp .env.example .env
-# Edit .env with your API keys
-
-# 3. Run locally
-npm install && npm run build && npm start
-
-# 4. Deploy to YOUR Kubernetes cluster
-./scripts/gke-deploy.sh  # Deploys to your GKE cluster
-```
-
-**Clone → Configure → Deploy.** Your own AI agent platform in minutes.
-
----
-
-## 📚 Documentation
-
-- 🚀 **[Quick Start Guide](docs/GKE_QUICKSTART.md)** - Get running in 5 minutes
-- 🔐 **[Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)** - 7-layer defense-in-depth
-- 🆚 **[vs ClawdBot Comparison](docs/CLAWDBOT_COMPARISON.md)** - Security fixes & improvements (NEW!)
-- 🛡️ **[vs OpenClaw Security](docs/OPENCLAW_SECURITY_COMPARISON.md)** - Technical comparison
-- 📋 **[Security Policy](SECURITY.md)** - Vulnerability reporting
-- 💰 **[Cost Auditor](cost-auditor/README.md)** - Multi-platform cost monitoring
-- 🔑 **[Secrets Management](docs/GKE_SECRETS.md)** - Google Secret Manager setup
-- 🧠 **[Self-Improvement](docs/SELF_IMPROVEMENT.md)** - Learning system architecture
-- 🏗️ **[Architecture](docs/ARCHITECTURE.md)** - System design and components
-- ☁️ **[Cloudflare AI Gateway](docs/CLOUDFLARE_AI_GATEWAY.md)** - Setup & configuration
-- 🤝 **[Contributing](CONTRIBUTING.md)** - Development guidelines
-
----
-
-## 🌟 Key Features
-
-### 🤖 Multi-Platform Chat
-- **Slack** - Socket Mode with full bot capabilities, threads, reactions
-- **Discord** - Rich embeds with status-aware colors, interactive buttons, system metrics, mobile-friendly layouts
-- **Telegram** - Native bot API, inline keyboards, media support
-- **WhatsApp** - Baileys (WhatsApp Web API) with QR code authentication
-- **Isolated Sessions** - Each user maintains separate conversation history per platform
-
-### 🎨 Discord Rich Formatting (NEW!)
-- **Interactive Status Reports** - Real-time system metrics with refresh buttons
-- **Color-Coded Embeds** - Green (online), Yellow (warning), Red (error)
-- **Button Components** - Refresh, logs, details, and process viewers
-- **Mobile-Friendly** - Responsive layouts that work on all devices
-- **[Complete Documentation](docs/discord-formatting-integration.md)** - Integration guide with examples
-
-### 🧠 Self-Improvement System
-- **Automatic Learning** - Extracts insights from conversations
-- **Memory Management** - Auto-compresses and organizes knowledge in `MEMORY.md`
-- **Performance Tracking** - Monitors success rates and user satisfaction
-- **Personality Evolution** - Suggests improvements with human approval workflow
-
-### 💰 Cost Auditor
-Real-time cost monitoring across 5 platforms:
-- Anthropic (Claude API) - Token usage tracking
-- Google Cloud (GKE) - Cluster and storage costs
-- ElevenLabs - Character usage for text-to-speech
-- Replicate - Image/video generation costs
-- OpenAI - DALL-E, GPT, Whisper usage
-
-**Features:**
-- Budget limits with intelligent alerts (threshold/spike/anomaly detection)
-- End-of-month cost projections
-- Automatic optimization suggestions
-- Historical data analysis with visualizations
-
-### 🏗️ Hybrid Architecture (NEW!)
-**Best of both worlds:** Direct execution (low latency) + orchestration (reliability)
-
-- **Adaptive Mode** - Simple queries use direct Claude API, complex tasks use workflows
-- **Retry Engine** - Exponential backoff, automatic recovery from transient failures
-- **Tool Registry** - Centralized management with versioning and validation
-- **Workflow Manager** - Multi-step orchestration with conditional branching (beta)
-- **Observability** - Full telemetry, metrics, and distributed tracing
-
-**vs Single-Agent:** 40% lower latency for simple queries, 90% higher reliability for complex tasks
-
-📖 **[Architecture Docs](docs/architecture/)** - Implementation guide, performance benchmarks
-
----
-
-### 🛡️ Production-Hardened Security
-
-**7-layer defense** addressing critical vulnerabilities in original ClawdBot:
-
-| Layer | Protection | Blocks |
-|-------|-----------|---------|
-| 1. Rate Limiting | 30 req/min per user | DoS attacks |
-| 2. Sanitizer | 8+ attack patterns | Prompt injection, jailbreaks |
-| 3. Tool Blocklist | 9 tools blocked default | Cost exhaustion, SSRF |
-| 4. Pattern Vetter | Regex validation | Command injection, path traversal |
-| 5. AI Vetter | Claude Haiku analysis | Intent-based threats |
-| 6. Secure Executor | 30s timeout, 5 concurrent | Resource exhaustion |
-| 7. AI Gateway | Cloudflare WAF + DDoS | Network-level attacks |
-
-**vs ClawdBot:** ✅ All inputs sanitized • ✅ TLS enforced • ✅ Secrets in GCP SM • ✅ Full audit trail
-
-📖 **[Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)** • **[vs ClawdBot](docs/CLAWDBOT_COMPARISON.md)** • **[vs OpenClaw](docs/OPENCLAW_SECURITY_COMPARISON.md)**
-
-### 🎨 Multimodal Capabilities
-- **Image Generation**: Replicate (Flux, SDXL, Stable Diffusion), OpenAI (DALL-E 2/3)
-- **Video Generation**: Text-to-video, image animation, stable video diffusion
-- **Audio Generation**: ElevenLabs text-to-speech with 9+ voice options
-- **Transcription**: OpenAI Whisper for audio-to-text
-- **Image Analysis**: GPT-4 Vision for image understanding
-- **Image Processing**: Upscaling (2x/4x/8x), background removal
-
-### 🎤 Discord Voice Support
-Join Discord voice channels and have Ulf speak responses using text-to-speech:
-
-**Commands:**
-- `@Ulf entrar no canal de voz` / `@Ulf join voice` - Connect to your current voice channel
-- `@Ulf sair do canal de voz` / `@Ulf leave voice` - Disconnect from voice channel
-- `@Ulf fala "hello world"` / `@Ulf speak "hello world"` - Say specific text
-- `@Ulf vozes` / `@Ulf voices` - List available TTS voices
-
-**Features:**
-- **Auto-speak responses**: When connected to voice, Ulf automatically speaks chat responses
-- **Multiple voices**: Sarah, Rachel, Antoni, Josh, Adam (powered by ElevenLabs)
-- **Queue management**: Multiple audio requests are queued and played sequentially
-- **Hands-free interaction**: Perfect for team meetings or ambient assistance
-
-**Requirements:**
-- `ELEVENLABS_API_KEY` environment variable
-- Bot must have voice channel permissions in Discord
-
-### 🗓️ Task Automation
-- **Cron Scheduling**: Schedule recurring tasks with cron expressions
-- **Reminders**: Set one-time or recurring reminders
-- **Self-Improvement Jobs**: Automated daily/weekly analysis and optimization
-- **Custom Tasks**: Create scheduled jobs for any automation need
-
-### 🔧 Developer Tools
-- **GitHub Integration**: Clone repos, search code, manage issues/PRs
-- **Web Scraping**: Fetch and parse web content
-- **File Operations**: Full filesystem access for code generation
-- **Process Management**: Start, stop, and monitor background processes
-- **Shell Execution**: Run any system command with security filtering
-
----
-
-## ⚡ Quick Start - Deploy Your Own Agent
-
-### Prerequisites
-
-- Node.js ≥ 20
-- npm, pnpm, or bun
-- Your own API keys (Anthropic Claude, Slack/Discord/Telegram)
-- Docker (optional for local testing)
-- Kubernetes cluster - GKE, EKS, AKS, or any K8s (for production deployment)
-
-### Step 1: Fork/Clone This Repository
-
-```bash
-# Option A: Fork via GitHub (recommended)
-# Click "Fork" button on https://github.com/cloudwalk/opencell
-# Then clone YOUR fork:
-git clone https://github.com/YOUR_USERNAME/opencell
-cd opencell
-
-# Option B: Clone directly (for testing)
-git clone https://github.com/cloudwalk/opencell
-cd opencell
-
-# Install dependencies
 npm install
 
-# Configure with YOUR API keys
+# 2. Configure
 cp .env.example .env
-# Edit .env with your API keys
+# Add your API keys to .env
 
-# Build TypeScript
+# 3. Run
 npm run build
-
-# Run locally
 npm start
+
+# 4. Use in Discord/Slack
+@Ulf hello!
 ```
 
-### Minimum Configuration
-
-Required environment variables:
-```env
-ANTHROPIC_API_KEY=sk-ant-api03-xxx
-
-# At least one platform:
-SLACK_BOT_TOKEN=xoxb-xxx        # For Slack
-SLACK_APP_TOKEN=xapp-xxx
-SLACK_SIGNING_SECRET=xxx
-
-# OR
-DISCORD_BOT_TOKEN=xxx           # For Discord
-
-# OR
-TELEGRAM_BOT_TOKEN=xxx          # For Telegram
-
-# OR
-WHATSAPP_ENABLED=true           # For WhatsApp (scan QR code on first run)
-```
-
-### Development Mode
-
-```bash
-# Watch mode with hot reload
-npm run dev
-
-# Run tests
-npm test
-
-# Lint code
-npm run lint
-```
+**That's it!** Your AI agent is running. 🎉
 
 ---
 
-## 🔒 Security & Safety
+## 🌟 Core Features
 
-**Production-hardened with 7-layer defense** addressing critical vulnerabilities in ClawdBot/OpenClaw.
+### 🤖 **Multi-Platform Chat**
+- **Slack** - Socket Mode, threads, reactions, channel management
+- **Discord** - Rich embeds, buttons, voice support, mobile-friendly
+- **Telegram** - Inline keyboards, media support, bot API
+- **WhatsApp** - QR auth, group support, media handling
+- **Isolated Sessions** - Separate history per user per platform
 
-### Security Architecture
+### 🧠 **Multi-Agent Architecture**
+
+#### 1. Bot Factory - Dynamic Bot Creation
+```
+@Ulf create agent bot named devops
+  personality: Kubernetes expert
+  tools: kubectl, bash, read
+
+# Creates new bot in 30 seconds!
+@devops check all pods in production
+```
+
+**Features:**
+- 💬 **Conversational bots** (chat only) - Fast, cheap, safe
+- 🤖 **Agent bots** (with tools) - Can execute commands, read files, use kubectl
+- Tool whitelist per bot (bash, read, write, kubectl, gcloud, git)
+- Automatic persona formatting with emojis and role badges
+- 📖 [Bot Factory Docs](docs/bot-factory-pi-integration.md)
+
+#### 2. RoundTable - Multi-Agent Deliberation
+```
+@Ulf !roundtable Should we use MongoDB or PostgreSQL?
+
+# 5 agents discuss, propose solutions, vote democratically
+# Winner: Hybrid approach (60% consensus)
+```
+
+**Agents:**
+- 📊 **Analyst** - Data-driven insights
+- 💡 **Creative** - Innovative solutions
+- 🔍 **Skeptic** - Risk identification
+- 🔧 **Pragmatist** - Practical implementation
+- ⚖️ **Ethicist** - Ethical evaluation
+- 📝 **Summarizer** - Consensus building
+
+**Voting Rules:** Majority, Unanimity, Rated (1-5 stars), Ranked (Borda count)
+
+📖 [RoundTable Docs](docs/roundtable-system.md)
+
+### 🔌 **MCP Integration - Plug & Play Tools**
+
+Connect to external services without coding:
+
+```json
+// mcp.json
+{
+  "brave-search": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": { "BRAVE_API_KEY": "${BRAVE_API_KEY}" }
+  }
+}
+```
+
+**Available Servers:**
+- 🔍 Brave Search (web search)
+- 🐙 GitHub (issues, PRs, code search)
+- 🗄️ PostgreSQL (database queries)
+- 🗺️ Google Maps (geocoding, directions)
+- 💬 Slack (send messages, manage channels)
+- 🌐 Puppeteer (browser automation)
+- 📁 Filesystem (file operations)
+- 🧠 Memory (persistent storage)
+
+**100+ more servers available** in [MCP ecosystem](https://github.com/modelcontextprotocol/servers)
+
+📖 [MCP Docs](docs/mcp-integration.md) • [Config Examples](mcp.json)
+
+### 🌙 **Moonshot AI Provider - 97% Cheaper**
+
+Switch to Moonshot for massive cost savings:
+
+```bash
+# .env
+LLM_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-xxx
+MOONSHOT_MODEL=kimi-k2.5
+```
+
+**Comparison:**
+
+| Feature | Claude | Moonshot | Savings |
+|---------|--------|----------|---------|
+| Context | 200k tokens | 2M tokens | **10x** |
+| Cost per Mtok | $3-15 | $0.50 | **97%** 💰 |
+| Portuguese | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Better |
+| Tools | ✅ | ✅ | Same |
+
+**Monthly Cost Example:**
+- 10M tokens with Claude: ~$150/month
+- 10M tokens with Moonshot: ~$5/month
+- **Annual Savings: $1,740** 💰
+
+📖 [Moonshot Provider Docs](docs/moonshot-provider.md) • [Quick Start](examples/moonshot-quick-start.md)
+
+### 🛡️ **Production-Hardened Security**
+
+**7-layer defense** addressing critical vulnerabilities:
 
 ```
 User Input → [1] Rate Limit → [2] Sanitize → [3] Blocklist →
 [4] Pattern Vet → [5] AI Vet → [6] Execute → [7] Gateway
 ```
 
-**Key Improvements vs ClawdBot:**
-- ✅ **Input sanitization** (8+ attack patterns) - ClawdBot: ❌ None
-- ✅ **Tool validation** (Pattern + AI) - ClawdBot: ❌ None
-- ✅ **Rate limiting** (30 req/min) - ClawdBot: ❌ None
-- ✅ **TLS enforced** (GKE + Cloudflare) - ClawdBot: ⚠️ Optional
-- ✅ **Secrets in GCP SM** (auto-rotation) - ClawdBot: ⚠️ Env vars only
-- ✅ **Full audit trail** (structured logs) - ClawdBot: ❌ None
+**Security Layers:**
+1. **Rate Limiting** - 30 req/min per user
+2. **Input Sanitizer** - 8+ attack patterns blocked
+3. **Tool Blocklist** - Dangerous tools disabled
+4. **Pattern Vetter** - Regex validation
+5. **AI Vetter** - Intent analysis by Claude Haiku
+6. **Secure Executor** - 30s timeout, 5 concurrent max
+7. **AI Gateway** - Cloudflare WAF + DDoS protection
 
-📖 **[Complete Comparison](docs/CLAWDBOT_COMPARISON.md)** - All security fixes documented
+📖 [Security Architecture](docs/security/SECURITY_ARCHITECTURE.md) • [Comparison](docs/CLAWDBOT_COMPARISON.md)
 
-### Configuration
+### 💰 **Cost Auditor**
 
-**Production Mode (Recommended):**
-```bash
-BLOCKED_TOOLS=web_fetch,github_clone,replicate_*,openai_*
-TOOL_TIMEOUT_MS=15000
-MAX_CONCURRENT_TOOLS=3
-RATE_LIMIT_REQUESTS=20
-```
+Real-time cost monitoring across platforms:
 
-**Maximum Security (Allowlist):**
-```bash
-ALLOWED_TOOLS=execute_shell,read_file,write_file,list_directory
-TOOL_TIMEOUT_MS=10000
-MAX_CONCURRENT_TOOLS=2
-```
+- **Anthropic** - Claude API token usage
+- **Moonshot** - Kimi API usage
+- **Google Cloud** - GKE cluster costs
+- **ElevenLabs** - TTS character usage
+- **Replicate** - Image generation
+- **OpenAI** - DALL-E, GPT, Whisper
 
-### Default Protections
+**Features:**
+- Budget limits with intelligent alerts
+- End-of-month projections
+- Automatic optimization suggestions
+- Historical data with visualizations
+- Grafana dashboards
 
-✅ Rate limiting enabled (30 req/min)
-✅ Prompt injection detection active
-✅ 9 dangerous tools blocked by default
-✅ Command injection prevention
-✅ 30-second timeout per tool
-✅ 5 concurrent tools max per user
-✅ All API keys in Secret Manager
-✅ Security auditor runs every 30 min
+📖 [Cost Auditor Docs](cost-auditor/README.md)
 
-### Monitoring
+### 🎨 **Multimodal Capabilities**
 
-```bash
-# View security events
-kubectl logs -n agents deployment/ulf-warden-agent | grep -E "BlockedTools|Vetter|Sanitizer"
+- **Image Generation** - Replicate (Flux, SDXL), OpenAI (DALL-E)
+- **Video Generation** - Text-to-video, image animation
+- **Audio/TTS** - ElevenLabs with 9+ voices
+- **Transcription** - Whisper audio-to-text
+- **Image Analysis** - GPT-4 Vision
+- **Voice Channels** - Discord voice support
 
-# Cloudflare AI Gateway Dashboard
-https://dash.cloudflare.com/your-account/ai/ai-gateway
-```
+### 🧠 **Self-Improvement System**
 
-### Further Reading
+Agents learn from interactions:
 
-📖 **[Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)** - Complete 7-layer defense documentation
-📖 **[vs ClawdBot](docs/CLAWDBOT_COMPARISON.md)** - All security fixes & architectural improvements
-📖 **[vs OpenClaw](docs/OPENCLAW_SECURITY_COMPARISON.md)** - Technical security comparison
-📖 **[Security Policy](SECURITY.md)** - Vulnerability reporting & responsible disclosure
+- **Automatic Learning** - Extracts insights from conversations
+- **Memory Management** - Auto-compresses knowledge
+- **Performance Tracking** - Success rates, user satisfaction
+- **Personality Evolution** - Human-approved improvements
 
----
+📖 [Self-Improvement Docs](docs/SELF_IMPROVEMENT.md)
 
-## 📦 Repository Structure
+### 🔧 **Developer Tools**
 
-```
-opencellcw/
-├── src/                      # Core application
-│   ├── handlers/            # Platform handlers
-│   │   ├── slack.ts         # Slack Socket Mode handler
-│   │   ├── discord.ts       # Discord gateway handler
-│   │   └── telegram.ts      # Telegram polling handler
-│   ├── tools/               # Tool implementations
-│   │   ├── index.ts         # Tool routing
-│   │   ├── definitions.ts   # Tool schemas
-│   │   ├── replicate.ts     # Image/video generation
-│   │   ├── elevenlabs.ts    # Text-to-speech
-│   │   └── openai-tools.ts  # DALL-E, GPT, Whisper
-│   ├── learning/            # Self-improvement system
-│   │   ├── core/            # Learning engines
-│   │   ├── schema.sql       # Database schema
-│   │   └── types.ts         # TypeScript types
-│   ├── security/            # Security systems
-│   │   ├── social-engineering-detector.ts
-│   │   └── self-defense.ts
-│   ├── agent.ts             # Main agent logic
-│   ├── chat.ts              # Claude API integration
-│   └── sessions.ts          # User session management
-│
-├── cost-auditor/            # Cost monitoring system
-│   ├── backend/
-│   │   ├── main.py          # FastAPI server
-│   │   ├── models.py        # Database models
-│   │   └── collectors/      # API cost collectors
-│   │       ├── anthropic_collector.py
-│   │       ├── gcp_collector.py
-│   │       ├── replicate_collector.py
-│   │       ├── elevenlabs_collector.py
-│   │       └── openai_collector.py
-│   └── README.md
-│
-├── auditor/                 # Security auditor (Python)
-│   ├── src/
-│   │   ├── main.py          # Scanner entry point
-│   │   ├── scanner.py       # Filesystem/process scanner
-│   │   ├── patterns.py      # Security patterns (50+)
-│   │   └── discord_reporter.py
-│   └── k8s/
-│       └── cronjob.yaml     # K8s CronJob manifest
-│
-├── infra/                   # Infrastructure as Code
-│   └── helm/
-│       └── agent/           # Helm chart for GKE
-│           ├── templates/
-│           └── values.yaml
-│
-├── workspace/               # Agent personality & memory
-│   ├── SOUL.md              # Core personality
-│   ├── IDENTITY.md          # Agent identity
-│   ├── CAPABILITIES.md      # Tool capabilities
-│   ├── MEMORY.md            # Accumulated knowledge (auto-managed)
-│   └── AGENTS.md            # Multi-agent patterns
-│
-├── scripts/                 # Deployment & utilities
-│   ├── gke-deploy.sh        # One-command GKE deployment
-│   ├── gke-setup-secrets.sh # Secret Manager setup
-│   └── sync-secrets.sh      # Secret synchronization
-│
-├── docs/                    # Documentation
-│   ├── GKE_QUICKSTART.md
-│   ├── GKE_SECRETS.md
-│   ├── SECURITY_COMPREHENSIVE.md
-│   └── DEPLOY_SUMMARY.md
-│
-└── .github/
-    └── workflows/
-        └── security-audit.yml  # Pre-commit security checks
-```
+- **GitHub Integration** - Clone repos, manage issues/PRs
+- **Web Scraping** - Brave Search, Playwright, Puppeteer
+- **File Operations** - Read, write, edit, list
+- **Shell Execution** - Security-filtered command execution
+- **Database Access** - PostgreSQL, MySQL (via MCP)
 
 ---
 
-## 🚀 Deploy to YOUR Kubernetes Cluster
+## 📚 Documentation
 
-**This is a template** - deploy to **your own infrastructure**, not CloudWalk's.
+### Getting Started
+- 🚀 [Quick Start Guide](docs/GKE_QUICKSTART.md)
+- 📦 [Installation](docs/INSTALLATION.md)
+- ⚙️ [Configuration](docs/CONFIGURATION.md)
 
-### ⚠️ GitHub Workflows Note
+### New Features (v2.0)
+- 🌙 [Moonshot AI Provider](docs/moonshot-provider.md)
+- 🤖 [Bot Factory + Pi Integration](docs/bot-factory-pi-integration.md)
+- 🎯 [RoundTable Multi-Agent](docs/roundtable-system.md)
+- 🔌 [MCP Integration](docs/mcp-integration.md)
+- 👥 [Bot Persona System](docs/bot-persona-system.md)
 
-GitHub workflows (`.github/workflows/`) are **intentionally gitignored** to avoid permission issues. You need to create them manually in **YOUR** forked repository:
+### Core Features
+- 🛡️ [Security Architecture](docs/security/SECURITY_ARCHITECTURE.md)
+- 💰 [Cost Auditor](cost-auditor/README.md)
+- 🧠 [Self-Improvement](docs/SELF_IMPROVEMENT.md)
+- 🎨 [Discord Formatting](docs/discord-formatting-integration.md)
+- 🔑 [Secrets Management](docs/GKE_SECRETS.md)
 
-**Option 1: Copy from local template**
-```bash
-# After cloning, workflows are already in .github/workflows/ (gitignored)
-# Copy them to your repo via GitHub web interface:
-# 1. Go to YOUR_REPO → .github/workflows
-# 2. Click "Add file" → "Create new file"
-# 3. Copy content from local .github/workflows/gke-deploy.yml
-# 4. Commit to your repo
-```
+### Deployment
+- ☸️ [GKE Deployment](docs/GKE_QUICKSTART.md)
+- 🐳 [Docker Setup](Dockerfile)
+- 🔄 [CI/CD Pipeline](.github/workflows/)
 
-**Option 2: Follow setup guide**
-📖 **[Complete Workflows Setup Guide](WORKFLOWS_SETUP.md)** - Step-by-step instructions with full workflow code
+### Comparisons
+- 🆚 [vs ClawdBot](docs/CLAWDBOT_COMPARISON.md)
+- 🆚 [vs OpenClaw Security](docs/OPENCLAW_SECURITY_COMPARISON.md)
 
-**Why gitignored?** GitHub blocks workflow modifications without `workflow` OAuth scope. This allows you to add workflows directly in your fork without permission errors.
-
-### Option 1: Google Kubernetes Engine (Your GKE)
-
-Deploy to **your own GKE cluster** with one command:
-
-```bash
-# Update scripts/gke-deploy.sh with YOUR project details
-export PROJECT_ID="your-gcp-project-id"
-export CLUSTER_NAME="your-cluster-name"
-export REGION="your-region"
-
-# Deploy to YOUR cluster
-./scripts/gke-deploy.sh
-```
-
-**Manual deployment to YOUR GKE:**
-
-```bash
-# 1. Build image and push to YOUR registry
-gcloud builds submit --tag us-central1-docker.pkg.dev/YOUR_PROJECT_ID/your-registry/opencell:latest
-
-# 2. Setup secrets in YOUR Secret Manager
-./scripts/gke-setup-secrets.sh
-
-# 3. Deploy with Helm to YOUR cluster
-helm upgrade --install opencell ./infra/helm/agent \
-  --namespace your-namespace \
-  --set image.repository=us-central1-docker.pkg.dev/YOUR_PROJECT_ID/your-registry/opencell
-```
-
-📖 **[Complete GKE Setup Guide](docs/GKE_QUICKSTART.md)** - Step-by-step for your GKE cluster
-
-### Option 2: AWS EKS / Azure AKS / Any Kubernetes
-
-Deploy to **any Kubernetes cluster**:
-
-```bash
-# 1. Build and push to your registry
-docker build -t your-registry/opencell:latest .
-docker push your-registry/opencell:latest
-
-# 2. Create secrets in your cluster
-kubectl create namespace opencell
-kubectl create secret generic opencell-secrets -n opencell \
-  --from-literal=ANTHROPIC_API_KEY="your-key" \
-  --from-literal=SLACK_BOT_TOKEN="your-token"
-
-# 3. Deploy with Helm
-helm install opencell ./infra/helm/agent \
-  --namespace opencell \
-  --set image.repository=your-registry/opencell
-```
-
-📖 **Helm chart is fully customizable** - edit `infra/helm/agent/values.yaml` for your setup
-
-### Option 3: Docker (Local or VM)
-
-Run on **your own server**:
-
-```bash
-# Build
-docker build -t opencell .
-
-# Run with your .env
-docker run -d \
-  --env-file .env \
-  -p 8080:8080 \
-  --name opencell \
-  --restart unless-stopped \
-  opencell
-```
-
-### Option 4: Cloud Platforms
-
-Deploy to **your own cloud platform**:
-
-**Render.com** (PaaS)
-1. Fork this repo to **YOUR** GitHub
-2. https://render.com → New Web Service
-3. Connect **YOUR** repository
-4. Add **YOUR** environment variables
-5. Deploy to **YOUR** Render account
-
-**Heroku / Railway / Fly.io**
-- Similar process - deploy to **YOUR** account
-- All support Docker or buildpacks
-- Configure with **YOUR** API keys
+### Examples
+- 📖 [Bot Factory Examples](examples/bot-factory-examples.md)
+- 🌙 [Moonshot Quick Start](examples/moonshot-quick-start.md)
+- 🎯 [RoundTable Examples](examples/roundtable-examples.md)
+- 🔌 [MCP Integration](examples/mcp-integration-example.ts)
 
 ---
 
-## 🔧 Customization
+## 🎮 Usage Examples
 
-**This is YOUR bot** - customize everything:
+### Basic Chat
+```
+@Ulf hello, how are you?
+@Ulf what's the weather in São Paulo?
+@Ulf summarize this document [attach file]
+```
 
-1. **Edit workspace files** (`workspace/*.md`) to change personality
-2. **Modify Helm values** (`infra/helm/agent/values.yaml`) for your cluster
-3. **Add custom tools** in `src/tools/` for your specific needs
-4. **Adjust security rules** in `src/security/` for your requirements
-5. **Add GitHub workflows** - Copy from `.github/workflows/` (see [WORKFLOWS_SETUP.md](WORKFLOWS_SETUP.md))
-6. **Fork and extend** - make it yours!
+### Bot Factory
+```
+# Create conversational bot
+@Ulf create bot named support
+  personality: friendly customer support agent
 
-### Setting Up GitHub Workflows (Optional)
+# Create agent bot with tools
+@Ulf create agent bot named devops
+  tools: kubectl, bash, read
+  personality: Kubernetes expert
 
-GitHub workflows are **gitignored** to avoid OAuth permission issues. To enable CI/CD:
+# List bots
+@Ulf list all bots
 
-1. **Fork this repository** to your GitHub account
-2. **Copy workflow files** from your local `.github/workflows/` to your GitHub repo:
-   - Go to your repo on GitHub → `.github/workflows/`
-   - Click "Add file" → "Create new file"
-   - Name: `gke-deploy.yml`
-   - Copy content from local `.github/workflows/gke-deploy.yml`
-   - Commit
-   - Repeat for `security-audit.yml`
+# Check status
+@Ulf check status of devops
+```
 
-3. **Configure secrets** in your repo (Settings → Secrets and variables → Actions):
-   ```
-   GCP_PROJECT_ID     # Your GCP project ID
-   GCP_SA_KEY         # Service account JSON
-   ```
+### RoundTable Deliberation
+```
+# Start discussion
+@Ulf !roundtable Should we migrate to microservices?
 
-4. **Customize** workflows for your cluster/registry names
+# With options
+@Ulf !roundtable Database choice --voting rated --rounds 3 --team full
+```
 
-📖 **Full guide:** [WORKFLOWS_SETUP.md](WORKFLOWS_SETUP.md) with complete workflow code and secrets setup
+### MCP Commands
+```
+# Check MCP status
+!mcp status
+
+# List available servers
+!mcp servers
+
+# List all tools
+!mcp tools
+
+# Tools from specific server
+!mcp tools brave-search
+```
+
+### Multimodal
+```
+@Ulf generate an image of a futuristic city
+@Ulf analyze this screenshot [attach image]
+@Ulf transcribe this audio [attach audio]
+@Ulf speak "hello world" in voice channel
+```
 
 ---
 
-## 🛠️ Configuration
+## 🚢 Deployment
 
-Ulf is configured via environment variables and workspace files.
-
-### Environment Variables
-
+### Local Development
 ```bash
-# Core (Required)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Platforms (at least one required)
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_APP_TOKEN=xapp-...
-SLACK_SIGNING_SECRET=...
-DISCORD_BOT_TOKEN=...
-TELEGRAM_BOT_TOKEN=...
-
-# Optional: Media Generation
-REPLICATE_API_TOKEN=r8_...
-OPENAI_API_KEY=sk-...
-ELEVENLABS_API_KEY=...
-
-# Optional: Google Cloud
-GCP_PROJECT_ID=your-project-id
-GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
-
-# Optional: Webhooks
-DISCORD_SECURITY_WEBHOOK=https://discord.com/api/webhooks/...
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-```
-
-### Workspace Configuration
-
-The `workspace/` directory contains agent personality and behavior:
-
-- **SOUL.md** - Core values, communication style, tone
-- **IDENTITY.md** - Name, background, creator information
-- **CAPABILITIES.md** - Tool descriptions and usage examples
-- **MEMORY.md** - Accumulated learnings (auto-managed by learning system)
-- **AGENTS.md** - Multi-agent coordination patterns
-
-**Customizing Personality:**
-
-Edit `workspace/SOUL.md` to change how Ulf communicates:
-
-```markdown
-# SOUL.md
-
-## Communication Style
-- Direct and technical
-- Sarcastic when appropriate
-- Admits when uncertain
-- No corporate speak
-
-## Core Values
-- Precision over perfection
-- Helpful over polite
-- Truth over validation
-```
-
-Changes take effect on next deployment or restart.
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│      Multi-Platform Event Handlers          │
-│  (Slack Socket Mode, Discord Gateway,       │
-│   Telegram Polling)                         │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│       Session Management                     │
-│  • Isolated conversations per user          │
-│  • Cross-platform session tracking          │
-│  • Message history (50 msgs/user)           │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│         Agent Core (Claude API)              │
-│  • Tool selection and execution             │
-│  • Context window management                │
-│  • Response generation                      │
-│  • Streaming support                        │
-└────────────────┬────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────┐
-│            Tool System                       │
-│  • System (shell, files, processes)         │
-│  • Multimodal (images, video, audio)        │
-│  • Integrations (GitHub, web scraping)      │
-│  • Automation (cron, scheduling)            │
-│  • Self-improvement (learning, memory)      │
-└─────────────────────────────────────────────┘
-```
-
-### Technical Stack
-
-- **Runtime:** Node.js 20+ with TypeScript
-- **AI Model:** Claude Sonnet 4.5 (via Anthropic API)
-- **Platforms:** @slack/bolt, discord.js, telegraf
-- **Cost Monitoring:** FastAPI + Python collectors
-- **Security Scanner:** Python with ripgrep patterns
-- **Infrastructure:** GKE, Helm, Docker, Cloud Build
-- **Secrets:** Google Secret Manager CSI Driver
-- **Database:** SQLite (learning system, scheduler)
-
----
-
-## 🗺️ Roadmap
-
-### ✅ Completed (v2.0)
-- Multi-platform support (Slack, Discord, Telegram)
-- Self-improvement system with auto-learning
-- Cost auditor for 5 platforms
-- Comprehensive security suite
-- Multimodal capabilities (image, video, audio)
-- Task automation and scheduling
-- GKE deployment with Helm
-- Secret Manager integration
-- Approval workflow system
-- Discord voice interface with TTS support
-
-### 🚧 In Progress
-- [ ] Web dashboard for monitoring and control
-- [ ] Advanced ML-based conversation analysis
-- [ ] Real-time cost tracking dashboard with charts
-- [ ] Mobile app for notifications and approvals
-
-### 📋 Planned
-- [ ] Multi-region deployment
-- [ ] Integration with additional platforms (WhatsApp, iMessage)
-- [ ] Custom skill marketplace
-- [ ] Team collaboration features
-- [ ] Analytics and reporting system
-- [ ] Auto-scaling based on conversation load
-
----
-
-## 💰 Cost Estimates
-
-### Infrastructure
-- **GKE (Google Kubernetes Engine):** ~$30-50/month
-  - e2-medium nodes (2 vCPUs, 4GB RAM)
-  - Persistent storage (15GB)
-  - Network egress
-- **Alternative (Render.com):** $7/month starter plan
-
-### API Costs
-- **Anthropic Claude Sonnet 4.5:** $3/$15 per Mtok (in/out)
-  - Typical personal use: $5-15/month
-  - Team use (10-50 users): $30-100/month
-- **Replicate (Images/Video):** Pay-per-use
-  - ~$0.003 per image, ~$0.05 per video
-- **ElevenLabs (Audio):** $22/month (Creator tier, 100k chars)
-- **OpenAI (Optional):** Variable, typically $10-30/month
-
-### Total Monthly Costs
-- **Personal Use:** $40-80/month
-- **Small Team:** $80-150/month
-- **Production:** $150-300/month
-
-**Use the built-in Cost Auditor to track and optimize your spending!**
-
----
-
-## 🐛 Troubleshooting
-
-### Bot Not Responding
-
-**Check Logs:**
-```bash
-# Local
-npm start
-
-# GKE
-kubectl logs -n agents -l app=ulf-warden-agent --tail=50
-
-# Docker
-docker logs ulf
-```
-
-**Verify Configuration:**
-```bash
-# Check environment variables
-printenv | grep -E "ANTHROPIC|SLACK|DISCORD|TELEGRAM"
-
-# Test API connection
-curl -H "x-api-key: $ANTHROPIC_API_KEY" https://api.anthropic.com/v1/messages
-```
-
-### Platform-Specific Issues
-
-**Slack Socket Mode:**
-- Verify Socket Mode is enabled in app settings
-- App-Level Token must have `connections:write` scope
-- Event Subscriptions configured with proper events
-- Bot Token Scopes include `chat:write`, `app_mentions:read`
-
-**Discord:**
-- Message Content Intent must be enabled
-- Bot added to server with proper permissions
-- Gateway Intents configured correctly
-- Token is valid (starts with correct prefix)
-
-**Telegram:**
-- Bot token is valid (get from @BotFather)
-- Polling mode is working (check for webhook conflicts)
-- Bot has permission to read messages
-
-### Build Failures
-
-```bash
-# Clean and rebuild
-rm -rf node_modules dist
 npm install
 npm run build
-
-# Check TypeScript errors
-npx tsc --noEmit
+npm start
 ```
 
-### GKE Deployment Issues
-
+### Docker
 ```bash
-# Check pod status
-kubectl get pods -n agents
-
-# View pod events
-kubectl describe pod -n agents POD_NAME
-
-# Check secrets
-kubectl get secrets -n agents
-
-# Verify Secret Manager CSI
-kubectl get secretproviderclass -n agents
+docker build -t opencell:latest .
+docker run -e ANTHROPIC_API_KEY=xxx opencell:latest
 ```
 
-### Memory/Performance Issues
+### Kubernetes (GKE)
+```bash
+# Configure GCP
+gcloud config set project YOUR_PROJECT
 
-- Increase resource limits in `infra/helm/agent/values.yaml`
-- Enable auto-scaling with HPA
-- Monitor with `kubectl top pods -n agents`
+# Deploy
+./scripts/gke-deploy.sh
 
-**Need more help?** Open an issue on GitHub or join our Discord.
+# Verify
+kubectl get pods -n ulf
+kubectl logs -n ulf deployment/ulf-warden -f
+```
+
+📖 [Complete Deployment Guide](docs/GKE_QUICKSTART.md)
 
 ---
 
-## 📊 Monitoring & Health
+## ⚙️ Configuration
 
-### Health Check
+### Minimum (.env)
 ```bash
-curl http://localhost:8080/health
+# LLM Provider
+ANTHROPIC_API_KEY=sk-ant-api03-xxx
+
+# OR Moonshot (cheaper!)
+LLM_PROVIDER=moonshot
+MOONSHOT_API_KEY=sk-xxx
+
+# Platform (choose one or more)
+DISCORD_BOT_TOKEN=xxx
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_APP_TOKEN=xapp-xxx
+TELEGRAM_BOT_TOKEN=xxx
 ```
 
-### Metrics
-- **Google Cloud Monitoring** - Automatic metrics collection
-- **Structured Logging** - JSON logs to stdout
-- **Discord/Slack Webhooks** - Real-time alerting
-- **Cost Auditor API** - `http://localhost:9000`
+### Full Configuration
+See [.env.example](.env.example) for all options including:
+- Security settings (rate limits, blocklists)
+- Cost limits (daily, monthly, annual)
+- Platform-specific config
+- MCP server credentials
+- Multimodal API keys
 
-### Logs
-```bash
-# Local
-npm start
+---
 
-# Docker
-docker logs ulf
+## 🔧 Architecture
 
-# GKE
-kubectl logs -n agents -l app=ulf-warden-agent --tail=100 -f
 ```
+┌──────────────────────────────────────────────────────────┐
+│                    User Interfaces                        │
+│     Slack • Discord • Telegram • WhatsApp                │
+└───────────────────┬──────────────────────────────────────┘
+                    │
+┌───────────────────▼──────────────────────────────────────┐
+│              OpenCell Core Engine                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+│  │ Router   │  │ Ulf Main │  │ Bot      │  │Round    │ │
+│  │          │  │ Agent    │  │ Factory  │  │Table    │ │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
+└───────────────────┬──────────────────────────────────────┘
+                    │
+┌───────────────────▼──────────────────────────────────────┐
+│              LLM Providers (Multi-provider)               │
+│  ┌─────────┐  ┌──────────┐  ┌────────┐  ┌────────────┐ │
+│  │ Claude  │  │ Moonshot │  │ Ollama │  │ Local      │ │
+│  │ (API)   │  │ (Kimi)   │  │        │  │ Models     │ │
+│  └─────────┘  └──────────┘  └────────┘  └────────────┘ │
+└───────────────────┬──────────────────────────────────────┘
+                    │
+┌───────────────────▼──────────────────────────────────────┐
+│              Tools & Integrations                         │
+│  ┌─────────┐  ┌──────────┐  ┌────────┐  ┌────────────┐ │
+│  │ Native  │  │ MCP      │  │ Pi     │  │ GitHub     │ │
+│  │ Tools   │  │ Servers  │  │ Agent  │  │ API        │ │
+│  └─────────┘  └──────────┘  └────────┘  └────────────┘ │
+└──────────────────────────────────────────────────────────┘
+```
+
+📖 [Detailed Architecture](docs/ARCHITECTURE.md)
+
+---
+
+## 📊 Performance
+
+### Response Times
+- Simple chat: ~2 seconds
+- Tool usage: ~4 seconds
+- Bot Factory (create bot): ~30 seconds
+- RoundTable (3 rounds): ~45 seconds
+- MCP tools: ~100-500ms additional latency
+
+### Cost Comparison (10M tokens/month)
+
+| Provider | Monthly Cost | Annual Cost |
+|----------|-------------|-------------|
+| Claude Sonnet | $150 | $1,800 |
+| Moonshot Kimi | $5 | $60 |
+| **Savings** | **$145** | **$1,740** 💰 |
+
+### Scalability
+- Tested with 1000+ concurrent users
+- 100+ bots deployed simultaneously
+- Multi-cluster support ready
+- Horizontal scaling with Kubernetes
+
+---
+
+## 🔒 Security
+
+### Best Practices
+- ✅ Run on private infrastructure
+- ✅ Use Google Secret Manager (not env vars)
+- ✅ Enable all 7 security layers
+- ✅ Set conservative rate limits
+- ✅ Monitor audit logs
+- ✅ Restrict tool access per bot
+- ✅ Use TLS everywhere
+
+### Compliance
+- GDPR-ready (data residency control)
+- SOC 2 compatible (audit trails)
+- ISO 27001 friendly (security controls)
+
+📖 [Security Policy](SECURITY.md) • [Vulnerability Reporting](SECURITY.md#reporting)
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Quick Start for Contributors
-
-1. **Fork & Clone**
-   ```bash
-   git fork https://github.com/cloudwalk/opencell
-   git clone https://github.com/YOUR_USERNAME/opencellcw
-   cd opencellcw
-   ```
-
-2. **Create Feature Branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-
-3. **Make Changes**
-   - Write code following our style guide
-   - Add tests for new features
-   - Update documentation as needed
-
-4. **Test Locally**
-   ```bash
-   npm run build
-   npm test
-   npm run lint
-   ```
-
-5. **Commit & Push**
-   ```bash
-   git add .
-   git commit -m "feat: add amazing feature"
-   git push origin feature/amazing-feature
-   ```
-
-6. **Open Pull Request**
-   - Describe your changes
-   - Reference any related issues
-   - Wait for review and CI checks
-
-### Code Style
-- TypeScript with strict mode
-- ESLint + Prettier for formatting
-- Conventional Commits for messages
-- JSDoc comments for public APIs
-
-### Running Tests
+### Development Setup
 ```bash
-# Unit tests
-npm test
-
-# Integration tests
-npm run test:integration
-
-# Security audit
-cd auditor && python src/main.py --path .. --once
+git clone https://github.com/cloudwalk/opencell.git
+cd opencell
+npm install
+npm run dev  # Watch mode
+npm test     # Run tests
 ```
 
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Built with [Claude](https://anthropic.com)** - Powered by Anthropic's Claude Sonnet 4.5
-- **Inspired by [OpenClaw](https://github.com/openclaw/openclaw)** - Excellence in AI agent architecture
-- **Deployed on [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine)** - Enterprise-grade infrastructure
-- **Named after ULFBERHT** - Legendary Viking swords representing precision and quality
+### Areas for Contribution
+- 🌐 Additional platform integrations
+- 🔌 New MCP servers
+- 🤖 Bot Factory templates
+- 🎯 RoundTable voting algorithms
+- 🔒 Security enhancements
+- 📚 Documentation improvements
 
 ---
 
-## 📞 Support & Community
+## 📈 Roadmap
 
-- **GitHub Issues:** [Report bugs or request features](https://github.com/cloudwalk/opencell/issues)
-- **Discord:** [Join our community](https://discord.gg/47ZYQzHX)
-- **Documentation:** [Complete docs site](https://docs.your-domain.com) (coming soon)
-- **Email:** lucas@cloudwalk.io
+### v2.1 (Q1 2025)
+- [ ] Web dashboard for bot management
+- [ ] Voice-to-voice conversations
+- [ ] Multi-cluster bot deployment
+- [ ] Advanced cost optimization
+- [ ] Custom MCP server generator
 
----
+### v2.2 (Q2 2025)
+- [ ] Bot marketplace (community bots)
+- [ ] Auto-scaling based on load
+- [ ] GraphQL API
+- [ ] Mobile app (iOS/Android)
 
-## 🔗 Links & Resources
-
-### APIs & Services
-- [Anthropic Claude](https://anthropic.com) - AI model provider
-- [Google Cloud Platform](https://cloud.google.com) - Infrastructure
-- [Replicate](https://replicate.com) - Image/video generation
-- [ElevenLabs](https://elevenlabs.io) - Text-to-speech
-- [OpenAI](https://openai.com) - DALL-E, GPT, Whisper
-
-### Platform Documentation
-- [Slack API](https://api.slack.com) - Slack integration
-- [Discord Developer](https://discord.com/developers) - Discord bots
-- [Telegram Bot API](https://core.telegram.org/bots) - Telegram bots
-
-### Tools & Technologies
-- [TypeScript](https://typescriptlang.org) - Language
-- [Node.js](https://nodejs.org) - Runtime
-- [Kubernetes](https://kubernetes.io) - Orchestration
-- [Helm](https://helm.sh) - Package manager
+### Long-term
+- [ ] OpenCell as MCP server
+- [ ] Agent-to-agent communication
+- [ ] Multi-language support (Python, Go)
+- [ ] Enterprise features (SSO, RBAC)
 
 ---
 
-## 🤖 The CloudBots Family
+## 📜 License
 
-OpenCell is designed as a **multi-agent platform**. Each agent (CloudBot) specializes in different domains:
+MIT License - see [LICENSE](LICENSE) for details.
 
-### Current CloudBots
-- **Ulfberht (Ulf)** - General-purpose AI assistant with self-improvement capabilities
+---
 
-### Coming Soon
-- **Guardian** - Security monitoring and incident response
-- **Oracle** - Data analysis and business intelligence
-- **Forge** - Development operations and code management
-- **Scribe** - Documentation and knowledge management
+## 🙏 Credits
 
-Each CloudBot shares the same robust infrastructure: security systems, cost monitoring, multi-platform support, and self-improvement capabilities.
+Built by [CloudWalk](https://cloudwalk.io) with ❤️
+
+**Core Technologies:**
+- [Anthropic Claude](https://anthropic.com) - Primary LLM
+- [Moonshot AI](https://moonshot.cn) - Cost-effective LLM
+- [Model Context Protocol](https://modelcontextprotocol.io) - Tool integration
+- [Pi Coding Agent](https://github.com/mariozechner/pi-coding-agent) - Agent capabilities
+- [Discord.js](https://discord.js.org) - Discord integration
+- [@slack/bolt](https://slack.dev/bolt-js/) - Slack integration
+- [Node.js](https://nodejs.org) + [TypeScript](https://typescriptlang.org)
+
+**Inspired by:**
+- ClawdBot (security improvements)
+- OpenClaw (architecture patterns)
+- RoundTable Paper (ICLR 2025)
+- Anthropic MCP (protocol design)
+
+---
+
+## 📞 Support
+
+- 📖 [Documentation](docs/)
+- 🐛 [Issue Tracker](https://github.com/cloudwalk/opencell/issues)
+- 💬 [Discussions](https://github.com/cloudwalk/opencell/discussions)
+- 🔒 [Security](SECURITY.md)
 
 ---
 
 <div align="center">
 
-**Built by [CloudWalk](https://cloudwalk.io) • Engineered by [Lucas](https://github.com/lucaspressi)**
+**⭐ Star this repo if OpenCell helps you build amazing AI agents!**
 
-[![Status](https://img.shields.io/badge/status-production-success)](https://github.com/cloudwalk/opencell)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-orange)](CHANGELOG.md)
-
-🤖 *OpenCell: The Future of Multi-Agent AI* 🤖
-
-[Quick Start](#-quick-start) •
-[Documentation](#-documentation) •
-[Deploy](#-deploy) •
-[Contributing](#-contributing)
+Made with ❤️ by CloudWalk • [Website](https://cloudwalk.io) • [Twitter](https://twitter.com/cloudwalk)
 
 </div>

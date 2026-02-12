@@ -100,6 +100,7 @@ export async function handleBotCreation(message: Message): Promise<void> {
       name: botId,
       personality: intent.personality,
       model: intent.model || 'sonnet',
+      type: 'conversational', // Default type for bot factory
       replicas: 1,
       enableDiscord: true
     };

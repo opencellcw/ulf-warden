@@ -7,11 +7,19 @@ export const BOT_FACTORY_TOOLS: Anthropic.Tool[] = [
 
 The bot will be deployed as a separate pod in the same GKE cluster, with its own Discord presence.
 
-Examples:
-- Create security bot: name="guardian", personality="You are a strict security monitor..."
-- Create data analyst: name="oracle", personality="You help analyze data and provide insights..."
+BOT TYPES:
+- "conversational": Simple chat bot using Claude API (fast, cheap, safe)
+- "agent": Coding agent with tools like bash, read, write, edit (powerful but needs careful permissions)
 
-IMPORTANT: Only admins can create bots. The bot will deploy in ~30 seconds.`,
+Examples:
+- Conversational bot: name="support", type="conversational", personality="You are a helpful customer support agent"
+- DevOps agent: name="devops", type="agent", allowed_tools=["bash", "kubectl", "read"], personality="You are a Kubernetes expert"
+- Security agent: name="guardian", type="agent", allowed_tools=["read", "bash"], personality="You monitor security issues"
+
+IMPORTANT: 
+- Only admins can create bots
+- Agent bots require allowed_tools to be specified
+- Bot will deploy in ~30 seconds`,
     input_schema: {
       type: 'object',
       properties: {
@@ -22,6 +30,19 @@ IMPORTANT: Only admins can create bots. The bot will deploy in ~30 seconds.`,
         personality: {
           type: 'string',
           description: 'Bot personality/behavior description (the system prompt for the bot)'
+        },
+        type: {
+          type: 'string',
+          enum: ['conversational', 'agent'],
+          description: 'Bot type: "conversational" (chat only) or "agent" (with tools). Default: conversational'
+        },
+        allowed_tools: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['bash', 'read', 'write', 'edit', 'kubectl', 'gcloud', 'git']
+          },
+          description: 'Tools the agent bot can use. Required if type="agent". Available: bash, read, write, edit, kubectl, gcloud, git'
         },
         model: {
           type: 'string',

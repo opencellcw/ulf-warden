@@ -47,6 +47,9 @@ COPY package*.json ./
 # Install ALL dependencies (including dev for build)
 RUN npm install
 
+# Install Pi coding agent globally for agent bots
+RUN npm install -g @mariozechner/pi-coding-agent
+
 # Install Playwright browsers (Chromium only for smaller image)
 RUN npx playwright install chromium --with-deps
 
