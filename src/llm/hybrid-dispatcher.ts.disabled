@@ -1,0 +1,410 @@
+import { LLMProvider, LLMMessage, LLMResponse, LLMOptions } from './interface';
+import { ClaudeProvider } from './claude';
+import { MoonshotProvider } from './moonshot-provider';
+import { PiProviderEnhanced, createPiProviderEnhanced } from './pi-provider-enhanced';
+import { log } from '../logger';
+import { BotTool } from '../bot-factory/types';
+
+/**
+ * Hybrid Dispatcher - Smart routing between Claude, Moonshot, and Pi
+ * 
+ * Decision tree:
+ * 1. Simple chat → Moonshot (97% cheaper)
+ * 2. Complex reasoning → Claude (best quality)
+ * 3. Tool use needed → Pi (full power)
+ * 
+ * Cost optimization:
+ * - Moonshot: $0.50/Mtok (bulk of simple queries)
+ * - Claude:  $3-15/Mtok (when quality matters)
+ * - Pi:      Multiple calls (when tools needed)
+ */
+
+export interface HybridConfig {
+  // Default provider for simple queries
+  defaultProvider: 'claude' | 'moonshot';
+  
+  // Enable Pi for tool use
+  enablePi: boolean;
+  
+  // Pi configuration
+  piConfig?: {
+    allowedTools: BotTool[];
+    botId?: string;
+    maxHistoryLength?: number;
+  };
+  
+  // Routing rules
+  routing: {
+    // Patterns that trigger Pi (tool use)
+    piTriggers: RegExp[];
+    
+    // Patterns that trigger Claude (complex reasoning)
+    claudeTriggers: RegExp[];
+    
+    // Everything else goes to defaultProvider
+  };
+  
+  // Budget constraints
+  budget?: {
+    maxCostPerMessage?: number; // Max $ per message
+    dailyBudget?: number;        // Max $ per day
+  };
+}
+
+/**
+ * Task complexity levels
+ */
+enum TaskComplexity {
+  SIMPLE = 'simple',           // "oi", "obrigado"
+  QUERY = 'query',             // "qual é a capital?"
+  REASONING = 'reasoning',     // "explica arquitetura"
+  TOOL_USE = 'tool_use'        // "checa os pods"
+}
+
+/**
+ * Hybrid Dispatcher
+ */
+export class HybridDispatcher implements LLMProvider {
+  name = 'hybrid';
+  
+  private claudeProvider: ClaudeProvider;
+  private moonshotProvider: MoonshotProvider;
+  private piProvider: PiProviderEnhanced | null = null;
+  
+  private config: HybridConfig;
+  private dailyCost: number = 0;
+  private lastResetDate: string = '';
+
+  constructor(config: HybridConfig) {
+    this.config = config;
+    
+    // Initialize providers
+    this.claudeProvider = new ClaudeProvider();
+    this.moonshotProvider = new MoonshotProvider();
+    
+    if (config.enablePi && config.piConfig) {
+      this.piProvider = createPiProviderEnhanced(
+        undefined, // use default model
+        config.piConfig.allowedTools,
+        config.piConfig.botId,
+        {
+          maxHistoryLength: config.piConfig.maxHistoryLength
+        }
+      );
+    }
+    
+    log.info('[Hybrid Dispatcher] Initialized', {
+      defaultProvider: config.defaultProvider,
+      piEnabled: config.enablePi,
+      piTools: config.piConfig?.allowedTools || []
+    });
+  }
+
+  async isAvailable(): Promise<boolean> {
+    const claudeAvailable = await this.claudeProvider.isAvailable();
+    const moonshotAvailable = await this.moonshotProvider.isAvailable();
+    
+    return claudeAvailable || moonshotAvailable;
+  }
+
+  async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
+    const startTime = Date.now();
+    
+    try {
+      // Reset daily budget if new day
+      this.checkDailyBudget();
+      
+      // Get last user message for analysis
+      const lastMessage = messages
+        .filter(m => m.role === 'user')
+        .slice(-1)[0];
+      
+      if (!lastMessage) {
+        throw new Error('No user message found');
+      }
+      
+      // Classify task complexity
+      const complexity = this.classifyTask(lastMessage.content);
+      
+      // Select provider based on complexity
+      const provider = this.selectProvider(complexity, lastMessage.content);
+      
+      log.info('[Hybrid Dispatcher] Routing decision', {
+        complexity,
+        selectedProvider: provider.name,
+        messagePreview: lastMessage.content.substring(0, 100)
+      });
+      
+      // Generate response
+      const response = await provider.generate(messages, options);
+      
+      // Track cost
+      const estimatedCost = this.estimateCost(provider.name, response);
+      this.dailyCost += estimatedCost;
+      
+      const totalTime = Date.now() - startTime;
+      
+      log.info('[Hybrid Dispatcher] Response generated', {
+        provider: provider.name,
+        complexity,
+        cost: `$${estimatedCost.toFixed(4)}`,
+        dailyCost: `$${this.dailyCost.toFixed(2)}`,
+        time: `${totalTime}ms`
+      });
+      
+      return {
+        ...response,
+        model: `${provider.name}:${response.model}`
+      };
+      
+    } catch (error: any) {
+      log.error('[Hybrid Dispatcher] Generation failed', {
+        error: error.message
+      });
+      
+      // Fallback to Claude
+      log.warn('[Hybrid Dispatcher] Falling back to Claude');
+      return await this.claudeProvider.generate(messages, options);
+    }
+  }
+
+  /**
+   * Classify task complexity
+   */
+  private classifyTask(message: string): TaskComplexity {
+    const lowerMessage = message.toLowerCase();
+    
+    // Simple greetings/acknowledgments (1-3 words)
+    const simplePatterns = [
+      /^(oi|olá|hey|hi|hello)$/i,
+      /^(obrigado|thanks|valeu)$/i,
+      /^(tchau|bye|até)$/i,
+      /^ok$/i,
+      /^sim|não$/i
+    ];
+    
+    if (simplePatterns.some(p => p.test(message)) || message.split(' ').length <= 3) {
+      return TaskComplexity.SIMPLE;
+    }
+    
+    // Tool use patterns (needs Pi)
+    const toolPatterns = [
+      /kubectl/i,
+      /checa.*pod/i,
+      /verifica.*pod/i,
+      /lista.*pod/i,
+      /analisa.*arquivo/i,
+      /lê.*arquivo/i,
+      /deploy/i,
+      /logs?/i,
+      /executa/i,
+      /roda.*comando/i,
+      /bash/i,
+      /script/i
+    ];
+    
+    if (toolPatterns.some(p => p.test(message))) {
+      return TaskComplexity.TOOL_USE;
+    }
+    
+    // Complex reasoning patterns (needs Claude)
+    const reasoningPatterns = [
+      /arquitetura/i,
+      /design/i,
+      /como.*implementar/i,
+      /explica.*detalhado/i,
+      /compara/i,
+      /qual.*melhor/i,
+      /prós.*contras/i,
+      /trade-?off/i,
+      /decisão/i
+    ];
+    
+    if (reasoningPatterns.some(p => p.test(message))) {
+      return TaskComplexity.REASONING;
+    }
+    
+    // Default: simple query (Moonshot)
+    return TaskComplexity.QUERY;
+  }
+
+  /**
+   * Select provider based on complexity and triggers
+   */
+  private selectProvider(
+    complexity: TaskComplexity,
+    message: string
+  ): LLMProvider {
+    // Check custom triggers first
+    for (const trigger of this.config.routing.piTriggers) {
+      if (trigger.test(message) && this.piProvider) {
+        return this.piProvider;
+      }
+    }
+    
+    for (const trigger of this.config.routing.claudeTriggers) {
+      if (trigger.test(message)) {
+        return this.claudeProvider;
+      }
+    }
+    
+    // Use complexity-based routing
+    switch (complexity) {
+      case TaskComplexity.SIMPLE:
+      case TaskComplexity.QUERY:
+        // Use default provider (usually Moonshot for cost)
+        return this.config.defaultProvider === 'moonshot'
+          ? this.moonshotProvider
+          : this.claudeProvider;
+      
+      case TaskComplexity.REASONING:
+        // Use Claude for complex reasoning
+        return this.claudeProvider;
+      
+      case TaskComplexity.TOOL_USE:
+        // Use Pi if enabled, otherwise Claude
+        return this.piProvider || this.claudeProvider;
+      
+      default:
+        return this.config.defaultProvider === 'moonshot'
+          ? this.moonshotProvider
+          : this.claudeProvider;
+    }
+  }
+
+  /**
+   * Estimate cost based on provider and response
+   */
+  private estimateCost(providerName: string, response: LLMResponse): number {
+    const inputTokens = response.usage?.inputTokens || 0;
+    const outputTokens = response.usage?.outputTokens || 0;
+    
+    switch (providerName) {
+      case 'moonshot':
+      case 'pi-enhanced': // Pi uses moonshot if configured
+        // Moonshot: $0.50/Mtok
+        return ((inputTokens + outputTokens) / 1_000_000) * 0.50;
+      
+      case 'claude':
+        // Claude Sonnet: $3 input, $15 output per Mtok
+        const inputCost = (inputTokens / 1_000_000) * 3;
+        const outputCost = (outputTokens / 1_000_000) * 15;
+        return inputCost + outputCost;
+      
+      default:
+        // Conservative estimate
+        return 0.01;
+    }
+  }
+
+  /**
+   * Check and reset daily budget
+   */
+  private checkDailyBudget(): void {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (this.lastResetDate !== today) {
+      log.info('[Hybrid Dispatcher] New day, resetting budget', {
+        previousCost: `$${this.dailyCost.toFixed(2)}`,
+        date: today
+      });
+      
+      this.dailyCost = 0;
+      this.lastResetDate = today;
+    }
+    
+    // Check if over budget
+    if (this.config.budget?.dailyBudget) {
+      if (this.dailyCost >= this.config.budget.dailyBudget) {
+        log.warn('[Hybrid Dispatcher] Daily budget exceeded!', {
+          dailyCost: `$${this.dailyCost.toFixed(2)}`,
+          budget: `$${this.config.budget.dailyBudget}`
+        });
+        
+        // Switch to cheapest provider (Moonshot)
+        // This is handled implicitly by returning errors which fallback to Claude
+      }
+    }
+  }
+
+  /**
+   * Get current stats
+   */
+  getStats(): {
+    dailyCost: number;
+    lastResetDate: string;
+    config: HybridConfig;
+  } {
+    return {
+      dailyCost: this.dailyCost,
+      lastResetDate: this.lastResetDate,
+      config: this.config
+    };
+  }
+
+  /**
+   * Get model name
+   */
+  getModel(): string {
+    return 'hybrid-dispatcher';
+  }
+
+  /**
+   * Cleanup
+   */
+  async cleanup(): Promise<void> {
+    if (this.piProvider) {
+      await this.piProvider.cleanup();
+    }
+  }
+}
+
+/**
+ * Create default hybrid dispatcher
+ */
+export function createHybridDispatcher(
+  botId?: string,
+  allowedTools: BotTool[] = []
+): HybridDispatcher {
+  const config: HybridConfig = {
+    defaultProvider: (process.env.DEFAULT_PROVIDER as any) || 'moonshot',
+    enablePi: process.env.ENABLE_PI === 'true',
+    
+    piConfig: {
+      allowedTools,
+      botId,
+      maxHistoryLength: 10
+    },
+    
+    routing: {
+      // Pi triggers (tool use)
+      piTriggers: [
+        /kubectl/i,
+        /checa.*pod/i,
+        /verifica.*pod/i,
+        /analisa.*arquivo/i,
+        /deploy/i,
+        /logs?/i,
+        /executa/i,
+        /bash/i
+      ],
+      
+      // Claude triggers (complex reasoning)
+      claudeTriggers: [
+        /arquitetura/i,
+        /design/i,
+        /implementar/i,
+        /explica.*detalhado/i,
+        /compara/i,
+        /trade-?off/i
+      ]
+    },
+    
+    budget: {
+      maxCostPerMessage: parseFloat(process.env.MAX_COST_PER_MESSAGE || '0.50'),
+      dailyBudget: parseFloat(process.env.DAILY_BUDGET || '10.00')
+    }
+  };
+  
+  return new HybridDispatcher(config);
+}

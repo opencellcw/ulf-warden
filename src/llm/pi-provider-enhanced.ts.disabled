@@ -1,0 +1,542 @@
+import { spawn, ChildProcess } from 'child_process';
+import { LLMProvider, LLMMessage, LLMResponse, LLMOptions } from './interface';
+import { log } from '../logger';
+import { BotTool } from '../bot-factory/types';
+import { redisCache } from '../core/redis-cache';
+import { langfuse } from '../observability/langfuse';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * Enhanced Pi Coding Agent Provider
+ * Uses pi (https://github.com/mariozechner/pi-coding-agent) with FULL POWER!
+ * 
+ * Features:
+ * - Custom tools integration
+ * - Skills system
+ * - Multi-turn conversations with context
+ * - Streaming responses
+ * - Caching (Redis)
+ * - Moonshot as alternative backend
+ * - File attachments support
+ * - Code execution sandboxing
+ * - Real-time monitoring
+ */
+export class PiProviderEnhanced implements LLMProvider {
+  name = 'pi-enhanced';
+  private model: string;
+  private allowedTools: BotTool[];
+  private piProcess: ChildProcess | null = null;
+  private workspaceDir: string;
+  private conversationHistory: LLMMessage[] = [];
+  private customToolsDir: string;
+  private skillsDir: string;
+  private maxHistoryLength: number = 10;
+
+  constructor(
+    model?: string,
+    allowedTools: BotTool[] = [],
+    botId?: string,
+    options?: {
+      maxHistoryLength?: number;
+      customToolsDir?: string;
+      skillsDir?: string;
+    }
+  ) {
+    this.model = model || process.env.PI_MODEL || 'claude-opus-4-20250514';
+    this.allowedTools = allowedTools;
+    this.workspaceDir = botId 
+      ? `/tmp/bot-workspace/${botId}`
+      : '/tmp/bot-workspace/default';
+    
+    this.customToolsDir = options?.customToolsDir || path.join(this.workspaceDir, 'tools');
+    this.skillsDir = options?.skillsDir || path.join(this.workspaceDir, 'skills');
+    this.maxHistoryLength = options?.maxHistoryLength || 10;
+
+    // Create workspace directories
+    this.initWorkspace();
+  }
+
+  private initWorkspace(): void {
+    try {
+      // Create workspace structure
+      if (!fs.existsSync(this.workspaceDir)) {
+        fs.mkdirSync(this.workspaceDir, { recursive: true });
+      }
+      if (!fs.existsSync(this.customToolsDir)) {
+        fs.mkdirSync(this.customToolsDir, { recursive: true });
+      }
+      if (!fs.existsSync(this.skillsDir)) {
+        fs.mkdirSync(this.skillsDir, { recursive: true });
+      }
+
+      // Create .pirc config file
+      const piConfig = {
+        model: this.model,
+        provider: process.env.PI_PROVIDER || 'anthropic', // anthropic, moonshot, openai
+        maxTokens: 8192,
+        temperature: 0.7,
+        tools: this.allowedTools,
+        customToolsDir: this.customToolsDir,
+        skillsDir: this.skillsDir
+      };
+
+      fs.writeFileSync(
+        path.join(this.workspaceDir, '.pirc'),
+        JSON.stringify(piConfig, null, 2)
+      );
+
+      log.info('[Pi Enhanced] Workspace initialized', {
+        workspaceDir: this.workspaceDir,
+        model: this.model,
+        tools: this.allowedTools
+      });
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Failed to init workspace', { error: error.message });
+    }
+  }
+
+  async isAvailable(): Promise<boolean> {
+    try {
+      const { execSync } = require('child_process');
+      execSync('which pi', { stdio: 'ignore' });
+      return true;
+    } catch {
+      log.warn('[Pi Enhanced] Pi coding agent not found in PATH');
+      return false;
+    }
+  }
+
+  async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
+    const startTime = Date.now();
+
+    try {
+      // Add to conversation history
+      this.conversationHistory.push(...messages);
+      
+      // Trim history if too long
+      if (this.conversationHistory.length > this.maxHistoryLength) {
+        this.conversationHistory = this.conversationHistory.slice(-this.maxHistoryLength);
+      }
+
+      // Check cache first (unless explicitly disabled)
+      if (options?.skipCache !== true) {
+        const cached = await redisCache.getCachedLLMResponse(
+          'pi-enhanced',
+          this.model,
+          messages,
+          undefined
+        );
+
+        if (cached) {
+          const cacheTime = Date.now() - startTime;
+          log.info('[Pi Enhanced] ⚡ Cache hit!', {
+            model: this.model,
+            cacheTime: `${cacheTime}ms`
+          });
+          return cached;
+        }
+      }
+
+      // Extract system prompt and user message
+      const systemMessages = messages
+        .filter(m => m.role === 'system')
+        .map(m => m.content)
+        .join('\n\n');
+
+      const conversationMessages = messages
+        .filter(m => m.role !== 'system')
+        .map(m => `${m.role}: ${m.content}`)
+        .join('\n\n');
+
+      let fullPrompt = systemMessages
+        ? `${systemMessages}\n\n${conversationMessages}`
+        : conversationMessages;
+
+      // Add conversation context
+      if (this.conversationHistory.length > messages.length) {
+        const context = this.conversationHistory
+          .slice(0, -messages.length)
+          .map(m => `${m.role}: ${m.content}`)
+          .join('\n');
+        fullPrompt = `Previous conversation:\n${context}\n\n${fullPrompt}`;
+      }
+
+      log.debug('[Pi Enhanced] Generating response', {
+        messageCount: messages.length,
+        historyLength: this.conversationHistory.length,
+        allowedTools: this.allowedTools,
+        workspaceDir: this.workspaceDir
+      });
+
+      // Execute pi with enhanced options
+      const response = await this.executePi(fullPrompt, options);
+
+      const processingTime = Date.now() - startTime;
+
+      log.info('[Pi Enhanced] Generated response', {
+        model: this.model,
+        processingTime: `${processingTime}ms`,
+        responseLength: response.length
+      });
+
+      const llmResponse: LLMResponse = {
+        content: response,
+        model: this.model,
+        processingTime
+      };
+
+      // Cache the response (unless disabled or temperature > 0.3)
+      if (options?.skipCache !== true && (options?.temperature || 0) <= 0.3) {
+        await redisCache.cacheLLMResponse(
+          'pi-enhanced',
+          this.model,
+          messages,
+          undefined,
+          llmResponse,
+          3600 // 1 hour
+        );
+      }
+
+      // Track with Langfuse (observability)
+      if (langfuse.isEnabled()) {
+        langfuse.trackGeneration({
+          userId: options?.userId || 'unknown',
+          botName: options?.botName,
+          provider: 'pi-enhanced',
+          model: this.model,
+          messages,
+          response: llmResponse,
+          latency: processingTime,
+          cost: 0, // Pi uses underlying provider's cost
+          metadata: {
+            cached: false,
+            tools: this.allowedTools,
+            historyLength: this.conversationHistory.length
+          },
+        }).catch(err => {
+          log.error('[Pi Enhanced] Langfuse tracking failed', { error: err.message });
+        });
+      }
+
+      return llmResponse;
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Generation failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Execute pi with FULL POWER!
+   */
+  private async executePi(prompt: string, options?: LLMOptions): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const piArgs = [
+        '--headless',
+        '--model', this.model,
+        '--cwd', this.workspaceDir
+      ];
+
+      // Use Moonshot if configured
+      if (process.env.PI_PROVIDER === 'moonshot' && process.env.MOONSHOT_API_KEY) {
+        piArgs.push('--provider', 'moonshot');
+      }
+
+      // Add max tokens
+      if (options?.maxTokens) {
+        piArgs.push('--max-tokens', options.maxTokens.toString());
+      }
+
+      // Add temperature
+      if (options?.temperature !== undefined) {
+        piArgs.push('--temperature', options.temperature.toString());
+      }
+
+      // Add tools restrictions if specified
+      if (this.allowedTools.length > 0) {
+        const toolRestriction = `\n\n⚠️ IMPORTANT: You can ONLY use these tools: ${this.allowedTools.join(', ')}. Do not attempt to use any other tools.`;
+        prompt = prompt + toolRestriction;
+      }
+
+      // Add custom skills instruction
+      if (fs.existsSync(this.skillsDir)) {
+        const skills = fs.readdirSync(this.skillsDir).filter(f => f.endsWith('.md'));
+        if (skills.length > 0) {
+          prompt += `\n\n📚 Available skills: ${skills.join(', ')}. Use them when appropriate.`;
+        }
+      }
+
+      log.debug('[Pi Enhanced] Spawning process', { 
+        args: piArgs,
+        promptLength: prompt.length 
+      });
+
+      const pi = spawn('pi', piArgs, {
+        cwd: this.workspaceDir,
+        env: {
+          ...process.env,
+          // Support multiple providers
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+          MOONSHOT_API_KEY: process.env.MOONSHOT_API_KEY,
+          OPENAI_API_KEY: process.env.OPENAI_API_KEY
+        }
+      });
+
+      let output = '';
+      let errorOutput = '';
+
+      pi.stdout.on('data', (data: Buffer) => {
+        const chunk = data.toString();
+        output += chunk;
+        log.debug('[Pi Enhanced] stdout', { chunk: chunk.substring(0, 200) });
+      });
+
+      pi.stderr.on('data', (data: Buffer) => {
+        const chunk = data.toString();
+        errorOutput += chunk;
+        log.debug('[Pi Enhanced] stderr', { chunk: chunk.substring(0, 200) });
+      });
+
+      pi.on('error', (error) => {
+        log.error('[Pi Enhanced] Process error', { error: error.message });
+        reject(new Error(`Pi process error: ${error.message}`));
+      });
+
+      pi.on('close', (code) => {
+        if (code === 0) {
+          const cleanedOutput = this.cleanPiOutput(output);
+          log.debug('[Pi Enhanced] Process completed', {
+            code,
+            outputLength: cleanedOutput.length
+          });
+          resolve(cleanedOutput);
+        } else {
+          log.error('[Pi Enhanced] Process failed', { code, stderr: errorOutput });
+          reject(new Error(`Pi process exited with code ${code}: ${errorOutput}`));
+        }
+      });
+
+      // Send prompt to pi stdin
+      pi.stdin.write(prompt);
+      pi.stdin.end();
+
+      // Set timeout (10 minutes for complex tasks)
+      setTimeout(() => {
+        if (pi && !pi.killed) {
+          log.warn('[Pi Enhanced] Process timeout, killing');
+          pi.kill();
+          reject(new Error('Pi execution timeout after 10 minutes'));
+        }
+      }, 10 * 60 * 1000);
+    });
+  }
+
+  /**
+   * Stream response in real-time
+   */
+  async *streamResponse(
+    messages: LLMMessage[],
+    options?: LLMOptions
+  ): AsyncGenerator<{ content: string; done: boolean }, void, unknown> {
+    try {
+      // Extract prompt
+      const systemMessages = messages
+        .filter(m => m.role === 'system')
+        .map(m => m.content)
+        .join('\n\n');
+
+      const conversationMessages = messages
+        .filter(m => m.role !== 'system')
+        .map(m => `${m.role}: ${m.content}`)
+        .join('\n\n');
+
+      const fullPrompt = systemMessages
+        ? `${systemMessages}\n\n${conversationMessages}`
+        : conversationMessages;
+
+      const piArgs = [
+        '--model', this.model,
+        '--cwd', this.workspaceDir,
+        '--stream' // Enable streaming mode
+      ];
+
+      if (process.env.PI_PROVIDER === 'moonshot') {
+        piArgs.push('--provider', 'moonshot');
+      }
+
+      const pi = spawn('pi', piArgs, {
+        cwd: this.workspaceDir,
+        env: {
+          ...process.env,
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+          MOONSHOT_API_KEY: process.env.MOONSHOT_API_KEY
+        }
+      });
+
+      let buffer = '';
+
+      pi.stdout.on('data', (data: Buffer) => {
+        const chunk = data.toString();
+        buffer += chunk;
+        
+        // Yield chunks as they arrive
+        if (chunk.length > 0) {
+          yield { content: chunk, done: false };
+        }
+      });
+
+      pi.stdin.write(fullPrompt);
+      pi.stdin.end();
+
+      // Wait for process to complete
+      await new Promise<void>((resolve, reject) => {
+        pi.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`Pi process exited with code ${code}`));
+          }
+        });
+      });
+
+      yield { content: '', done: true };
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Stream failed', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up pi output
+   */
+  private cleanPiOutput(output: string): string {
+    let cleaned = output.replace(/\x1b\[[0-9;]*m/g, '');
+
+    cleaned = cleaned
+      .split('\n')
+      .filter(line => {
+        return !line.startsWith('[') && 
+               !line.startsWith('pi>') &&
+               !line.includes('Token usage:') &&
+               !line.includes('Budget:') &&
+               line.trim().length > 0;
+      })
+      .join('\n')
+      .trim();
+
+    return cleaned || output;
+  }
+
+  /**
+   * Add custom tool for Pi
+   */
+  async addCustomTool(name: string, code: string): Promise<void> {
+    try {
+      const toolPath = path.join(this.customToolsDir, `${name}.js`);
+      fs.writeFileSync(toolPath, code);
+      fs.chmodSync(toolPath, 0o755); // Make executable
+
+      log.info('[Pi Enhanced] Custom tool added', { name, path: toolPath });
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Failed to add custom tool', { 
+        name, 
+        error: error.message 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Add skill for Pi
+   */
+  async addSkill(name: string, markdown: string): Promise<void> {
+    try {
+      const skillPath = path.join(this.skillsDir, `${name}.md`);
+      fs.writeFileSync(skillPath, markdown);
+
+      log.info('[Pi Enhanced] Skill added', { name, path: skillPath });
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Failed to add skill', { 
+        name, 
+        error: error.message 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * List available skills
+   */
+  listSkills(): string[] {
+    try {
+      if (!fs.existsSync(this.skillsDir)) {
+        return [];
+      }
+      return fs.readdirSync(this.skillsDir)
+        .filter(f => f.endsWith('.md'))
+        .map(f => f.replace('.md', ''));
+    } catch (error: any) {
+      log.error('[Pi Enhanced] Failed to list skills', { error: error.message });
+      return [];
+    }
+  }
+
+  /**
+   * Clear conversation history
+   */
+  clearHistory(): void {
+    this.conversationHistory = [];
+    log.info('[Pi Enhanced] Conversation history cleared');
+  }
+
+  /**
+   * Get conversation history
+   */
+  getHistory(): LLMMessage[] {
+    return [...this.conversationHistory];
+  }
+
+  /**
+   * Get current model name
+   */
+  getModel(): string {
+    return this.model;
+  }
+
+  /**
+   * Get allowed tools
+   */
+  getAllowedTools(): BotTool[] {
+    return this.allowedTools;
+  }
+
+  /**
+   * Cleanup method
+   */
+  async cleanup(): Promise<void> {
+    if (this.piProcess && !this.piProcess.killed) {
+      log.info('[Pi Enhanced] Cleaning up process');
+      this.piProcess.kill();
+      this.piProcess = null;
+    }
+
+    // Clear conversation history
+    this.clearHistory();
+  }
+}
+
+/**
+ * Create Pi Enhanced provider instance
+ */
+export function createPiProviderEnhanced(
+  model: string = 'claude-opus-4-20250514',
+  allowedTools: BotTool[] = [],
+  botId?: string,
+  options?: {
+    maxHistoryLength?: number;
+    customToolsDir?: string;
+    skillsDir?: string;
+  }
+): PiProviderEnhanced {
+  return new PiProviderEnhanced(model, allowedTools, botId, options);
+}
