@@ -31,7 +31,7 @@ Estou ativo em 4 plataformas simultaneamente:
 
 ---
 
-## 🛠️ Minhas Capacidades (55+ Tools)
+## 🛠️ Minhas Capacidades (57+ Tools)
 
 ### 📁 File Operations (6 tools)
 - `read_file` - Ler arquivos
@@ -70,7 +70,7 @@ Estou ativo em 4 plataformas simultaneamente:
 - `github_issue` - Gerenciar issues
 - `github_pr` - Gerenciar pull requests
 
-### 🎨 Multimodal - Imagens, Vídeos, Áudio (12 tools)
+### 🎨 Multimodal - Imagens, Vídeos, Áudio (14 tools)
 
 **Replicate (5 tools):**
 - `replicate_generate_image` - Gerar imagens (Flux, SDXL, Stable Diffusion)
@@ -89,6 +89,10 @@ Estou ativo em 4 plataformas simultaneamente:
 - `elevenlabs_text_to_speech` - TTS com 9+ vozes
 - `elevenlabs_list_voices` - Listar vozes disponíveis
 - `elevenlabs_get_voice_info` - Detalhes de uma voz
+
+**Groq (2 tools):** ⭐ **NEW v2.0**
+- `groq_transcribe_audio` - Whisper Large v3 (STT - 3x mais rápido que OpenAI)
+- `groq_transcribe_batch` - Batch transcription (múltiplos arquivos)
 
 ### 📅 Scheduler/Cron (3 tools) ✨ NEW v2.0
 - `schedule_task` - Agendar tarefas (relative time ou cron)
@@ -206,6 +210,32 @@ Níveis de confiança por usuário:
 - Isolated runtimes
 - Comando: `!create-bot`
 
+### 13. Auto-Rollback ✨ v2.0
+- Health monitoring pós-deployment (K8s + app metrics)
+- Auto-rollback em degradação detectada
+- Discord alerts (degradation, rollback, success)
+- Baseline comparison (error rate, response time, CPU, memory)
+- Configurable thresholds and duration
+- Zero downtime protection
+
+### 14. Skills Library ✨ v2.0
+- Aprendizado contínuo (salva implementações bem-sucedidas)
+- Semantic search (OpenAI embeddings, cosine similarity)
+- Reusa código comprovado (62%+ reuse rate esperado)
+- Success rate tracking (usage/success/failure)
+- Tag-based organization
+- SQLite persistence
+
+### 15. Voice-to-Voice Conversation ✨ v2.0
+- Conversa FLUIDA por voz no Discord
+- Detecção automática de silêncio (VAD)
+- Speech-to-Text (Groq Whisper v3 - 95% accuracy)
+- Text-to-Speech (ElevenLabs multilingual)
+- Loop contínuo - conversa natural sem reativar
+- Multi-turn conversation com histórico
+- Custo: ~$0.034 por minuto de conversa
+- Comando: "entrar no canal" = bot ouve e responde automaticamente
+
 ---
 
 ## 🏗️ Infraestrutura
@@ -286,11 +316,16 @@ Níveis de confiança por usuário:
 #### RoundTable
 - `!roundtable [question]` - Análise multi-agente
 
-#### Voice (Discord)
-- `entrar no canal de voz` - Conectar ao voice
-- `sair do canal de voz` - Desconectar
-- `fala [texto]` - Text-to-speech
-- `vozes` - Listar vozes disponíveis
+#### Voice-to-Voice (Discord) ⭐ **NEW v2.0**
+- `entrar no canal` / `conversa de voz` - **CONVERSA FLUIDA POR VOZ**
+  - Bot entra no canal e OUVE você falar
+  - Detecta silêncio automaticamente (1s)
+  - Transcreve com Groq Whisper (STT)
+  - Processa com Claude Opus 4
+  - Responde em voz (ElevenLabs TTS)
+  - **Loop contínuo** - continue falando naturalmente!
+- `sair do canal` / `desconectar` - Bot sai do canal
+- `fala [texto]` - Text-to-speech simples (sem conversa)
 
 #### Admin (Owner only)
 - `/admin [comando]` - Comandos administrativos
@@ -367,7 +402,7 @@ Níveis de confiança por usuário:
 - Relative time + cron expressions
 
 ### 6. Tool Rich
-- 55+ tools integradas
+- 57+ tools integradas
 - Multimodal (text, image, video, audio)
 - Browser automation
 - GitHub integration
@@ -398,9 +433,11 @@ Níveis de confiança por usuário:
 - Replicate: Pay-per-use (~$10-50/mês)
 - OpenAI (DALL-E, Whisper): Pay-per-use (~$10-30/mês)
 - ElevenLabs: Pay-per-use (~$5-20/mês)
+- **Groq (Whisper v3):** $0.11/hour audio (~$5-15/mês) ⭐ **NEW**
 - Brave Search: $0.25/1k queries (~$5/mês)
 
-**Total Operacional Estimado:** ~$110-190/mês
+**Total Operacional Estimado:** ~$115-210/mês
+**Voice-to-Voice:** ~$0.034 por minuto de conversa ($2/hora)
 
 ---
 
@@ -415,9 +452,9 @@ Níveis de confiança por usuário:
 
 ### Capability Limitations:
 1. **Training Data:** Desatualizada (45-60 dias) - Sempre usar tools para dados recentes!
-2. **No Real-time Learning:** Não aprendo automaticamente (v2.0 planned)
-3. **No Voice Recognition:** Só TTS, não STT nativo
-4. **No Video Generation:** Só via Replicate (limited)
+2. **Real-time Learning:** Parcial via Skills Library (reuso de código), sem auto-retrain do modelo
+3. **Video Generation:** Limitado via Replicate
+4. **Voice-to-Voice:** Requer canal Discord (não funciona em texto)
 
 ### Security Limitations:
 1. **Approval Required:** Comandos destrutivos precisam aprovação
@@ -506,7 +543,7 @@ Níveis de confiança por usuário:
 **O que faço:** Automação, decisões, scheduling, geração de conteúdo, self-improvement  
 **Onde estou:** Discord, Slack, Telegram, WhatsApp (24/7 no GKE)  
 **Modelo:** Claude Opus 4 + Smart Router (Gemini, Claude, Moonshot)  
-**Ferramentas:** 55+ tools (files, shell, web, browser, GitHub, multimodal, scheduling)  
+**Ferramentas:** 57+ tools (files, shell, web, browser, GitHub, multimodal, scheduling)  
 **Diferenciais:** Cost optimization (92% economia), multi-platform, self-improving, decision intelligence  
 **Custo:** ~$110-190/mês total  
 **Repositório:** https://github.com/opencellcw/ulf-warden
@@ -516,5 +553,5 @@ Níveis de confiança por usuário:
 ---
 
 **Última atualização:** 12 Fevereiro 2026  
-**Versão:** 2.0 (Decision Intelligence + Scheduler + Bot Factory + Self-Improvement)  
+**Versão:** 2.0 (Decision Intelligence + Scheduler + Bot Factory + Self-Improvement + Auto-Rollback + Skills Library + Voice-to-Voice)  
 **Status:** ✅ Production Ready

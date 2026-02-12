@@ -118,6 +118,17 @@ export async function uploadMediaToDiscord(
         filename,
         size: `${(fileBuffer.length / 1024).toFixed(2)}KB`
       });
+
+      // 🧹 Auto-cleanup: Delete temporary audio file after successful upload
+      try {
+        fs.unlinkSync(media.filePath);
+        log.info('[MediaHandler] Temporary audio file deleted', { path: media.filePath });
+      } catch (cleanupError) {
+        log.warn('[MediaHandler] Failed to delete temporary file', {
+          path: media.filePath,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
+        });
+      }
     } else {
       throw new Error('No file path or URL provided');
     }

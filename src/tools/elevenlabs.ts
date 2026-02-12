@@ -185,7 +185,12 @@ async function textToSpeech(client: ElevenLabsClient, input: any): Promise<strin
       size: `${fileSize}KB`
     });
 
-    return `✅ Audio generated successfully!\n\nFile: ${filepath}\nSize: ${fileSize}KB\nVoice: ${voice}\nModel: ${model}\n\nText: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`;
+    // Return path in format that Discord handler can detect and upload
+    return `🎤 **Áudio gerado com a voz do ${voice}!**\n\n` +
+           `File: ${filepath}\n` +
+           `Size: ${fileSize}KB\n\n` +
+           `✨ _O arquivo será enviado automaticamente como anexo no Discord._\n\n` +
+           `Text: "${text.substring(0, 150)}${text.length > 150 ? '...' : ''}"`;
   } catch (error: any) {
     log.error('[ElevenLabs] Speech generation failed', { error: error.message });
     throw error;

@@ -13,6 +13,12 @@ import { voiceManager } from '../voice/discord-voice';
 import { ttsGenerator } from '../voice/tts-generator';
 import { sendStatusReport, handleStatusButtons } from '../utils/discord-status-example';
 import { parseAgentResponse, AgentResponseDecision } from '../types/agent-response';
+import {
+  analyzeMessage,
+  shouldReactOnly,
+  validateAgentDecision,
+  buildSmartReactionPrompt
+} from '../types/smart-reaction';
 import { contactManager } from '../identity/contacts';
 import { trustManager } from '../identity/trust-manager';
 import { rotateKey, checkKeyStatus } from '../commands/rotate-key';
@@ -1266,7 +1272,19 @@ export async function startDiscordHandler() {
       const useAgent = needsAgent(text);
 
       // Prepare context with identity info
-      const contextMessage = `${identityContext}\n\n${text}`;
+      // 🧠 Smart Reaction System: Analyze message first
+      const messageAnalysis = analyzeMessage(text);
+      
+      log.info('[Discord] Message analysis', {
+        isQuestion: messageAnalysis.isQuestion,
+        isRequest: messageAnalysis.isRequest,
+        needsResponse: messageAnalysis.needsDetailedResponse,
+        sentiment: messageAnalysis.sentiment
+      });
+
+      // Add smart reaction rules to context
+      const smartRules = buildSmartReactionPrompt();
+      const contextMessage = `${identityContext}\n\n${smartRules}\n\n${text}`;
 
       let response: string;
       if (useAgent) {
@@ -1283,6 +1301,25 @@ export async function startDiscordHandler() {
           userMessage: contextMessage,
           history,
         });
+      }
+
+      // 🔍 Validate agent decision (prevent wrong reactions)
+      const validation = validateAgentDecision(text, response);
+      
+      if (!validation.valid) {
+        log.warn('[Discord] Invalid agent decision - forcing text response', {
+          reason: validation.reason,
+          originalResponse: response
+        });
+        
+        // Force re-generation with emphatic prompt
+        const forcePrompt = `${identityContext}\n\n**CRITICAL: User asked a ${
+          messageAnalysis.isQuestion ? 'QUESTION' : 'REQUEST'
+        }. You MUST provide a detailed TEXT response. DO NOT use REACT:emoji!**\n\n${text}`;
+        
+        response = useAgent
+          ? await runAgent({ userId, userMessage: forcePrompt, history, trustLevel })
+          : await chat({ userId, userMessage: forcePrompt, history });
       }
 
       // Parse response to determine action (reply, react, or no_reply)
@@ -1302,7 +1339,27 @@ export async function startDiscordHandler() {
       }
 
       if (decision.type === 'react') {
-        // React with emoji
+        // 🛡️ Safety check: NEVER react to questions/requests
+        if (messageAnalysis.needsDetailedResponse) {
+          log.warn('[Discord] Blocked reaction to question/request - converting to text', {
+            originalEmoji: decision.emoji,
+            isQuestion: messageAnalysis.isQuestion,
+            isRequest: messageAnalysis.isRequest
+          });
+          
+          // Convert to generic acknowledgment text
+          const ackText = messageAnalysis.isQuestion
+            ? "Let me help you with that question."
+            : "I understand. Let me get that information for you.";
+          
+          await message.reply(ackText);
+          
+          await sessionManager.addMessage(userId, { role: 'user', content: text });
+          await sessionManager.addMessage(userId, { role: 'assistant', content: ackText });
+          return;
+        }
+        
+        // React with emoji (only for acknowledgments)
         if (decision.emoji) {
           try {
             await message.react(decision.emoji);
@@ -1327,7 +1384,24 @@ export async function startDiscordHandler() {
       }
 
       // Default: reply with text
-      const textResponse = decision.content || response;
+      let textResponse = decision.content || response;
+
+      // 🎵 Audio Stream Interceptor: Block ElevenLabs stream URLs
+      // If Claude returns a stream URL, reject and educate
+      if (textResponse.includes('api.elevenlabs.io') && textResponse.includes('/stream')) {
+        log.warn('[Discord] Blocked ElevenLabs stream URL in response', {
+          responsePreview: textResponse.substring(0, 100)
+        });
+        
+        // Replace with proper instruction
+        textResponse = textResponse.replace(
+          /https?:\/\/api\.elevenlabs\.io\/v1\/text-to-speech\/[^/\s]+\/stream/gi,
+          '❌ _Stream URL blocked - Bot must use elevenlabs_text_to_speech tool to send audio files_'
+        );
+        
+        // Add helpful note
+        textResponse += `\n\n📌 **Nota:** Para enviar áudio, use o tool \`elevenlabs_text_to_speech\` que salva e envia o arquivo automaticamente!`;
+      }
 
       await sessionManager.addMessage(userId, { role: 'user', content: text });
       await sessionManager.addMessage(userId, { role: 'assistant', content: textResponse });

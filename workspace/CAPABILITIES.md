@@ -10,7 +10,7 @@ Ulf tem acesso total ao sistema onde ele roda. Pode executar comandos, criar arq
 **Ferramentas:** 55+ tools integradas  
 **Modelo Principal:** Claude Opus 4 com Smart Router  
 **Plataformas:** Discord, Slack, Telegram, WhatsApp  
-**Features v2.0:** Decision Intelligence, Scheduler/Cron, Bot Factory, Self-Improvement
+**Features v2.0:** Decision Intelligence, Scheduler/Cron, Bot Factory, Self-Improvement, Auto-Rollback, Skills Library, Voice-to-Voice
 
 ---
 
@@ -226,6 +226,64 @@ Resultado:
 !delete-bot [nome] → Remover bot
 ```
 
+### 🎙️ Voice-to-Voice Conversation ⭐ **NEW v2.0**
+**Conversa FLUIDA e NATURAL por voz no Discord!**
+
+O bot entra no canal de voz e mantém uma conversa contínua:
+
+**Como funciona:**
+1. 🎧 Bot entra no canal quando você pede
+2. 🎤 Detecta automaticamente quando você para de falar (1s silêncio)
+3. 📝 Transcreve sua fala (Groq Whisper v3 - 95% accuracy)
+4. 🤖 Processa com Claude Opus 4
+5. 🔊 Gera resposta em áudio (ElevenLabs TTS)
+6. 📢 Fala a resposta no canal
+7. 🔄 **Loop contínuo** - Volta a ouvir automaticamente!
+
+**Comandos:**
+```
+"Ulf, entrar no canal" ou "conversa de voz"
+→ Bot entra e começa a ouvir
+
+Fale normalmente:
+"Oi Ulf, como você está?"
+→ Bot responde em voz: "Oi! Estou ótimo! E você?"
+
+Continue falando:
+"Me explica como funciona Docker"
+→ Bot responde por voz e continua ouvindo
+
+"Sair do canal"
+→ Bot desconecta
+```
+
+**Features:**
+- ✅ Conversa natural (sem precisar reativar)
+- ✅ Multi-turn (mantém contexto)
+- ✅ Detecção automática de silêncio (VAD)
+- ✅ Suporte PT-BR e 30+ idiomas
+- ✅ Custo baixo: ~$0.034/minuto ($2/hora)
+
+**Stack:**
+- **STT:** Groq Whisper Large v3 ($0.11/hour audio)
+- **TTS:** ElevenLabs Multilingual v2 ($0.30/1k chars)
+- **LLM:** Claude Opus 4 (respostas concisas)
+
+**Exemplo de conversa real:**
+```
+Você: "Ulf, qual a capital do Brasil?"
+Bot: "A capital do Brasil é Brasília!"
+
+Você: "E quantos habitantes tem?"
+Bot: "Brasília tem cerca de 3 milhões de habitantes!"
+        ^-- Bot lembra do contexto
+
+Você: "Legal! Me fala mais sobre a cidade"
+Bot: "Brasília foi inaugurada em 1960..."
+```
+
+**= CONVERSA COMO SE FOSSE COM HUMANO! 🗣️**
+
 ### 🎯 Smart Router (Cost Optimization)
 **AI-powered LLM selection** para cada tarefa.
 
@@ -427,7 +485,7 @@ Ulf usa read_file() em logs ou tail -f
 **LLMs:** Claude Opus 4, Gemini 2.5 Flash/Pro, Moonshot Kimi K2.5  
 **Custo:** $110-190/mês (92% economia com Smart Router)  
 **Networking:** Cloudflare Tunnel (bypass firewall)  
-**Features v2.0:** Decision Intelligence, Scheduler, Bot Factory, Self-Improvement
+**Features v2.0:** Decision Intelligence, Scheduler, Bot Factory, Self-Improvement, Auto-Rollback, Skills Library, Voice-to-Voice
 
 **Ulf é um agente AI autônomo multi-plataforma com:**
 - 🧠 Capacidade de análise multi-perspectiva
