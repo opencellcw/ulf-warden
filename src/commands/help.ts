@@ -64,6 +64,17 @@ const COMMANDS: CommandDoc[] = [
     ],
     category: 'general'
   },
+  {
+    name: 'copystyle',
+    description: '🎭 AI learns YOUR writing style and writes exactly like you',
+    usage: '/copystyle <status|write|analyze>',
+    examples: [
+      '/copystyle status',
+      '/copystyle write email to team about new feature',
+      '/copystyle analyze'
+    ],
+    category: 'general'
+  },
 
   // Key Management
   {
