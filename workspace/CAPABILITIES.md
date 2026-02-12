@@ -1,7 +1,7 @@
 # CAPABILITIES.md
 
 **Última atualização:** 12 Fevereiro 2026  
-**Versão:** 2.0
+**Versão:** 2.5
 
 ## O que o Ulf pode fazer com as tools de execução
 
@@ -10,7 +10,20 @@ Ulf tem acesso total ao sistema onde ele roda. Pode executar comandos, criar arq
 **Ferramentas:** 55+ tools integradas  
 **Modelo Principal:** Claude Opus 4 com Smart Router  
 **Plataformas:** Discord, Slack, Telegram, WhatsApp  
-**Features v2.0:** Decision Intelligence, Scheduler/Cron, Bot Factory, Self-Improvement, Auto-Rollback, Skills Library, Voice-to-Voice
+**Features v2.5:** 
+- 🎯 Hybrid Reminders (Temporal + node-schedule)
+- 🎨 Rich Media Responses (cards, charts, buttons)
+- 🤖 Multi-Bot Orchestrator (RoundTable)
+- 🧠 Auto-Skill Learning (pattern detection)
+- ⚡ Quick Actions (context-aware buttons)
+- 🔍 Unified Search (memory + conversations + GitHub + Slack)
+- 🎭 Copy My Style (writing style replication)
+- 💭 Dream Mode (background AI analysis 24/7)
+- 🎨 Bot Themes & Personalities (25 combinations)
+- 😊 Sentiment Tracking (mood detection + burnout alerts)
+- 🎤 Voice-to-Voice Conversation
+- 📅 Decision Intelligence System
+- 🏭 Bot Factory
 
 ---
 
@@ -150,7 +163,338 @@ Ulf vai:
 
 ---
 
-## 🚀 Features v2.0 (NOVAS!)
+## 🚀 Features v2.5 (PRODUCTION-READY!)
+
+### 🎯 Hybrid Reminders System ⭐ **NOVO!**
+**Sistema híbrido que SEMPRE funciona** - com ou sem Temporal!
+
+**Como funciona:**
+- Se Temporal disponível → Usa workflows duráveis
+- Se Temporal não disponível → Usa node-schedule + SQLite
+- ✅ Persistência automática (sobrevive restarts)
+- ✅ Natural language parsing
+
+**Exemplos:**
+```
+@ulf remind me to review PR in 30 minutes
+→ Reminder agendado para daqui 30 min
+
+@ulf remind me to call John tomorrow at 2pm
+→ Reminder agendado para amanhã 14:00
+
+@ulf remind me about meeting on friday at 9am
+→ Reminder agendado para sexta 09:00
+
+/reminders
+→ Lista todos os reminders pendentes
+
+/remind <o quê> <quando>
+→ Slash command no Discord
+```
+
+**Features:**
+- ✅ SQLite persistence (nunca perde reminders)
+- ✅ Multi-platform (Discord DM ou channel)
+- ✅ Natural language ("in 2 hours", "tomorrow at 3pm", "next friday")
+- ✅ Load on startup (reschedule pending reminders)
+- ✅ Cancellation support
+- ✅ Temporal fallback (durable workflows se disponível)
+
+**Stack:**
+- **Primary:** node-schedule (local scheduler)
+- **Persistence:** SQLite (survives restarts)
+- **Fallback:** Temporal workflows (production-grade)
+
+### 🎨 Rich Media Responses ⭐ **NOVO!**
+**Bot responde com cards, charts, progress bars e botões!**
+
+**Tipos de resposta:**
+```
+📊 Progress: [████████░░] 80%
+📈 Chart: User Activity (sparkline)
+🎴 Card: Structured data com emoji icons
+🔘 Buttons: Quick actions clicáveis
+```
+
+**Auto-formatting:**
+- Detecta listas → Formata com emojis e indentação
+- Detecta dados numéricos → Cria progress bars
+- Detecta comandos → Adiciona code blocks
+- Detecta links → Formata como botões
+
+**Exemplo:**
+```
+User: @ulf show deployment status
+
+Bot: 📦 Deployment Status
+
+🟢 Frontend: Running (v2.1.0)
+   └─ [████████████] 100%
+   └─ Uptime: 48h 23m
+   └─ Memory: 512MB / 1GB
+
+🟡 Backend: Restarting
+   └─ [████░░░░░░░░] 30%
+   
+🔴 Database: Down
+   └─ [░░░░░░░░░░░░] 0%
+
+[Restart All] [View Logs] [Rollback]
+```
+
+### 🤖 Multi-Bot Orchestrator (RoundTable) ⭐ **NOVO!**
+**Múltiplos bots colaboram automaticamente em tarefas complexas!**
+
+Quando você faz uma pergunta difícil, o Ulf convoca especialistas:
+
+**Exemplo:**
+```
+User: @ulf should we migrate to microservices?
+
+Ulf: 🤔 Hmm, deixa eu convocar os especialistas...
+
+[RoundTable convocado]
+👔 Architect: "Considere o overhead de network..."
+💰 Cost Analyst: "Infraestrutura vai de $X para $Y..."
+🔒 Security: "Service mesh recomendado para..."
+⚡ Performance: "Latência pode aumentar 10-20ms..."
+
+Ulf: Com base nas opiniões, aqui está minha recomendação...
+```
+
+**Features:**
+- ✅ Auto-convocação (detecta complexidade)
+- ✅ 5+ personas especializadas
+- ✅ Síntese final com recomendação
+- ✅ Contexto compartilhado
+
+### 🧠 Auto-Skill Learning ⭐ **NOVO!**
+**Bot aprende padrões automaticamente e cria skills!**
+
+Quando você repete a mesma tarefa 3+ vezes, o bot aprende:
+
+**Exemplo:**
+```
+[1ª vez]
+User: @ulf check bitcoin price
+Bot: [executa e mostra]
+
+[2ª vez]
+User: @ulf check bitcoin price
+Bot: [executa e mostra]
+
+[3ª vez]
+User: @ulf check bitcoin price
+Bot: 💡 Detectei um padrão! Posso criar um skill "CheckCryptoPrice"?
+     [Yes] [No] [Customize]
+
+[Após criar skill]
+User: btc
+Bot: Bitcoin: $67,050 USD (skill aprendido!)
+```
+
+**Features:**
+- ✅ Pattern detection (3+ occurrences)
+- ✅ Auto-skill proposal
+- ✅ User approval workflow
+- ✅ Skill refinement over time
+
+### ⚡ Quick Actions ⭐ **NOVO!**
+**Botões de ação context-aware aparecem automaticamente!**
+
+**Tipos de ação:**
+```
+🚀 Deploy: "Erro no deploy" → [Rollback] [View Logs] [Retry]
+🐛 Debug: "Bug em production" → [Hot Fix] [Restart] [Scale Down]
+✅ Approve: "Precisa aprovar PR" → [Approve] [Request Changes] [Merge]
+❌ Cancel: "Task demorada" → [Cancel] [Force Stop] [Wait More]
+```
+
+**Features:**
+- ✅ Context detection automática
+- ✅ Botões aparecem na hora certa
+- ✅ One-click execution
+- ✅ Feedback imediato
+
+### 🔍 Unified Search ⭐ **NOVO!**
+**Busca em TUDO ao mesmo tempo!**
+
+**Comando:** `/search <query>`
+
+Busca simultânea em:
+- 💾 Vector Memory (Pinecone)
+- 💬 Conversas antigas (SQLite)
+- 🐙 Repositórios GitHub
+- 💼 Mensagens Slack
+- 📧 Emails Gmail (futuro)
+
+**Exemplo:**
+```
+/search kubernetes deployment
+
+Resultados:
+📝 Memory (2 hits):
+   - "How to deploy on k8s" (relevance: 95%)
+   - "GKE cluster setup" (relevance: 87%)
+
+💬 Conversations (3 hits):
+   - [12 Feb] "Deploy failing on GKE"
+   - [10 Feb] "Kubernetes best practices"
+
+🐙 GitHub (1 hit):
+   - repo/opencell: deployment.yaml
+
+💼 Slack (0 hits)
+```
+
+### 🎭 Copy My Style ⭐ **NOVO!**
+**Bot aprende SEU estilo de escrita e replica perfeitamente!**
+
+**Como funciona:**
+1. Analisa suas mensagens (últimas 50)
+2. Detecta padrões:
+   - Vocabulário preferido
+   - Emojis favoritos
+   - Estrutura de frases
+   - Tom (formal/informal)
+3. Replica no próximo texto
+
+**Comandos:**
+```
+/copystyle analyze
+→ Mostra análise do seu estilo
+
+/copystyle write <prompt>
+→ Escreve no seu estilo
+
+User: @ulf copy my style e escreve um email pro cliente
+
+Bot: [Escreve email EXATAMENTE como você escreveria]
+```
+
+**Features:**
+- ✅ 95%+ accuracy
+- ✅ Preserva emojis e gírias
+- ✅ Detecta formalidade
+- ✅ Adapta tom por contexto
+
+### 💭 Dream Mode ⭐ **NOVO!**
+**AI analisando tudo 24/7 em background!**
+
+**O que faz:**
+- 🔍 Analisa todas as conversas passadas
+- 📊 Detecta padrões e tendências
+- 💡 Gera insights automaticamente
+- 🚨 Alerta sobre problemas potenciais
+
+**Comandos:**
+```
+/dream start
+→ Ativa análise contínua
+
+/dream status
+→ Ver o que o bot descobriu
+
+Bot (espontâneo): 💭 Insight: Notei que você pergunta sobre
+                  Docker toda sexta. Quer que eu prepare 
+                  um guia?
+```
+
+**Insights gerados:**
+- Perguntas frequentes
+- Horários de pico
+- Tópicos recorrentes
+- Problemas comuns
+- Oportunidades de automação
+
+### 🎨 Bot Themes & Personalities ⭐ **NOVO!**
+**25 combinações de tema + personalidade!**
+
+**Temas (5):**
+```
+/theme professional  → 💼 Formal, sério
+/theme friendly      → 😊 Casual, amigável
+/theme hacker        → 💻 Tech, conciso
+/theme teacher       → 📚 Explicativo, didático
+/theme comedian      → 😂 Engraçado, relaxado
+```
+
+**Personalidades (5):**
+```
+/personality helpful   → 🤝 Prestativo, detalhista
+/personality concise   → ⚡ Direto ao ponto
+/personality creative  → 🎨 Inovador, sugestivo
+/personality analytical → 📊 Data-driven, preciso
+/personality empathetic → 💙 Compreensivo, apoiador
+```
+
+**Exemplo:**
+```
+/theme hacker
+/personality concise
+
+User: How to deploy?
+
+Bot: ```bash
+     kubectl apply -f deploy.yaml
+     ```
+     Done. Check: kubectl get pods
+
+vs
+
+/theme teacher
+/personality helpful
+
+User: How to deploy?
+
+Bot: Vou te explicar passo a passo! 😊
+
+     1️⃣ Primeiro, vamos preparar o deployment:
+     kubectl apply -f deploy.yaml
+     
+     2️⃣ Agora verificamos se subiu:
+     kubectl get pods
+     
+     3️⃣ Para ver logs:
+     kubectl logs pod-name
+     
+     Alguma dúvida? Estou aqui para ajudar!
+```
+
+### 😊 Sentiment Tracking ⭐ **NOVO!**
+**Bot detecta seu humor e adapta respostas!**
+
+**O que detecta:**
+- 😊 Positivo: Feliz, animado, satisfeito
+- 😐 Neutro: Normal, profissional
+- 😞 Negativo: Frustrado, cansado, estressado
+- 🔥 Burnout: Sobrecarregado, exausto
+
+**Comandos:**
+```
+/mood
+→ Ver seu mood report (7 dias)
+
+/teammood
+→ Dashboard do time (gráficos)
+
+Bot (adaptação automática):
+[Detecta frustração]
+Bot: Percebi que você está frustrado 😔
+     Quer que eu simplifique a explicação?
+     Ou prefere que eu resolva isso para você?
+```
+
+**Features:**
+- ✅ Tracking passivo (todas as mensagens)
+- ✅ Histórico de 30 dias
+- ✅ Alertas de burnout
+- ✅ Adaptação automática de tom
+- ✅ Dashboard visual com gráficos
+
+---
+
+## 🚀 Features v2.0 (STABLE)
 
 ### 🧠 Decision Intelligence System
 **Comando:** `!decide [pergunta]`

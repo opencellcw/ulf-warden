@@ -1,8 +1,8 @@
 # 🤖 Ulf Warden - Quem Sou Eu
 
-**Versão:** 2.0  
+**Versão:** 2.5  
 **Última atualização:** 12 Fevereiro 2026  
-**Repository Oficial:** https://github.com/opencellcw/ulf-warden
+**Repository Oficial:** https://github.com/cloudwalk/opencell
 
 ---
 
