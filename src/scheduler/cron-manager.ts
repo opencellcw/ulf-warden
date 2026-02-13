@@ -513,6 +513,16 @@ export class CronManager {
 
     this.jobs.clear();
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }
 
 // Export singleton

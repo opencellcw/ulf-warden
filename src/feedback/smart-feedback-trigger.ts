@@ -307,6 +307,16 @@ export class SmartFeedbackTrigger {
       avgScore: Math.round(avgScore?.avg || 0),
     };
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }
 
 // Singleton

@@ -560,4 +560,14 @@ ${proposal.files.map(f => `- ${f}`).join('\n')}
       title: proposal.title,
     });
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }

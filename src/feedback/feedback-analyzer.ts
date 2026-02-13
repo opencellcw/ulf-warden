@@ -534,6 +534,16 @@ Respond in JSON:
       intervalManager.clear('feedback-analyzer');
     }
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }
 
 // Singleton

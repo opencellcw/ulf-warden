@@ -131,6 +131,16 @@ export class BotRegistry {
       lastHealthCheck: row.last_health_check
     };
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }
 
 // Singleton instance

@@ -579,6 +579,16 @@ export class InteractiveFeedback {
       improvementProposalId: r.improvement_proposal_id,
     }));
   }
+
+  /**
+   * Close database connection and cleanup resources
+   */
+  close(): void {
+    if (this.db) {
+      this.db.close();
+    }
+  }
+
 }
 
 // Singleton
