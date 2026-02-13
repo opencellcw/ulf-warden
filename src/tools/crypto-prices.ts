@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import axios from 'axios';
 import { log } from '../logger';
 
+import { asyncSafe } from '../utils/async-helpers';
 /**
  * Multi-Source Cryptocurrency Price Checker
  *
@@ -73,13 +74,22 @@ export async function executeCryptoPriceTool(
   toolName: string,
   toolInput: any
 ): Promise<string> {
+  try {
+
   if (toolName === 'get_crypto_price') {
     return await getCryptoPrice(toolInput);
   }
   throw new Error(`Unknown crypto price tool: ${toolName}`);
+
+  } catch (error: any) {
+    log.error('[executeCryptoPriceTool] Error', { error: error.message });
+    throw error;
+  }
 }
 
 async function getCryptoPrice(input: any): Promise<string> {
+  try {
+
   const { symbol = 'btc', currency = 'usd' } = input;
   const symbolLower = symbol.toLowerCase();
   const currencyLower = currency.toLowerCase();
@@ -132,6 +142,11 @@ async function getCryptoPrice(input: any): Promise<string> {
   });
 
   return formatResult(result, currency);
+
+  } catch (error: any) {
+    log.error('[getCryptoPrice] Error', { error: error.message });
+    throw error;
+  }
 }
 
 async function fetchCoinGeckoPrice(symbol: string, currency: string): Promise<PriceSource> {
@@ -266,9 +281,16 @@ async function fetchBinancePrice(symbol: string, currency: string): Promise<Pric
 }
 
 async function getConversionRate(from: string, to: string): Promise<number> {
+  try {
+
   // Simple currency conversion (could use a real API if needed)
   // For now, just return 1.0 as most crypto APIs return USD
   return 1.0;
+
+  } catch (error: any) {
+    log.error('[getConversionRate] Error', { error: error.message });
+    throw error;
+  }
 }
 
 function calculateMedian(numbers: number[]): number {

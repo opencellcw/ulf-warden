@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { execSync, spawn, ChildProcess } from 'child_process';
 import { log } from '../logger';
 
+import { asyncSafe } from '../utils/async-helpers';
 // Store managed processes
 const managedProcesses = new Map<string, ManagedProcess>();
 
@@ -214,6 +215,8 @@ async function processStart(input: any): Promise<string> {
 }
 
 async function processList(input: any): Promise<string> {
+  try {
+
   if (managedProcesses.size === 0) {
     return 'No managed processes running.';
   }
@@ -236,6 +239,11 @@ async function processList(input: any): Promise<string> {
   }
 
   return lines.join('\n');
+
+  } catch (error: any) {
+    log.error('[processList] Error', { error: error.message });
+    throw error;
+  }
 }
 
 async function processStop(input: any): Promise<string> {
@@ -265,6 +273,8 @@ async function processStop(input: any): Promise<string> {
 }
 
 async function processRestart(input: any): Promise<string> {
+  try {
+
   const { name } = input;
 
   const managed = managedProcesses.get(name);
@@ -282,9 +292,16 @@ async function processRestart(input: any): Promise<string> {
 
   // Start it again
   return await processStart({ name, command, auto_restart: autoRestart });
+
+  } catch (error: any) {
+    log.error('[processRestart] Error', { error: error.message });
+    throw error;
+  }
 }
 
 async function processLogs(input: any): Promise<string> {
+  try {
+
   const { name, lines = 20 } = input;
 
   const managed = managedProcesses.get(name);
@@ -296,6 +313,11 @@ async function processLogs(input: any): Promise<string> {
   // In a production system, you'd want to store these in a log file or buffer
   return `Log streaming for "${name}" is not yet implemented.\n` +
          `You can use "execute_shell" with: journalctl -u ${name} -n ${lines}`;
+
+  } catch (error: any) {
+    log.error('[processLogs] Error', { error: error.message });
+    throw error;
+  }
 }
 
 function formatUptime(seconds: number): string {

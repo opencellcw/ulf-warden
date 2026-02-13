@@ -3,6 +3,7 @@ import { dailyLogger } from '../memory/daily-logger';
 import { memoryLoader } from '../memory/memory-loader';
 import { log } from '../logger';
 
+import { asyncSafe } from '../utils/async-helpers';
 /**
  * Memory Search Tool
  *
@@ -123,6 +124,8 @@ export async function executeMemoryTool(
   toolName: string,
   toolInput: any
 ): Promise<string> {
+  try {
+
   switch (toolName) {
     case 'memory_search':
       return await executeMemorySearch(toolInput);
@@ -132,5 +135,10 @@ export async function executeMemoryTool(
 
     default:
       return `Unknown memory tool: ${toolName}`;
+  }
+
+  } catch (error: any) {
+    log.error('[executeMemoryTool] Error', { error: error.message });
+    throw error;
   }
 }
