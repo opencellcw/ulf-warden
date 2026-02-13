@@ -3,6 +3,7 @@ import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { log } from '../logger';
 import { dailyLogger } from './daily-logger';
+import { intervalManager } from '../utils/interval-manager';
 
 /**
  * Memory Curator
@@ -28,6 +29,7 @@ export class MemoryCurator {
   private consecutiveFailures: number = 0;
   private maxConsecutiveFailures: number = 3;
   private isDisabled: boolean = false;
+  private intervalId: NodeJS.Timeout | null = null;
 
   constructor(workspacePath: string = './workspace') {
     // Use /data/workspace for K8s (has write permissions)
@@ -331,13 +333,24 @@ Return as JSON:
       log.error('[MemoryCurator] Initial curation failed', { error: err.message });
     });
 
-    // Then run periodically
-    setInterval(async () => {
+    // Then run periodically (managed by intervalManager for automatic cleanup)
+    this.intervalId = intervalManager.register('memory-curator', async () => {
       if (!this.isDisabled) {
         log.info('[MemoryCurator] Running scheduled curation');
         await this.curateMemory(false);
       }
     }, this.curationInterval);
+  }
+
+  /**
+   * Stop automatic curation and cleanup resources
+   */
+  close(): void {
+    if (this.intervalId) {
+      intervalManager.clear('memory-curator');
+      this.intervalId = null;
+      log.info('[MemoryCurator] Auto-curation stopped and interval cleared');
+    }
   }
 
   /**
