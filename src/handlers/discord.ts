@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, Message, VoiceChannel, StageChannel, Partials } from 'discord.js';
+import { getEnv } from '../utils/env-helper';
 import { intervalManager } from '../utils/interval-manager';
 import { chat } from '../chat';
 import { runAgent } from '../agent';
@@ -96,7 +97,7 @@ export async function startDiscordHandler() {
   // 🚀 Initialize Self-Improver (Advanced AI self-modification)
   let selfImprover: SelfImprover | null = null;
   try {
-    const claudeApiKey = process.env.ANTHROPIC_API_KEY;
+    const claudeApiKey = getEnv('ANTHROPIC_API_KEY', '');
     if (claudeApiKey && claudeApiKey !== 'xxx') {
       const anthropic = new Anthropic({ apiKey: claudeApiKey });
       selfImprover = new SelfImprover(anthropic);

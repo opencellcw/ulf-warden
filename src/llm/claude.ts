@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getEnv } from '../utils/env-helper';
 import { LLMProvider, LLMMessage, LLMResponse, LLMOptions } from './interface';
 import { log } from '../logger';
 import { redisCache } from '../core/redis-cache';
@@ -30,13 +31,13 @@ export class ClaudeProvider implements LLMProvider {
       });
 
       this.client = new Anthropic({
-        apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
+        apiKey: apiKey || getEnv('ANTHROPIC_API_KEY', ''),
         baseURL: this.gatewayUrl
       });
     } else {
       log.info('[Claude] Using direct Anthropic API');
       this.client = new Anthropic({
-        apiKey: apiKey || process.env.ANTHROPIC_API_KEY
+        apiKey: apiKey || getEnv('ANTHROPIC_API_KEY', '')
       });
     }
 
@@ -45,7 +46,7 @@ export class ClaudeProvider implements LLMProvider {
 
   async isAvailable(): Promise<boolean> {
     // Check if API key is configured
-    return !!process.env.ANTHROPIC_API_KEY;
+    return !!getEnv('ANTHROPIC_API_KEY', '');
   }
 
   async generate(messages: LLMMessage[], options?: LLMOptions): Promise<LLMResponse> {
@@ -176,7 +177,7 @@ export class ClaudeProvider implements LLMProvider {
         log.warn('[Claude] Gateway failed, attempting fallback to direct API');
         try {
           const fallbackClient = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY
+            apiKey: getEnv('ANTHROPIC_API_KEY', '')
           });
 
           const anthropicMessages = messages
@@ -305,7 +306,7 @@ export class ClaudeProvider implements LLMProvider {
         log.warn('[Claude] Gateway failed on tool call, attempting fallback to direct API');
         try {
           const fallbackClient = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY
+            apiKey: getEnv('ANTHROPIC_API_KEY', '')
           });
 
           const anthropicMessages = messages

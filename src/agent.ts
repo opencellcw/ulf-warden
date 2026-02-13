@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getEnv } from './utils/env-helper';
 import { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { workspace } from './workspace';
 import { TOOLS, executeTool } from './tools';
@@ -117,9 +118,9 @@ export async function runAgent(options: AgentOptions): Promise<string> {
       span?.setAttribute('history.length', history.length);
 
       // Log available media tools
-      const hasReplicate = !!process.env.REPLICATE_API_TOKEN;
-      const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasElevenLabs = !!process.env.ELEVENLABS_API_KEY;
+      const hasReplicate = !!getEnv('REPLICATE_API_TOKEN', '');
+      const hasOpenAI = !!getEnv('OPENAI_API_KEY', '');
+      const hasElevenLabs = !!getEnv('ELEVENLABS_API_KEY', '');
 
       log.info('[Agent] Starting agent with tool support', {
         userId,
